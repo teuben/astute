@@ -1,0 +1,13 @@
+# for (t)csh: source this file
+
+setenv ASTUTE @ASTUTE@
+
+set path=($ASTUTE/bin $path)
+rehash
+
+
+if ($?PYTHONPATH) then
+  setenv PYTHONPATH .:$ASTUTE/lib:$PYTHONPATH
+else
+  setenv PYTHONPATH .:$ASTUTE/lib
+endif
