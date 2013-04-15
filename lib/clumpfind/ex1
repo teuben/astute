@@ -1,0 +1,4 @@
+; example 1
+.run clfind
+clfind,file='../../data/ros13co',low=0.5,inc=0.5,/log
+exit

@@ -1,0 +1,4 @@
+; example 1
+.run clstats
+clstats,file='../../data/ros13co',/log
+exit
