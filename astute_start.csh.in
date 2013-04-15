@@ -11,3 +11,5 @@ if ($?PYTHONPATH) then
 else
   setenv PYTHONPATH .:$ASTUTE/lib
 endif
+
+setenv GDL_PATH /usr/share/gnudatalanguage/lib/:+$ASTUTE/lib/clumpfind/:
