@@ -11,6 +11,10 @@ from subprocess import Popen, PIPE, STDOUT
 
 class IDL(object):
     def __init__(self,name='gdl'):
+        if name == 'gdl':
+            # poor man's checker
+            # check if /usr/bin/gdl exists, if not, use idl :-(
+            print "GDL"
         self.name = name
         self.cmd = [name]
         print "IDL(%s)" % name
@@ -41,8 +45,6 @@ class IDL(object):
             for line in lines:
                 print line
         
-
-
 if __name__ == "__main__":
     # testing
     x = IDL()
@@ -50,5 +52,6 @@ if __name__ == "__main__":
     cmds=['print,1','print,1+1']
     x.run(cmds)
     #
-    x.setcmd(['grep','f'])
-    x.run(['one','two','three','four','five','six'])
+    if False:
+        x.setcmd(['grep','f'])
+        x.run(['one','two','three','four','five','six'])
