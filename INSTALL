@@ -11,3 +11,18 @@ you should prepare it for your shell:
   ./configure
   source astute_start.csh
 
+
+0) make sure you have python with astropy, ATpy, asciitable etc. installed.
+   see opt/README for optional things you might like to borrow
+
+
+1) prepare a miriad version of the small benchmark cube (you need MIRIAD for this)
+
+   cd data
+   fits in=ros13co.fits out=ros13co.mir op=xyin
+
+
+2) cd $ASTUTE/lib
+   ./clumpfind.py mir    (needs MIRIAD)
+   ./clumpfind.py idl    (only runs under GDL now, although known to run in idl)
+   ./clumpfind.py den    (you'll need to install dendro-core via $ASTUTE/opt)
