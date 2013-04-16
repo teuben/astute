@@ -1,11 +1,22 @@
 #! /usr/bin/env python
 #
 #  clumpfind wrapper (cf. the 3 in 1 Adam Leroy wrote)
+#  cprops contains  (see also https://github.com/low-sky/cprops)
 #
+#    1) propdecomp (RL2006)
+#    2) eclump (RB2005)
+#    3) clfind (WdGB1994)
+#
+#  dendro needs 2:
+#    https://github.com/low-sky/dendro
+#    https://github.com/low-sky/dendro-core
 
 import sys
 import runidl
 import runsh
+from astrodendro import Dendrogram
+import pyfits
+
 
 class ClumpFind(object):
     """
@@ -46,10 +57,53 @@ class ClumpFind(object):
             cmd=['clfind',fin,'dt=0.5','start=1','nmin=4']
             x.run(cmd)
         if stats:
-            cmd=['clstats',fin,'dist=1600','x=4.4','xy=abs']
+            cmd=['clstats',fin,'dist=-1','xy=abs']
             x.run(cmd)
         # should see 95 clumps
+    def runtest3(self):
+        # dendro
+        array = pyfits.getdata('../data/ros13co.fits')
+        d = Dendrogram.compute(array,min_intensity=0.5,min_npix=4)
+        print "DENDRO: Found %d clumps (leaves)" % len(d.leaves)
+        n = 0
+        nc = 0
+        for l in d.leaves:
+            nc = nc + 1
+            n = n + len(l.f)
+            (mom0,mom1,mom2)=imom(l.f,l.coords)
+            print nc, mom0, mom1, mom2
+        # immask: 60934 out of 100467 pixels are masked as good; 39533 were bad ( 39.35%)
+        print "DENDRO: Found %d assigned pixels" % n
+
+
+        
+def imom(f, xyz):
+    n = len(f)
+    m0 = 0
+    mx1 = 0
+    mx2 = 0
+    my1 = 0
+    my2 = 0
+    mz1 = 0
+    mz2 = 0
+    for i in range(n):
+        m0  = m0  + f[i]
+        mx1 = mx1 + f[i]*xyz[i][0]
+        my1 = my1 + f[i]*xyz[i][1]
+        mz1 = mz1 + f[i]*xyz[i][2]
+        mx2 = mx2 + f[i]*xyz[i][0]*xyz[i][0]
+        my2 = my2 + f[i]*xyz[i][1]*xyz[i][1]
+        mz2 = mz2 + f[i]*xyz[i][2]*xyz[i][2]
+    mx1 = mx1/m0
+    my1 = my1/m0
+    mz1 = my1/m0
+    mx2 = mx2/m0 - mx1*mx1
+    my2 = my2/m0 - my1*my1
+    mz2 = mz2/m0 - mz1*mz1
+    return ( m0, [mx1,my1,mz1], [mx2,my2,mz2] )
     
+
+
 if __name__ == "__main__":
     # testing
     cf = ClumpFind()
@@ -57,5 +111,7 @@ if __name__ == "__main__":
         cf.runtest1()
     if sys.argv[1] == 'mir':
         cf.runtest2()
+    if sys.argv[1] == 'den':
+        cf.runtest3()
 
 
