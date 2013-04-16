@@ -1,0 +1,6 @@
+
+Apart from the original .pro files for clfind, 
+a few routines from astrolib needed to run clfind 
+have been copied here as well.
+
+This is also known to work under GDL
