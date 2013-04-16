@@ -12,7 +12,14 @@ dendro-core-cb  (the Harvard version; Beaumont)
 
       git clone git://github.com/dendrograms/dendro-core.git dendro-core-cb
 
+or
+      got clone https://github.com/astrofrog/astrodendro	
 
 dendro-core-er  (the Canadian version; Rosolowski)
 
       git clone https://github.com/low-sky/dendro-core dendro-core-er
+
+
+XXXX  (Horace' segmenting package in python)
+
+      ???
