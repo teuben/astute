@@ -7,9 +7,11 @@
 #    2) eclump (RB2005)
 #    3) clfind (WdGB1994)
 #
-#  dendro needs 2:
-#    https://github.com/low-sky/dendro
+#  dendro comes from dendro-core
 #    https://github.com/low-sky/dendro-core
+#  but also note the IDL code in
+#    https://github.com/low-sky/dendro
+
 
 import sys
 import runidl
@@ -63,17 +65,17 @@ class ClumpFind(object):
     def runtest3(self):
         # dendro
         array = pyfits.getdata('../data/ros13co.fits')
-        d = Dendrogram.compute(array,min_intensity=0.5,min_npix=4)
-        print "DENDRO: Found %d clumps (leaves)" % len(d.leaves)
+        d = Dendrogram.compute(array,min_intensity=0.5,min_npix=8,min_delta=0.0)
+        print "# DENDRO: Found %d clumps (leaves)" % len(d.leaves)
         n = 0
         nc = 0
         for l in d.leaves:
             nc = nc + 1
             n = n + len(l.f)
             (mom0,mom1,mom2)=imom(l.f,l.coords)
-            print nc, mom0, mom1, mom2
+            print "%d   %f   %f %f %f    %f %f %f" % (nc, mom0, mom1[0],mom1[1], mom1[2], mom2[0],mom2[1],mom2[2])
         # immask: 60934 out of 100467 pixels are masked as good; 39533 were bad ( 39.35%)
-        print "DENDRO: Found %d assigned pixels" % n
+        print "# DENDRO: Found %d assigned pixels in %d leaves" % (n,len(d.leaves))
 
 
         
@@ -96,7 +98,7 @@ def imom(f, xyz):
         mz2 = mz2 + f[i]*xyz[i][2]*xyz[i][2]
     mx1 = mx1/m0
     my1 = my1/m0
-    mz1 = my1/m0
+    mz1 = mz1/m0
     mx2 = mx2/m0 - mx1*mx1
     my2 = my2/m0 - my1*my1
     mz2 = mz2/m0 - mz1*mz1
