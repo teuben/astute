@@ -14,7 +14,9 @@ class IDL(object):
         if name == 'gdl':
             # poor man's checker
             # check if /usr/bin/gdl exists, if not, use idl :-(
-            print "GDL"
+            if not os.path.exists("/usr/bin/gdl"):
+                print "Warning: gdl not available, switching to idl"
+                name = 'idl'
         self.name = name
         self.cmd = [name]
         print "IDL(%s)" % name
