@@ -2,8 +2,9 @@
 #
 #  example spectral statistics for a fits cube, on which we can base
 #  things like line identification, moment map generation
-#  benchmark:  7'17" on NEMO2
-#              x'xx" on DANTE
+#  benchmark:  4'53" on NEMO2  (7'50" before the ini_moment bug)
+#             10'02" on DANTE  (single) - go figure!
+#              4'59" on DANTA  (double)
 
 set lsb=ngc253_fullcube_compact_LSB_contsub_clean.fits
 set usb=ngc253_fullcube_compact_USB_contsub_clean.fits 
@@ -20,10 +21,10 @@ fitsccd $usb - | ccdstat - bad=0 robust=t planes=0 > USB.tab
 #  2) plot of log(peak,rms,robust_rms) vs. channel
 
 tabmath LSB.tab - '%1,log(%3),log(%6),log(%13)' all |\
- tabplot - 1 2,3,4 line=1,1 xmin=0 xmax=600 ymin=-4 ymax=0 yapp=LSBa.ps/vps
+ tabplot - 1 2,3,4 line=1,1 xmin=0 xmax=600 ymin=-4 ymax=0 color=4,2,3 yapp=LSBa.ps/vcps
 
 tabmath USB.tab - '%1,log(%3),log(%6),log(%13)' all |\
- tabplot - 1 2,3,4 line=1,1 xmin=0 xmax=600 ymin=-4 ymax=0 yapp=USBa.ps/vps
+ tabplot - 1 2,3,4 line=1,1 xmin=0 xmax=600 ymin=-4 ymax=0 color=4,2,3 yapp=USBa.ps/vcps
 
 #  3) plot of rms,robust_rms vs. channel, linear and in color, in mJy
 tabplot LSB.tab 1 6,13 line=1,1 color=2,3 ymin=0 ymax=10 yscale=1000 yapp=LSBb.ps/vcps
