@@ -3,7 +3,7 @@
 #  Initialize various useful tihngs for ASTUTE
 #
 #  1) find out what environment we have and what packages we have
-#
+#  2) provide easy interfaces to run alien packages (shell, idl)
 
 
 import sys, os
@@ -23,7 +23,10 @@ class Astute(object):
             self.have['NEMO']   = os.environ['NEMO']
         if os.environ.has_key('MIR'):
             self.have['MIRIAD'] = os.environ['MIR']
-        if os.environ.has_key('CASADATA'):
+        # CASA is a bit tricky, may not exist in shell, but will in casapy
+        if os.environ.has_key('CASAPATH'):
+            self.have['CASA'] = os.environ['CASAPATH'].split()[0]
+        elif os.environ.has_key('CASADATA'):
             self.have['CASA'] = os.environ['CASADATA']
         if not self.have.has_key('CASA'):
             for p in os.environ['PATH'].split(':'):
@@ -54,6 +57,10 @@ class Astute(object):
                 bad = bad + 1
         if bad:
             raise RuntimeError
+    def nemo(self,cmdline):
+        self.x.run(cmdline.split())
+    def miriad(self,cmdline):
+        self.x.run(cmdline.split())
     def shell(self,cmds):
         self.x.run(cmds)
     def idl(self,cmds):
