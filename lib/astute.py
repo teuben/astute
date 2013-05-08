@@ -9,34 +9,49 @@
 import sys, os
 
 
+
 class Astute(object):
     """
     assert an ASTUTE environment
     """
     def __init__(self):
         self.n = 0
-        self.astute = os.environ.has_key('ASTUTE')
-        self.nemo   = os.environ.has_key('NEMO')
-        self.miriad = os.environ.has_key('MIR')
-        self.casa   = os.environ.has_key('CASADATA')
-        if not self.casa:
+        self.have={}
+        if os.environ.has_key('ASTUTE'):
+            self.have['ASTUTE'] = os.environ['ASTUTE']
+        if os.environ.has_key('NEMO'):
+            self.have['NEMO']   = os.environ['NEMO']
+        if os.environ.has_key('MIR'):
+            self.have['MIRIAD'] = os.environ['MIR']
+        if os.environ.has_key('CASADATA'):
+            self.have['CASA'] = os.environ['CASADATA']
+        if not self.have.has_key('CASA'):
             for p in os.environ['PATH'].split(':'):
                 t = p+'/casapy'
                 if os.path.isfile(t):
-                    self.casa = True
+                    self.have['CASA'] = p
                     print "found ",t
                     break
         have = ""
-        if self.astute:  have = have + "ASTUTE "
-        if self.nemo:    have = have + "NEMO "
-        if self.miriad:  have = have + "MIRIAD "
-        if self.casa:    have = have + "CASA "
+        if self.have.has_key('ASTUTE'):  have = have + "ASTUTE "
+        if self.have.has_key('NEMO'):    have = have + "NEMO "
+        if self.have.has_key('MIRIAD'):  have = have + "MIRIAD "
+        if self.have.has_key('CASA'):    have = have + "CASA "
 
             
         print "Astute initialized [%s]" % have
     def has(self,name):
-        print "ASTUTE: testing for %s" % name
-        print os.environ.has_key(name)
+        print "ASTUTE: testing for %s: %s" % (name, self.have.has_key(name))
+
+    def need(self,names):
+        bad = 0
+        for n in names:
+            if not self.have.has_key(n):
+                print "ASTUTE: %s not present" % n
+                bad = bad + 1
+        if bad:
+            raise RuntimeError
+
     
         
         
@@ -45,4 +60,5 @@ if __name__ == "__main__":
     a = Astute()
     a.has('NEMO')
     a.has('MIRIAD')
+    a.need(['NEMO','MIRIAD'])
 
