@@ -14,7 +14,7 @@ class Astute(object):
     """
     assert an ASTUTE environment
     """
-    def __init__(self):
+    def __init__(self,verbose=False):
         self.n = 0
         self.have={}
         if os.environ.has_key('ASTUTE'):
@@ -39,9 +39,10 @@ class Astute(object):
         if self.have.has_key('CASA'):    have = have + "CASA "
 
             
-        print "Astute initialized [%s]" % have
+        print "Astute initialized [%s]" % have.strip()
     def has(self,name):
-        print "ASTUTE: testing for %s: %s" % (name, self.have.has_key(name))
+        #print "ASTUTE: testing for %s: %s" % (name, self.have.has_key(name))
+        return self.have.has_key(name)
 
     def need(self,names):
         bad = 0
