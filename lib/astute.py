@@ -7,7 +7,7 @@
 
 
 import sys, os
-
+import runsh, runidl
 
 
 class Astute(object):
@@ -38,6 +38,8 @@ class Astute(object):
         if self.have.has_key('MIRIAD'):  have = have + "MIRIAD "
         if self.have.has_key('CASA'):    have = have + "CASA "
 
+        self.x = runsh.shell()
+        self.idl = runidl.IDL()
             
         print "Astute initialized [%s]" % have.strip()
     def has(self,name):
@@ -52,9 +54,10 @@ class Astute(object):
                 bad = bad + 1
         if bad:
             raise RuntimeError
-
-    
-        
+    def shell(self,cmds):
+        self.x.run(cmds)
+    def idl(self,cmds):
+        self.idl.run(cmds)
         
         
 if __name__ == "__main__":
@@ -62,4 +65,6 @@ if __name__ == "__main__":
     a.has('NEMO')
     a.has('MIRIAD')
     a.need(['NEMO','MIRIAD'])
-
+    if a.has('NEMO'):
+        a.shell(['tsf','help='])
+        # a.shell('tsf help=')
