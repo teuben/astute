@@ -1,0 +1,12 @@
+#! /usr/bin/env python
+#
+#   command to assert you have the right environment
+
+import astute
+
+a = astute.Astute()
+
+
+for n in ['NEMO','MIRIAD','CASA']:
+    if not a.has(n):
+        print 'Error: %s environment not loaded' % n
