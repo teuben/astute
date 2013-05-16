@@ -1,6 +1,8 @@
 #
 # casa script, with some MIRIAD and NEMO example calls
-# within casapy, you can simply execute this script
+# To run this:
+#     casapy --nogui -c n253.py
+#
 # it would be useful to find out if there is some "import casa" style,
 # so you don't have to run this from within casapy?
 #
@@ -24,10 +26,7 @@ conf  = ['extended','compact']
 spw   = range(4)
 
 a = astute.Astute()
-a.need(['NEMO','MIRIAD'])
-
-
-once = False               # for testing
+a.need(['NEMO','MIRIAD'])                             # this script needs NEMO & MIRIAD
 
 for c in conf:             # loop over configurations and spectral_windows
     for s in spw:
