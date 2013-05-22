@@ -1,0 +1,60 @@
+#! /bin/csh -f
+#
+#   this creates (by default) a tilted plane in a X-Y-VZ cube,
+#   based on input parameters of a linearly rising rotation
+#   curve (hence keeping it a plane in X-Y-VZ) with selectable
+#   amount of rotation and expansion, for a disk at choosen PA
+#   and INC.
+#   This was merely written to test the shape decomposition
+#   formulae in ccdshape
+#
+#   If diagnostics is on, 3 PGPLOT windows are displayed,
+#   which should be placed on the desktop as a foldout cube.
+#   Although you can do this with xrdb
+#       pgxwin.Win.geometry: WIDTHxHEIGHT+X+Y
+#       pgxwin.Win.iconGeometry: +X+Y
+#   it would probably intrude on your other PGPLOT windows
+#
+#   @todo   the e=1 case actually doesn't work properly. there's still
+#           a math problem in ccdshape (V0.3)
+
+
+set nbody=10000
+set ngrid=64
+set r=1
+set e=0
+set inc=60
+set pa=0
+set potname=harmonic
+set diag=1
+set disk=disk001
+set rmin=0
+set rmax=1
+
+
+foreach arg ($*)
+  set $arg
+end
+
+rm -rf $disk.*
+
+mkdisk - $nbody $potname 0,$r,$r mass=1 rmin=$rmin rmax=$rmax "headline=(r=$r,e=$e,inc=$inc,pa=$pa)" |\
+ snapspin - - omega=$e outflow=t |\
+ snaprotate - $disk.1 $inc,$pa yz 
+
+snapgrid $disk.1 $disk.2 nx=$ngrid ny=$ngrid nz=$ngrid zrange=-2:2
+ccdmom   $disk.2 $disk.3 axis=3 mom=1
+
+ccdshape $disk.2 clip=0  radecvel=t
+hisf $disk.1 | grep mkdisk
+
+
+if ($diag) then
+  # some diag
+  echo X-Y in 121, Y-VZ in 122, X-VZ in /XS pgplot windows
+  snapplot $disk.1 yapp=121/xs
+  snapplot $disk.1 xvar=vz yvar=y yapp=122/xs
+  snapplot $disk.1 xvar=x yvar=vz yapp=123/xs
+  echo X-Y velocities in ds9
+  nds9 $disk.3
+endif
