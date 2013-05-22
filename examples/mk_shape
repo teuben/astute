@@ -45,9 +45,13 @@ mkdisk - $nbody $potname 0,$r,$r mass=1 rmin=$rmin rmax=$rmax "headline=(r=$r,e=
 snapgrid $disk.1 $disk.2 nx=$ngrid ny=$ngrid nz=$ngrid zrange=-2:2
 ccdmom   $disk.2 $disk.3 axis=3 mom=1
 
+#ccdshape $disk.2 clip=0  wcs=f
 ccdshape $disk.2 clip=0  radecvel=t
 hisf $disk.1 | grep mkdisk
 
+#  it's clear that the kin.maj.axis and moment of intertia are not giving same result
+echo -n "Expected dPA kin major axis: "
+nemoinp "atand($e/$r*cosd($inc))"
 
 if ($diag) then
   # some diag
