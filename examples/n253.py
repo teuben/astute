@@ -19,13 +19,17 @@
 #  central box to pick 274,276, 373,350
 
 #   from astute
-import astute
+import astute, alines
 
 tin   = 'ngc253_fullcube_%s_SPW_%d_contsub_clean'     # the long name
 tout  = 'w_%d_%s'                                     # i'm lazy, make a short name
 conf  = ['extended','compact']                        # two configurations
 spw   = [0,1,2,3]                                     # 4 spectral windows
-cfits = True                                          # produce center fits files
+cfits = False                                         # produce center fits files
+Qline = True
+
+
+vlsr = 236    
 
 a = astute.Astute()
 #a.need(['NEMO','MIRIAD'])                             # this script needs NEMO & MIRIAD
@@ -45,6 +49,8 @@ for c in conf:             # loop over configurations and spectral_windows
             imsubimage(oname,oname+'/c',region='box[[274pix,276pix], [373pix,350pix]]')
             exportfits(oname+'/c',oname+'/center.fits')
         print naxis3
+        if Qline:
+            continue
         if a.has('NEMO'):
             a.nemo('fitsccd in=%s.fits out=%s/nemo' % (iname,oname))
             a.nemo('ccdstat %s/nemo bad=0 robust=t planes=0 > %s/ccdstat.tab' % (oname,oname))
