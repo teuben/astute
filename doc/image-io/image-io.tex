@@ -996,5 +996,61 @@ relevant code.
 
 GAIA, MATADOR, AstroMed, SPLAT-VO, Herschel DP, S2Plot, AstroMD. 
 
+\section{Line Identification}
+
+
+The topic of detection and identification of spectal
+lines in a complex source datacube is a complex one,
+of which we offer several solutions. 
+
+\begin{enumerate}
+
+\item
+Measuring a robust RMS in a channel (the intent being that the source is removed from the 
+RMS calculation), and comparing this to the peak value in a channel gives a good 
+indication of a line detection. For channels that do not contain any signal, 
+the PEAK/RMS will typically be around 3 or 4, depending on the size of the map.
+Note that for wide spectral windows, the RMS will vary as function of frequency,
+as well as be biased where strong lines are present (or large areas of the map
+contain sources). The RMS then needs to be interpolated. In NEMO the code
+{\tt ccdstat planes=0} will compute plane based statistics.
+
+\item
+Inspecting a typical position-velocity (PV) cut through a cube, makes it apparent
+that lines can be detected easily by eye, as their shapes are often related
+(this is technically not always true, e.g. recombination lines and molecular lines have
+obviously a different origin and work under different ISM conditions). Nonetheless,
+by using a well known (and identified) line as a template, it can be moved up and down
+along the V axis in a PV diagram, and a cross correlation then results in another method
+to identify lines. The experimental codes are in NEMO as {\tt pvcorr}.
+
+
+\item
+A related and derived case of this
+cross-correllation technique would be to compute the intensity
+weighted velocity within the template, and move this curved line up and down in V and resample
+the PV diagram along this shifted line, then add up all the emission along this curved
+sample, and this will also be an indication of the detected lines.  Obviously this
+method will generate more noise, but will typically have $\sqrt{2}$ more resolution.
+
+\item
+To balance the noise, a certain amount of smoothing to the data will always help
+the identification.
+
+
+\end{enumerate}
+
+Special care has to be given to the calibration of the lines. Given the nature of
+the template and the not well defined velocity of the source, the template line
+must have an assumed identity and known rest frequency  ($f_{1R}$). 
+With a known Doppler velocity $V_{lsr}$ its sky frequency ($f_1$) 
+can then be computed.  Assuming the unknown line is measured ${\Delta f}$ away, one
+can show that the rest frequency of the unknown line is given by:
+
+
+$$
+ f_{2R} = f_{1R} + {  {\Delta f} \over { (1-z) }}
+$$
+
 \end{document}
 
