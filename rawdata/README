@@ -1,9 +1,9 @@
 this directory is meant to contain symbolic links
 to locations on your local system, such that we
 can use references such as
-	rawdata=$MIS/rawdata/n253
+	rawdata=$TAS/rawdata/n253
 in the tas.def files that make the system more portable
-accross machines.
+accross machines. Astute knows has to dereference them.
 Eg.
 
 	cd $TAS/rawdata
