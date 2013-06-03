@@ -1,0 +1,4 @@
+#! /bin/csh -f
+#
+
+$TAS/templates/pipeline/mksteps.py $*

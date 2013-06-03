@@ -1,0 +1,63 @@
+#! /bin/csh -f
+#
+#
+# step0:    setup the pipeline, this could be a fairly generic generic step
+#
+# By default it will use $TAS_DEF, if present, else $TAS/cat/def/
+
+
+#           project is
+unset project
+
+#           ensure there's a dummy tas.def, if none was present
+pipepar -c
+
+#           command line overrides (just a cute CSH trick)
+foreach _arg ($*)
+  set $_arg
+end
+
+if ($?project == 0) then
+  if (-e tas.def) then
+    pipepar -s csh > tmp$$.par;  source tmp$$.par;  rm tmp$$.par
+  endif
+  if ($?project == 0) then
+    echo No project= defined to load parameters from
+    exit 1
+  endif
+endif
+
+if ($?TAS) then
+  if ($?TAS_DEF) then
+     set pdir=$TAS_DEF/$project
+  else
+     set pdir=$TAS/def/$project
+  endif
+  echo PIPESETUP: Creating symlink for def 
+  ln -s $pdir def
+  set def=$pdir/tas.def
+  if (-e $def) then
+    echo PIPESETUP: using $def
+    cat $def >> tas.def
+  else
+    echo PIPESETUP: no $def
+  endif
+  if (`pipepar -e pipefile`) then
+    echo PIPESAVE: retrieving `pipepar -v pipefile`
+    foreach file (`pipepar -v pipefile | awk -F, '{for(i=1;i<=NF;i++)print $i}'`)
+      if (-e $pdir/$file) then
+        cp $pdir/$file .
+      else
+        echo PIPESAVE: $file did not exist
+      endif
+    end
+  endif
+endif
+
+
+#           export any new variables
+
+pipepar project=$project
+
+#           signoff we've successfully finished
+pipepar step=pipesetup

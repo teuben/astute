@@ -1,0 +1,45 @@
+#! /bin/csh -f
+#
+#
+# last (optional) step:    save the state of pipeline in the project def
+#
+
+
+#           make sure project is not yet defined, it needs to be present
+unset project
+
+#           command line overrides (just a cute CSH trick)
+foreach _arg ($*)
+  set $_arg
+end
+
+#           pipeline can override them, and grab old variable
+pipepar -s csh > tmp$$.par;  source tmp$$.par;  rm tmp$$.par
+
+if ($?project) then
+  if ($?TAS_DEF) then
+     set pdir=$TAS_DEF/$project/
+  else
+     set pdir=$TAS/def/$project/
+  endif
+  set def=$pdir/tas.def
+  mkdir -p $pdir
+  if (-e $def) mv $def $def.backup
+  echo PIPESAVE: saving $def
+  sort tas.def > $def
+  if (`pipepar -e pipefile`) then
+    echo PIPESAVE: saving `pipepar -v pipefile`
+    foreach file (`pipepar -l -v pipefile`)
+      if (-e $file) then
+        cp $file $pdir
+      else
+        echo PIPESAVE: $file did not exist
+      endif
+    end
+  endif
+else
+  echo PIPESAVE: project= was not set, cannot save tas.def
+endif
+
+#           signoff we've successfully finished
+pipepar step=pipesave

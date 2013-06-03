@@ -1,0 +1,143 @@
+#! /usr/bin/env python
+#
+#  manage the parameter file and prepare for different shells
+#
+#  @todo:
+#     - be nicer and less confusing to the user if tas.def is missing
+#       usually that means they're not in a pipeline.
+#     - append mode for a parameter
+#     - decide/option to use ' or ", i.e. allow expansion of shell-chars
+#     - using -v and -e could result in -e to return 1, where it should be 0
+#       if the -e variable doesn't exist and the -v variable does
+
+import os, sys
+
+import parfile
+
+
+if 0:
+    p = ParFile(sys.argv[1])
+    p.csh()
+    p.bash()
+    a = p.get('a')
+    print "get:   a=",a
+    p.set("a1",1.2345)
+    p.set("a2","1")
+    p.save('junk.dat')
+    
+
+if __name__ == "__main__":
+    file = "tas.def"
+    shell = "null"
+    keys = []
+    create = False
+    append = False
+    alist  = False
+    #
+    # todo: parse the -s flag: p.csh() vs. p.bash()
+    # todo: parse the -f flag to change filename
+    #
+    if len(sys.argv) == 2 and sys.argv[1] == '-h':
+        print "Usage: %s [-1|2] [-h] [-c] [-l] [-f parfile] [-s shell] [-p fmt] [-d par] [-v par] [-e par] [-z par] [-a] [par=val ...]"
+        sys.exit(0)
+    # loop of the true arguments, first grabbing any options, whenever '=' is seen, done
+    argv = sys.argv[1:]
+    mode = ' '
+    quote = 1
+    pfmt = '%s'
+    while len(argv) > 0:
+        if len(argv) > 1 and argv[0] == '-1':
+            quote = 1
+            argv = argv[1:]
+        if len(argv) > 1 and argv[0] == '-2':
+            quote = 2
+            argv = argv[1:]
+        if len(argv) > 1 and argv[0] == '-l':
+            alist = True
+            argv = argv[1:]
+        if len(argv) > 1 and argv[0] == '-s':
+            shell = argv[1]
+            argv = argv[2:]
+        if len(argv) > 1 and argv[0] == '-f':
+            file = argv[1]
+            argv = argv[2:]
+        if len(argv) > 1 and argv[0] == '-p':
+            pfmt = argv[1]
+            argv = argv[2:]
+        if len(argv) > 1 and argv[0] == '-v':
+            mode = 'v'
+            keys.append(argv[1])
+            argv = argv[2:]
+        if len(argv) > 1 and argv[0] == '-d':
+            mode = 'd'
+            keys.append(argv[1])
+            argv = argv[2:]
+        if len(argv) > 1 and argv[0] == '-e':
+            mode = 'e'
+            keys.append(argv[1])
+            argv = argv[2:]
+        if len(argv) > 1 and argv[0] == '-z':
+            mode = 'z'
+            keys.append(argv[1])
+            argv = argv[2:]
+        if len(argv) > 0 and argv[0] == '-c':
+            create = True
+            argv = argv[1:]
+        if len(argv) > 0 and argv[0] == '-a':
+            append = True
+            argv = argv[1:]
+        if len(argv) > 0 and argv[0].find('=') > 0: break
+    #
+    if create: 
+        os.system('touch %s' % file)
+    else:
+        # file needs to exit
+        if not os.path.exists(file):
+            print "Warning: %s does not exist. 'pipepar -c' creates" % file
+            sys.exit(1)
+    p = parfile.ParFile(file,quote)
+    save = False
+    for arg in argv:
+        kvi = arg.find('=')
+        if kvi < 1:
+            print "Warning: skipping '%s' which appears not a key=val pair" % arg
+        else:
+            save = True
+            p.set(arg[0:kvi],arg[kvi+1:],append)
+    if save: 
+        p.save()
+    if shell=="csh":
+        p.csh()
+    elif shell=="bash":
+        p.bash()
+    elif shell=="sh":
+        p.bash()
+    elif shell=="null":
+        p.null()
+    else:
+        print "# skipping unknown shell: %s" % shell
+    if len(keys) > 0:
+        if mode == 'v':
+            # print all values
+            msg = ""
+            fmt = "%s " % pfmt
+            for key in keys:
+                s = fmt % p.get(key,alist)
+                msg = msg + s
+            print msg.strip()
+        elif mode == 'e':
+            # FEATURE: only look at the first key
+            if p.has(keys[0]):
+                print "1"
+            else:
+                print "0"
+        elif mode == 'd':
+            # delete a key, only first one
+            p.delete(keys[0])
+            p.save()
+        elif mode == 'z':
+            for key in keys:
+                p.sort(key)
+            p.save()
+        
+    

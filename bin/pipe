@@ -1,0 +1,33 @@
+#! /bin/csh -f
+#
+
+
+#     allowed Pipefile's
+set mf=(./Pipefile $ASTUTE/cat/Pipefile)
+
+#     save command line args
+set args=($*)
+
+#     allow -f to override the Pipefile name
+if ($#args > 1) then
+  if (X$args[1] == "X-f") then
+    set mf=($args[2])
+    echo Overriding $mf
+    shift args; shift args 
+  endif
+endif
+
+#     loop over all allowed Pipefiles and grab the first one found
+foreach m ($mf)
+  echo Checking $m
+  if (-e $m) then
+    make -f $m  $args
+    exit $?
+  endif
+end
+
+echo No Pipefile found: $mf
+echo You probably need to run a command such as
+echo '  pipefile $TAS/cat/pipefile.001 > Pipefile'
+echo 'to create one.'
+exit 1

@@ -1,0 +1,149 @@
+#! /usr/bin/env python
+#
+
+# for a set of project directories, run a command
+#
+# -c        also create directory first
+# -n 4      run it in parallel on a set of processors
+# -s skip   skip first few
+# -r dir    use this directory as base for projects
+# -o file   log the output to a file in each project dir
+# -z var    only run project if variable is non-zero
+# -v        verbose (debug)
+# -h        help
+
+import os, sys
+
+import parfile
+
+def help():
+    print "Usage: piperun [-n #procs] [-o logfile] [-c] dirs.txt cmd [args]"
+    print "-h         this help"
+    print "-n #procs  parallel processing using #procs processors"
+    print "-o logfile output log"
+    print "-c         create directories"
+    print "-v         verbose (debug)"
+    print "-w         wait for RETURN after each project"
+    print "-s skip    skip the first few (skip) entries"
+    print "-z par     skip project if this parameter is 0"
+    print "-f parfile Set default name for parfile [tas.def]"
+    print "-r dir     directory to apply before dirs.txt"
+    print "dirs.txt   text file with directory names to visit"
+    print "cmd        unix command to run"
+    print "args       arguments to unix command (inlcuding ; cmd2 args2...)"
+
+def dirs(file):
+    fp = open(file)
+    lines = fp.readlines()
+    fp.close()
+    d=[]
+    for line in lines:
+        if line[0] == '#': continue
+        line0 = line.strip()
+        if len(line0) == 0: continue
+        d.append(line0)
+    return d
+
+if __name__ == '__main__':
+    mkdir = False;
+    logfile = ""
+    debug = False
+    argv = sys.argv[1:]
+    n = 1
+    wait = 0
+    reflink = "."
+    skipvar = ""
+    parfilename = "tas.def"
+    skipno = 0
+    while len(argv) > 0:
+        if len(argv) > 0 and argv[0] == '-h':
+            help()
+            sys.exit(0)
+        if len(argv) > 0 and argv[0] == '-v':
+            print "Debug on"
+            debug = True
+            argv = argv[1:]
+            continue
+        if len(argv) > 0 and argv[0] == '-w':
+            print "Wait on"
+            wait = True
+            argv = argv[1:]
+            continue
+        if len(argv) > 1 and argv[0] == '-o':
+            logfile=argv[1]
+            if debug: print "Logfile: ",logfile
+            argv = argv[2:]
+            continue
+        if len(argv) > 1 and argv[0] == '-r':
+            reflink=argv[1]
+            if debug: print "Reflink: ",reflink
+            argv = argv[2:]
+            continue
+        if len(argv) > 1 and argv[0] == '-s':
+            skipno=int(argv[1])
+            if debug: print "Skip: ",skipno
+            argv = argv[2:]
+            continue
+        if len(argv) > 1 and argv[0] == '-z':
+            skipvar=argv[1]
+            if debug: print "SkipVar: ",skipvar
+            argv = argv[2:]
+            continue
+        if len(argv) > 1 and argv[0] == '-f':
+            parfilename=argv[1]
+            if debug: print "ParFileName: ",parfilename
+            argv = argv[2:]
+            continue
+        if len(argv) > 1 and argv[0] == '-n':
+            n = int(argv[1])
+            if debug: print "Nprocs: ",n
+            argv = argv[2:]
+            continue
+        if len(argv) > 0 and argv[0] == '-c':
+            mkdir = True
+            if debug: print "mkdir on"
+            argv = argv[1:]
+            continue
+        # done processing options, now expect dirs.txt file
+        #
+        if n!=1: print "Warning: parallel not implemented yet"
+
+        if debug: print "ARGS LEFT:",argv
+        d = dirs(argv[0])
+        if debug: print 'D=',d
+        idir = 0
+        ndir = len(d)
+        cwd = os.getcwd()
+        for p in d:
+            idir = idir + 1
+            if skipno > 0:
+                skipno = skipno - 1
+                continue
+            os.chdir(cwd)
+            project = reflink + "/" + p
+            if wait:
+                junk = raw_input("Hit ENTER to continue with %s" % project)
+            if debug: print "DIR: %s   (%d/%d)" % (project,idir,ndir)
+            if mkdir: os.mkdir(project)
+            os.chdir(project)
+            if len(skipvar) > 0:
+                p = parfile.ParFile(parfilename)
+                if p.has(skipvar):
+                    if p.geti(skipvar) == 0: 
+                        continue
+            cmd = "(" 
+            for arg in argv[1:]:
+                if arg.find('%s') < 0:
+                    cmd = cmd + " " + arg
+                else:
+                    cmd = cmd + " " + arg%project
+            cmd = cmd + ")"
+            if logfile != "":
+                cmd = cmd + " > %s 2>&1" % logfile
+            if debug: print "CMD: ",cmd
+            ok=os.system(cmd)
+            if debug: print "SYS: ",ok
+        break
+    else:
+        help()
+
