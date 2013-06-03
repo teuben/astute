@@ -1,0 +1,16 @@
+this directory is meant to contain symbolic links
+to locations on your local system, such that we
+can use references such as
+	rawdata=$MIS/rawdata/n253
+in the tas.def files that make the system more portable
+accross machines.
+Eg.
+
+	cd $TAS/rawdata
+	ln -s /disk0/alma/data/n253
+
+
+
+Here are the data repo's at the various institutions:
+
+n253      dante:/mnt/raidvol0/teuben/n253
