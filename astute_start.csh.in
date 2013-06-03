@@ -1,6 +1,7 @@
 # for (t)csh: source this file
 
 setenv ASTUTE @ASTUTE@
+setenv TAS  $ASTUTE
 
 set path=($ASTUTE/bin $path)
 rehash
