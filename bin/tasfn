@@ -1,0 +1,33 @@
+#! /bin/csh -f
+#
+# $TAS relative filename resolution
+#
+
+if ($#argv == 0) then
+  echo 'tasfn: this will expand filename references that start with "$TAS/"'
+  echo '  Normally a symbolic link in $TAS/rawdata/ is used to refer to a local'
+  echo '  location where raw data are housed.  Exception will be an scp or wget'
+  echo '  method (not recommended if you want portable tas.def files)'
+  echo '  Example to set this up:'
+  echo '        cd $TAS/rawdata'
+  echo '        ln -s /n/algol2/mpound/data/carma/CARMA23/rawdata n1333'
+  echo '  Then use the wget_rawdata script to keep your local archive in sync'
+  exit  0
+endif
+
+if ($?TAS == 0) then
+  echo tasfn: error, TAS not defined in ASTUTE
+  exit 1
+endif
+
+
+foreach fn ($*)
+  set check=`echo "$fn" | cut -c1-5`
+  if ($check == '$TAS/') then
+    echo -n $TAS/
+    echo "$fn" | cut -c6-
+  else
+    echo $fn
+  endif
+end
+

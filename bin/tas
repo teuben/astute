@@ -1,0 +1,75 @@
+#! /bin/csh -f
+#
+#
+#  -u    cvs update
+#  -i    cvs commit
+#  -d    cvs diff
+#  -q    cvs update -nq
+
+# process command line flags
+
+
+if ($#argv == 1) then
+    if (X"$1" == X-q) then
+      (cd  $TAS ; cvs -nq update)
+    else if (X"$1" == X-u) then
+      (cd  $TAS ; cvs update -d |& grep -v ^"cvs update")
+    else if (X"$1" == X-i) then
+      (cd  $TAS ; cvs commit)
+    else if (X"$1" == X-d) then
+      if (-e tas.def) then
+	set project=`pipeset -v project`
+	set pipefile=`pipeset -v pipefile`
+	echo DIFF tas.def
+	diff tas.def $TAS/def/$project/tas.def
+	echo DIFF $pipefile
+	diff $pipefile $TAS/def/$project/$pipefile
+      else
+        echo No tas.def in current directory
+      endif
+    else 
+      echo "Usage:  tas [-q] [-u] [-i] [-d]"
+    endif
+    exit 0
+endif
+
+
+if ($#argv > 1) then
+  if ($1 == cvs) then
+    shift argv
+    (cd $TAS ; cvs $*)    
+    exit 0
+  endif
+endif
+
+
+
+
+
+# --------------------------------------------------------------------------------
+
+
+
+if ($?TAS) then
+  echo TAS=$TAS
+else
+  echo Warning: TAS is missing in your ASTUTE environment. You need it. 
+endif
+
+
+if ($?DRPACS) then
+  echo WARNING:  you have a DRPACS environment, it will interfere with TAS
+endif
+
+if ($?EGN) then
+  echo WARNING:  you have a MIS environment, it will interfere with TAS
+endif
+
+if ($?MIS) then
+  echo WARNING:  you have a EGN environment, it will interfere with TAS
+endif
+
+if (! -e tas.def) then
+  echo "WARNING: missing tas.def , run 'pipeset -c' to create a dummy"
+endif
+
