@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 #
-# casapy script, with some external MIRIAD and NEMO example calls
+# casapy script
+#
 # To run this:
 #     casapy --nogui -c $ASTUTE/bin/getdata
 #
@@ -12,22 +13,16 @@
 import astute, alines, parfile
 import sys, os
 
-#    helper function to resolve $TAS, should go in astute/parfile?
-def tasfn(name):
-   if name[0:4]=='$TAS':
-      tas = os.environ['TAS']
-      return tas + name[4:]
-   else:
-      return name
-
-#    grab parameters
+#    setup, grab parameters
+a = astute.Astute()
 p = parfile.ParFile()
 
 #    set parameters
-f_fits = tasfn(p.get('fits'))
+f_fits = a.resolve(p.get('fits'))
 f_im   = 'im'
 
 #    do work
+print "casa::importfits ",f_fits
 importfits(f_fits, f_im, overwrite=True)
 
 
