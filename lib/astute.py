@@ -17,6 +17,7 @@ class Astute(object):
     def __init__(self,verbose=False):
         self.n = 0
         self.have={}
+        self.version="29-may-2013"
         if os.environ.has_key('ASTUTE'):
             self.have['ASTUTE'] = os.environ['ASTUTE']
         if os.environ.has_key('NEMO'):
@@ -44,7 +45,7 @@ class Astute(object):
         self.x = runsh.shell()
         self.idl = runidl.IDL()
             
-        print "Astute initialized [%s]" % have.strip()
+        print "Astute (version %s) initialized [%s]" % (self.version,have.strip())
     def has(self,name):
         #print "ASTUTE: testing for %s: %s" % (name, self.have.has_key(name))
         return self.have.has_key(name)
