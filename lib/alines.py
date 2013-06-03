@@ -63,18 +63,17 @@ def f_rest(vlsr, f):
     return   f/(1-vlsr/c_kms)
 
 
-def edit_slines_doppler(file,vlsr):
+def edit_slines_doppler(fname,vlsr):
     """ very special edit for vlsr assumption 
     012345678.0.........0.........0.........0.........0.........0
     c-HCC13CH               * Cyclopropenylidene    113.964130 10(4,7)-9(5,4) ....
     """
-    fp = open(file)
+    fp = open(fname)
     lines = fp.readlines()
     fp.close()
-    print lines[0]
-    print lines[1][48:58]
-    print lines[2][48:58]
-    print lines[3][48:58]
-    # unfinished code
+    nlines = len(lines)-1
+    print "Found %s lines between %s and %s GHz [%s]" % (nlines,lines[1][48:58],lines[nlines-2][48:58],fname)
+    # unfinished code, should edit the rest to sky freq and match there for toothcomb fit ?
+    # check with TR@NRAO first
 
   
