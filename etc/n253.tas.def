@@ -1,0 +1,4 @@
+# copy this as your first tas.def when you start in an N253 based project
+vlsr    = 236.0
+vrange  = -50,550
+pvslice = 239,369,419,260
