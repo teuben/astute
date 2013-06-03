@@ -1,0 +1,6 @@
+fits=$TAS/rawdata/n253/ngc253_fullcube_extended_SPW_2_contsub_clean.fits
+project=./w_2_e
+pvslice=239,369,419,260
+step=pipesave
+vlsr=236.0
+vrange=-50,550
