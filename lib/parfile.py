@@ -4,7 +4,7 @@ import os
 
 class ParFile(object):
     """read a simple parameter file with key=val , one per line"""
-    def __init__(self,file=None,quote=1):
+    def __init__(self,file='tas.def',quote=1):
         self.pars={}
         self.quote = quote
         if file == None: return
