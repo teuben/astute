@@ -17,9 +17,11 @@ class Astute(object):
     def __init__(self,verbose=False):
         self.n = 0
         self.have={}
-        self.version="29-may-2013"
+        self.version="2-jun-2013"
         if os.environ.has_key('ASTUTE'):
             self.have['ASTUTE'] = os.environ['ASTUTE']
+        if os.environ.has_key('TAS'):
+            self.have['TAS'] = os.environ['TAS']
         if os.environ.has_key('NEMO'):
             self.have['NEMO']   = os.environ['NEMO']
         if os.environ.has_key('MIR'):
@@ -49,6 +51,16 @@ class Astute(object):
     def has(self,name):
         #print "ASTUTE: testing for %s: %s" % (name, self.have.has_key(name))
         return self.have.has_key(name)
+
+    def resolve(self,name):
+        if name[0:4]=='$TAS':
+            tas = os.environ['TAS']
+            return tas + name[4:]
+        elif name[0:7]=='$ASTUTE':
+            tas = os.environ['ASTUTE']
+            return tas + name[7:]
+        else:
+            return name
 
     def need(self,names):
         bad = 0
