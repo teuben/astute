@@ -93,7 +93,7 @@ if __name__ == "__main__":
     else:
         # file needs to exit
         if not os.path.exists(file):
-            print "Warning: %s does not exist. 'pipepar -c' creates" % file
+            print "Warning: %s does not exist. 'pipeset -c' creates" % file
             sys.exit(1)
     p = parfile.ParFile(file,quote)
     save = False

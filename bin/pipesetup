@@ -10,7 +10,7 @@
 unset project
 
 #           ensure there's a dummy tas.def, if none was present
-pipepar -c
+pipeset -c
 
 #           command line overrides (just a cute CSH trick)
 foreach _arg ($*)
@@ -19,7 +19,7 @@ end
 
 if ($?project == 0) then
   if (-e tas.def) then
-    pipepar -s csh > tmp$$.par;  source tmp$$.par;  rm tmp$$.par
+    pipeset -s csh > tmp$$.par;  source tmp$$.par;  rm tmp$$.par
   endif
   if ($?project == 0) then
     echo No project= defined to load parameters from
@@ -42,9 +42,9 @@ if ($?TAS) then
   else
     echo PIPESETUP: no $def
   endif
-  if (`pipepar -e pipefile`) then
-    echo PIPESAVE: retrieving `pipepar -v pipefile`
-    foreach file (`pipepar -v pipefile | awk -F, '{for(i=1;i<=NF;i++)print $i}'`)
+  if (`pipeset -e pipefile`) then
+    echo PIPESAVE: retrieving `pipeset -v pipefile`
+    foreach file (`pipeset -v pipefile | awk -F, '{for(i=1;i<=NF;i++)print $i}'`)
       if (-e $pdir/$file) then
         cp $pdir/$file .
       else
@@ -57,7 +57,7 @@ endif
 
 #           export any new variables
 
-pipepar project=$project
+pipeset project=$project
 
 #           signoff we've successfully finished
-pipepar step=pipesetup
+pipeset step=pipesetup

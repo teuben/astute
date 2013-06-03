@@ -14,7 +14,7 @@ foreach _arg ($*)
 end
 
 #           pipeline can override them, and grab old variable
-pipepar -s csh > tmp$$.par;  source tmp$$.par;  rm tmp$$.par
+pipeset -s csh > tmp$$.par;  source tmp$$.par;  rm tmp$$.par
 
 if ($?project) then
   if ($?TAS_DEF) then
@@ -27,9 +27,9 @@ if ($?project) then
   if (-e $def) mv $def $def.backup
   echo PIPESAVE: saving $def
   sort tas.def > $def
-  if (`pipepar -e pipefile`) then
-    echo PIPESAVE: saving `pipepar -v pipefile`
-    foreach file (`pipepar -l -v pipefile`)
+  if (`pipeset -e pipefile`) then
+    echo PIPESAVE: saving `pipeset -v pipefile`
+    foreach file (`pipeset -l -v pipefile`)
       if (-e $file) then
         cp $file $pdir
       else
@@ -42,4 +42,4 @@ else
 endif
 
 #           signoff we've successfully finished
-pipepar step=pipesave
+pipeset step=pipesave
