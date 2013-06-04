@@ -60,6 +60,10 @@ endif
 echo =========================================================================
 
 
+if ($in == pv1 && ! -e $in) then
+   fitsccd PV.fits pv1
+endif
+
 echo "STATS on $in (robust)"
 ccdstat $in robust=t bad=0
 rm -f $in.template
