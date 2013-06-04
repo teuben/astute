@@ -44,6 +44,18 @@ class ParFile(object):
                 return self.pars[par]
         else:
             return "-"
+    def mgetf(self,par,sep=','):
+        ws = self.pars[par].split(sep)
+        wf = []
+        for w in ws:
+            wf.append(float(w))
+        return wf
+    def mgeti(self,par,sep=','):
+        ws = self.pars[par].split(sep)
+        wi = []
+        for w in ws:
+            wi.append(int(w))
+        return wi
     def geti(self,par):
         return int(self.pars[par])
     def getf(self,par):
