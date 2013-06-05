@@ -1,15 +1,2 @@
 See also:  http://carma.astro.umd.edu/wiki/index.php/AStute
 
-The astute environment takes a FITS cube (or a related set)
-and for each FITS cube it creates a matching directory
-in which you can find:
-
-
-- im/	     	   CASA image  (right now .)
-- PV/		   CASA image representing a selected PV slice
-- cubestats.tab    ASCII table respresenting useful cube stats, 
-                   one per plane. Right now ccdstat.tab and imstat.tab
-- slines.list      output from slsearch()
-- mlines.list      matched molecules from slines.list (or some other process)
-- L_mol/           CASA image cube for each "mol" listed in mlines.list
-- L_mol/MOM0/      CASA mom0 image from the cube
