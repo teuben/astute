@@ -1,6 +1,11 @@
 #! /bin/csh -f
 #
-#
+#   this peculiar script allows one to write executable
+#   python scripts and place them in your $PATH with a top
+#   line
+#          #! /usr/bin/env casarun
+#  
+#   Warning: such scripts return to the shell.
 
 exec casapy --nogui -c $*
 

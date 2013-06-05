@@ -3,6 +3,15 @@
 #     use PV (or XYZ) correlation in a selected template to
 #     find weaker lines
 #
+# ccdstat.tab:
+#  iz z min  max  N  mean sigma skew kurt sum sum  robust[N mean sig med]
+# 1 99916737153.500000  -0.005064 0.004882 79658  -0.000008 0.001247 0.039080 0.046758  -0.660714 0.055385   78977 -0.000008 0.001204 -0.000023
+#
+#  imstat.tab
+#        Frequency  Frequency(Plane) Npts          Sum           Mean          Rms           Std dev       Minimum       Maximum     
+#  9.99167409e+10                 0  7.965800e+04 -6.607142e-01 -8.294386e-06  1.246883e-03  1.246864e-03 -5.063728e-03  4.882322e-03
+
+
 
 set in=pv1
 set auto=1
@@ -19,6 +28,9 @@ set cmax=0.2
 set rms=-1
 set mode=1
 set blines=$ASTUTE/etc/n253_lines.list
+set robust=t
+set tab=ccdstat.tab
+
 
 #           pipeline can override them
 pipeset -s csh > tmp$$.par;  source tmp$$.par;  rm tmp$$.par
@@ -28,7 +40,9 @@ foreach arg ($*)
   set $arg
 end
 
-echo LINE_ID_NEMO:
+set valid_tab=(ccdstat.tab imstat.tab)
+
+echo "@ASTUTE: line_id_nemo"
 
 # ---- below this nothing ought to be changed ----
 
@@ -41,9 +55,28 @@ else
   set v01=(v0=$v0 v1=$v1)
 endif
 
+# be nice, if tab= was not produced, find the first existing in $valid_tab
+if (! -e $tab) then
+  foreach t ($valid_tab)
+    if (-e $t) set tab=$t
+  end
+  if (! -e $tab) then
+    echo ERROR: tab=$tab does not exist
+    exit 1
+  endif
+endif
+
+
 echo =========================================================================
 echo Bootstrap Line Identification in `pwd`
-tabmath ccdstat.tab - %2/1e9,%4/%14 all > line_bs.tab
+if ($tab == $valid_tab[1]) then
+  tabmath ccdstat.tab - %2/1e9,%4/%14 all > line_bs.tab
+else if ($tab == $valid_tab[2]) then
+  tabmath imstat.tab - %1/1e9,%9/%6 all > line_bs.tab
+else
+  echo tab=$tab not understood, need one of: $valid_tab
+  exit 1
+endif
 tabpeak line_bs.tab mean=t clip=10 | sort -k 3 -nr  > line_bss.tab
 if (-z line_bss.tab) then
   echo BAD NEWS: no strong lines to bootstrap from? decrease clip=10?
@@ -65,7 +98,7 @@ if ($in == pv1 && ! -e $in) then
 endif
 
 echo "STATS on $in (robust)"
-ccdstat $in robust=t bad=0
+ccdstat in=$in robust=$robust bad=0
 rm -f $in.template
 echo PVCORR clip=$clip mode=$mode
 echo pvcorr  $in     clip=$clip $v01 vscale=1e-9 rms=$rms mode=$mode out=$in.template 

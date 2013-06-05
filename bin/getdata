@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env casarun
 #
 # casapy script
 #
@@ -13,6 +13,9 @@
 import astute, alines, parfile
 import sys, os
 
+#    report
+print "@ASTUTE: getdata"
+
 #    setup, grab parameters
 a = astute.Astute()
 p = parfile.ParFile()
@@ -24,5 +27,5 @@ f_im   = 'im'
 #    do work
 print "casa::importfits ",f_fits
 importfits(f_fits, f_im, overwrite=True)
-
+s = imstat(f_im,axes=[0,1],logfile='imstat.tab',append=False)
 

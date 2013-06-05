@@ -1,11 +1,5 @@
-#! /usr/bin/env python
+#! /usr/bin/env casarun
 #
-# casapy script, with some external MIRIAD and NEMO example calls
-# To run this:
-#     casapy --nogui -c $ASTUTE/bin/getdata
-#
-# it would be useful to find out if there is some "import casa" style,
-# so you don't have to run this from within casapy?
 #
 
 #   from astute
@@ -16,6 +10,9 @@ import sys, os
 vlsr  = 236.999
 vcube = [-50,550]  
 pv = [[234,380],[415,256]] 
+
+#    report
+print "@ASTUTE: line_id"
 
 #    setup environment, grab parameters
 a = astute.Astute()

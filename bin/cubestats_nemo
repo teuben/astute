@@ -6,6 +6,7 @@
 set fits=silly.fits
 set tab=ccdstat.tab
 set clean=0
+set robust=f
 #           pipeline can override them
 pipeset -s csh > tmp$$.par;  source tmp$$.par;  rm tmp$$.par
 
@@ -16,7 +17,7 @@ foreach _arg ($*)
 end
 
 
-echo CUBESTATS: nemo version
+echo @ASTUTE:  cubestats_nemo 
 
 set fits=`tasfn $fits`
 
@@ -27,7 +28,7 @@ endif
 
 rm -f nemo
 fitsccd in=$fits out=nemo
-ccdstat in=nemo bad=0 robust=t planes=0 > $tab
+ccdstat in=nemo bad=0 robust=$robust planes=0 > $tab
 
 if ($clean) rm -f nemo
 
