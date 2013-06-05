@@ -7,9 +7,9 @@ import astute, alines, parfile
 import sys, os
 
 #    set defaults
-vlsr  = 236.999
+vlsr  = 236.0
 vcube = [-50,550]  
-pv = [[234,380],[415,256]] 
+pv    = [[234,380],[415,256]] 
 
 #    report
 print "@ASTUTE: line_id"
@@ -20,10 +20,10 @@ p = parfile.ParFile()
 
 #    grab pipeline parameters
 vlsr  = p.getf('vlsr') 
-#vcube = p.getf('vcube')
-#pv    = p.getf('pvslice')
+#vcube = p.mgetf('vcube')
+#pv    = p.mgetf('pvslice')
 
-#    set parameters
+#    set parameters for the script
 f_im   = 'im'
 f_pv   = 'PV'
 
@@ -32,7 +32,7 @@ print 'LINES.LIST: ',a.resolve('$TAS/etc/n253_lines.list')
 (freq,line) = alines.read_cheat_lines(a.resolve('$TAS/etc/n253_lines.list'))
 
 
-#    do work
+
 h = imhead(f_im,mode='list')
 naxis = h['shape']
 naxis3 = naxis[2]
@@ -40,13 +40,16 @@ crval3 = h['crval3']/1e9
 cdelt3 = h['cdelt3']/1e9
 crpix3 = h['crpix3'] + 1     #  note CASA does 0 based here
 
+
 [freq0,freq1] = alines.axis_range(naxis3, crval3, cdelt3, crpix3)
 freq0_0 = alines.f_rest(vlsr,freq0)
 freq1_0 = alines.f_rest(vlsr,freq1)
 print "Range in sky  freq:",freq0,freq1
 print "Range in rest freq:",freq0_0,freq1_0," for vlsr=",vlsr
+
 slsearch(logfile="slines.list",verbose=True,freqrange=[freq0_0,freq1_0])
 alines.edit_slines_doppler("slines.list",vlsr)
+
 fp = open("mlines.list","w")
 nlines = 0
 for i in range(len(freq)):
