@@ -1,0 +1,16 @@
+See also:  http://carma.astro.umd.edu/wiki/index.php/AStute
+
+The files you might find in this directory:
+
+- im.fits          symlink (or the real) to the original fits file
+- im/	     	   CASA image
+- PV/		   CASA image representing a selected PV slice
+- cubestats.tab    ASCII table respresenting useful cube stats, 
+                   one per plane. Right now ccdstat.tab and imstat.tab
+- ccdstat.tab      the cubestats.tab file, as NEMO created it
+- imstat.tab       the cubestats.tab file, as CASA created it
+- slines.list      output from slsearch()
+- mlines.list      matched molecules from slines.list (or some other process)
+* L_mol/           CASA image cube for each "mol" listed in mlines.list
+* L_mol/MOM0/      CASA mom0 image from the cube
+* L_mol/MOM0.fits  CASA mom0 fits image from the cube
