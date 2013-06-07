@@ -1,0 +1,16 @@
+#! /bin/csh -f
+#
+
+
+alias e echo
+
+e 'This is merely a reminder of what to do when you get a new project'
+e ''
+e 'set p=n253_0_c'
+e 'mkdir $p ; pipesetup project=$p'
+e 'pipeset fits=.....'
+e 'getdata'
+e 'cubestats_nemo'
+e 'line_id'
+e 'line_id_nemo'
+
