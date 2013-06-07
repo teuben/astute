@@ -21,11 +21,16 @@ a = astute.Astute()
 p = parfile.ParFile()
 
 #    set parameters
-f_fits = a.resolve(p.get('fits'))
+a_fits = a.resolve(p.get('fits'))
+f_fits = 'im.fits'
 f_im   = 'im'
+
+#    we like to keep/fake the fits file locally
+os.system('ln -s %s %s' % (a_fits,f_fits))
 
 #    do work
 print "casa::importfits ",f_fits
-importfits(f_fits, f_im, overwrite=True)
+importfits(a_fits, f_im, overwrite=True)
+print "casa::imstat"
 s = imstat(f_im,axes=[0,1],logfile='imstat.tab',append=False)
 
