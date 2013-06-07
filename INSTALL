@@ -13,7 +13,8 @@ you should prepare it for your shell:
 
 
 0) make sure you have python with astropy, ATpy, asciitable etc. installed.
-   see opt/README for optional things you might like to borrow
+   see opt/README for optional things you might like to borrow to get some of
+   the components to work.
 
 
 1) prepare a miriad version of the small benchmark cube (you need MIRIAD for this)
@@ -26,3 +27,7 @@ you should prepare it for your shell:
    ./clumpfind.py mir    (needs MIRIAD)
    ./clumpfind.py idl    (only runs under GDL now, although known to run in idl)
    ./clumpfind.py den    (you'll need to install dendro-core via $ASTUTE/opt)
+
+3) Splatalogue things:
+
+   http://www.cv.nrao.edu/~bkent/computing/datasplat/     (about 450MB)
