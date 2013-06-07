@@ -37,6 +37,10 @@ Qline = True
 # 
 vlsr  = 236.0                               # VLSR needed
 pvseg = { "e" : [[262,359],[385,277]] , "c" :  [[239,369],[419,260]] }       # PV segments in extended/compact
+pvseg = { "e" : [[262,359],[385,277]] , "c" :  [[262,359],[385,277]] }       # assume the same
+pvseg = { "e" : [[239,369],[419,260]] , "c" :  [[239,369],[419,260]] }
+pvseg = { "e" : [[234,380],[415,256]] , "c" :  [[234,380],[415,256]] }
+
 vcube = [-50,550]                           # V around the VLSR in which individual spectral line cubes are cut
 
 a = astute.Astute()
@@ -99,6 +103,7 @@ for c in conf:             # loop over configurations and spectral_windows
         exportfits(f_pv,f_pv+'.fits',overwrite=True)
                 
         if cfits:
+            # silly
             imsubimage(oname,oname+'/c',region='box[[274pix,276pix], [373pix,350pix]]')
             exportfits(oname+'/c',oname+'/center.fits')
         if Qone: break
