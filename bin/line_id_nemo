@@ -70,13 +70,23 @@ endif
 echo =========================================================================
 echo Bootstrap Line Identification in `pwd`
 if ($tab == $valid_tab[1]) then
-  tabmath ccdstat.tab - %2/1e9,%4/%14 all > line_bs.tab
+  tabmath ccdstat.tab - %2/1e9,%4/%14,%14 all > line_bs.tab
 else if ($tab == $valid_tab[2]) then
-  tabmath imstat.tab - %1/1e9,%9/%6 all > line_bs.tab
+  tabmath imstat.tab - %1/1e9,%9/%6,%6 all > line_bs.tab
 else
   echo tab=$tab not understood, need one of: $valid_tab
   exit 1
 endif
+#
+if (1) then
+  echo Comparing first and second half of RMS
+  set nl=`getline line_bs.tab`
+  set nlh=`nemoinp $nl/2 format=%d`
+  head -$nlh line_bs.tab | tabhist - 3 robust=t yapp=/null out=- > line_bs1.tab
+  tail -$nlh line_bs.tab | tabhist - 3 robust=t yapp=/null out=- > line_bs2.tab
+  tabcmp line_bs1.tab line_bs2.tab
+endif
+#
 tabpeak line_bs.tab mean=t clip=10 | sort -k 3 -nr  > line_bss.tab
 if (-z line_bss.tab) then
   echo BAD NEWS: no strong lines to bootstrap from? decrease clip=10?
