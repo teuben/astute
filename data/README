@@ -1,0 +1,38 @@
+
+
+1) A small  61 x 61 x 27 data cube that was used in the original
+clumpfind paper.  The clf.fits file is the enumerated mask.
+
+ros13co.fits
+ros13co.clf.fits
+
+2) A super small 4 x 3 x 2 data cube that can be used to test
+your reading routine, notably if you're confused about column
+and row major data.
+
+cube432.fits
+
+3) A directory tree with the 8 spectral windows of N253. See also
+the corresponding $ASTUTE/def/w_?_? directories where small
+"tas.def" files are stored.
+
+n253
+
+
+4) Some bigger data used for testing, stored on ftp/http:
+   ftp://ftp.astro.umd.edu/pub/carma/AStute/
+   (/local/ftp/pub/carma/AStute for the locals)
+
+4.1)   big_cube.fits
+   a 350 x 350 x 1500 fits cube of N253. Now duplicates 
+
+4.2)   2011.0.00099.S_science.tar
+   a few science cubes associated with this (arp230 based) alma cycle0
+   data. cubes are small, typicall 100 x 100 x 80
+   Data hierarchy is retained on purpose, so files are buried deep. e.g.
+   2011.0.00099.S/sg_ouss_id/group_ouss_id/member_ouss_id1/science/Xc0_calibrated.ms.contsub.image.line.source0.spw0.image.fits 
+   tar file is 17 MB
+ 
+4.3)  orionall_hannclean-hotcore_cube.fits
+      A 96 x 96 x 24012 VLA cube (880MB). Spatially small, but rich in many lines.
+
