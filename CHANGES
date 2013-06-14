@@ -1,0 +1,14 @@
+
+VERSION 0.2 (started Jun 14, 2013)
+   - xml processing added (Doug)
+
+
+Version 0.1
+   - example pipeline using the N253 datasets
+   - example data sets added to $ASTUTE/data (see also README 
+     how to get big ones)
+   - MIS pipeline implemented in TAS (i.e. tas.def etc.)
+   - implemented the astute_start.csh style startup via configure, 
+     bin in $path, lib in $PYTHINPATH
+   - needs MIRIAD and NEMO in various places, and CASA in others, 
+     astropy and CASA not compatible
