@@ -28,6 +28,8 @@ N253
    windows we have on 
    http://www.astro.umd.edu/~bolatto/NGC253/cubes/compact/newrelease/lines/individual_spws/
    http://www.astro.umd.edu/~bolatto/NGC253/cubes/extended/newrelease/lines/individual_spws/
+   these are 640 x 640 x (typically) 500, but for speed gridded with 20 km/s
+   (native is 1.5 km/s) resolution.
 
 
 
