@@ -56,7 +56,7 @@ def assignButtons(reader) :
         index += 1
     plt.show()
 
-def runit() :
+def runit(xfile="new_spec.xml") :
     reader = vt.VOTable()
-    reader.read("new_spec.xml")
+    reader.read(xfile)
     assignButtons(reader)
