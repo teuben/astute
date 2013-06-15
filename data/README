@@ -16,7 +16,7 @@ cube432.fits
 the corresponding $ASTUTE/def/w_?_? directories where small
 "tas.def" files are stored.
 
-n253
+N253
 
 
 4) Some bigger data used for testing, stored on ftp/http:
@@ -24,7 +24,12 @@ n253
    (/local/ftp/pub/carma/AStute for the locals)
 
 4.1)   big_cube.fits
-   a 350 x 350 x 1500 fits cube of N253. Now duplicates 
+   a 350 x 350 x 1500 fits cube of N253. Now duplicates the 8 spectral
+   windows we have on 
+   http://www.astro.umd.edu/~bolatto/NGC253/cubes/compact/newrelease/lines/individual_spws/
+   http://www.astro.umd.edu/~bolatto/NGC253/cubes/extended/newrelease/lines/individual_spws/
+
+
 
 4.2)   2011.0.00099.S_science.tar
    a few science cubes associated with this (arp230 based) alma cycle0
@@ -33,6 +38,6 @@ n253
    2011.0.00099.S/sg_ouss_id/group_ouss_id/member_ouss_id1/science/Xc0_calibrated.ms.contsub.image.line.source0.spw0.image.fits 
    tar file is 17 MB
  
-4.3)  orionall_hannclean-hotcore_cube.fits
+4.3)  orionall_hannclean_hotcore_cube.fits
       A 96 x 96 x 24012 VLA cube (880MB). Spatially small, but rich in many lines.
 
