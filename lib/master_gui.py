@@ -7,6 +7,8 @@ import plot
 
 index = 1
 
+reader = None
+
 class SpecButton :
     def __init__(self, indx,  spec):
         self.index = indx
@@ -57,6 +59,7 @@ def assignButtons(reader) :
     plt.show()
 
 def runit(xfile="new_spec.xml") :
+    global reader
     reader = vt.VOTable()
     reader.read(xfile)
     assignButtons(reader)

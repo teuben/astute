@@ -16,6 +16,20 @@ class VOTable :
         self.spec = []
         self.specName = []
         self.images = []
+        self.desc = []
+
+    def addImage(self, fileName, desc="") :
+        resource = Resource()
+        resource.utype = "img:Image:" + str(self.index)
+        self.votable.resources.append(resource)
+        table = Table(self.votable)
+        resource.tables.append(table)
+        table.fields.extend([Field(self.votable, name="FileName", datatype="char", arraysize="*"),Field(self.votable, name="ImageDescription", datatype="char", arraysize="*")])
+        table.create_arrays(1)
+        table.array[0] = (fileName, desc)
+        table.name = "Image" + str(self.index)
+        table.ID = table.name
+        self.index += 1
 
     #writer methods
     def addSpectrum(self, freq, labels, data, restVel = 0.0, restFreq = 0.0, fluxUnit = "Jy", title = "", description = "") :
@@ -27,6 +41,7 @@ class VOTable :
         resource = Resource()
         resource.utype = "spec:Spectrum:" + str(self.index)
         self.votable.resources.append(resource)
+
         vel = [0.0] * len(freq)
         if(restFreq != 0.0) :
             for i in range(0, len(freq)) :
@@ -38,7 +53,8 @@ class VOTable :
             table.create_arrays(len(freq))
             for j in range(0, len(freq)) :
                 table.array[j] = (data[i][j], freq[j], vel[j])
-            table.name = labels[i]
+            table.name = labels[i] + str(self.index)
+            table.ID = labels[i]
             charGroup = Group(table)
             charGroup.name = "Characterization"
             descGroup = Group(table)
@@ -83,20 +99,37 @@ class VOTable :
     def getImages(self) :
         return self.images
 
+    def getDesc(self) :
+        return self.desc
+
+    def getImage(self, indx) :
+        if(indx < len(self.images)) :
+            return self.images[indx]
+        else :
+            raise Exception("Invalid image index requested")
+
+    def getDesc(self, indx) :
+        if(indx < len(self.desc)) :
+            return self.desc[indx]
+        else :
+            raise Exception("Invalid description index requested")
+
     def read(self, xmlFile) :
         #global plt
         votable = parse(xmlFile)
-        print len(votable.resources)
         for resource in votable.resources :
-            print "RES", resource.utype
             if(resource.utype == "header"):
                 table = resource.tables[0]
                 #parseHeader(table, )
+            elif("img:Image" in resource.utype) :
+                table = resource.tables[0]
+                self.images.append(table.array["FileName"].data[0])
+                self.desc.append(table.array["ImageDescription"].data[0])
             elif("spec:Spectrum" in resource.utype) :
                 currSpec = []
                 for table in resource.tables :
                     newSpec = sc.Spectrum()
-                    newSpec.setName(table.name)
+                    newSpec.setName(table.ID)
                     for group in table.groups :
                         if(group.name == "Characterization") :
                             for entry in group.entries :
