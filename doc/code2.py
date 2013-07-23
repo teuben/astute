@@ -1,8 +1,9 @@
 #
-# ASTUTE hypothetical example
+# Example: code2
 #
-# use case: start with an archive query, and grab data as well, as needed
+# In a currently astute activated code
 #
+
 
 import astute
 
@@ -11,13 +12,16 @@ line=[-200, 200, 10]
 as = astute.Astute()
 ar = astute.Archive()
 
-projects = ar.query('gal && line(CO) && z<0.2 && T>1')
+#  search here and below for astute.xml files
+#  optionally a query for science, e.g. only CO lines
+projects = as.query_dir('.','line(CO)')
 np = size(projects)
 
+#  loop over the ones found, p is a container for lots of ASTUTE goodies
 for p in projects:
-    as.setdir(p.name)                 # move into the proper directory
+    as.setdir(p.name)                # move into the proper directory
     nc = size(p.cubes)
-    for c in p.cubes:                 # project 'p' and a series of 'c' cubes
+    for c in p.cubes:
         x = p.grab('x')
         if x.hasline('co'):
             f = p.grab('fits')
