@@ -1,0 +1,5 @@
+In order to just view your design (good enough for screendumps) use
+
+     glade-previewer -f AstuteGuiImages.glade
+
+followed by some resizing.
