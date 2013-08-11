@@ -15,28 +15,251 @@
 \begin{abstract}
 
 An overview of ADMIT (ALMA Data Mining Toolkit) V1
-is given. This is the outcome of an NRAO Development
-Study awarded to Mundy and Varshney (2012/2013).
+is given. This is the outcome of an ALMA Development
+Study awarded to Mundy and Varshney (2012/2013), in
+preparation for an ALMA Development Project, due
+Augus 16, 2013.
+
+This memo describes the technical aspects of ADMIT, some
+working, some a mockup. All working and example code
+is available in a CVS module named {\tt astute}.
 
 \end{abstract}
 
 
 \ChangeRecordBegin
 \addrevision{0.1}{2013-Aug-11}{P. Teuben}{}
-{Initial version transferred from image-io memo}
+{Relevant material transferred from image-io memo and adopted ASTUTE to ADMIT}
 \ChangeRecordEnd
 
 
 \section{Introduction}
 
+ADMIT (ALMA Data MIning Toolkit)\footnote{formerly known as ASTUTE. 
+This document will still use the name ASTUTE, where ADMIT is be meant.}
+is a toolkit that operates on ALMA data, and from existing spectral window data cubes, 
+creates a number of ``added value'' datasets that summarizes to the user
+what science they can expect from this data.
+
+The ALMA pipeline ingests visibility data (in ASDM format) and after calibration
+and mapping produces a series of datacubes, one for each band (currently 
+NB=4 for ALMA, with 3840 channels per band). 
 
 
-\subsection{TODO}
 
-Here's some catchphrases that need to be tracked down if they have
-relevant code.
 
-GAIA, MATADOR, AstroMed, SPLAT-VO, Herschel DP, S2Plot, AstroMD. 
+"If there are 10 sources in a proposal, this will comprise a single
+project with one or more science goals (depending on exactly how the
+10 different observations need to be set up). In the archive, there
+will be 10x(number of spectral windows) products (i.e. FITS cubes),
+unless those 10 sources are pointings within a single mosaic (in which
+case they are technically "fields" in CASA language). Hope that makes
+things clearer!"
+
+
+\section{Outline}
+
+\begin{verbatim}
+
+1. ALMA and the Context of this study
+
+ALMA overview 2-3 slides
+Basic data is fourier components Pipeline creates images
+CASA software package
+CASAViewer
+Capacity of instrument to produce data
+Target Users
+  novice
+  experienced
+  expert Goals:
+  Create a metadata product which enhances the
+     user experience by giving statistucs and
+     overviews of the data
+  Create metadata products which facilitates the
+     user's ability to visualize the data and
+     analyze the data
+  Enable new methods for doing science with the data
+  Create an infrastructure which encourages user
+     contributed methods/codes and allows
+
+Study is perparation for a Project
+Constraints: need to work within the system
+
+2. ALMA Arichive, Data flow and metadata flow
+
+Data flow -- from correlator at site
+             to Santiago
+         to pipeline
+         to archive and science centers
+Archive structure
+    Diagram and explanation
+    Ground rule for our project -- not ours to change
+
+Scale of archive as a science treasure trove
+
+Modes of use:
+   Current user interaction
+       retrieve observations for own project
+       retrieve archival observations on desired object
+   Future science mining activities
+      pulling together multiple object samples
+      gathing all data on single objects
+
+Implimentation:
+A. Create metadata as tail end of imaging pipeline
+    metadata goes into archive and is served from there
+B. User improves images and recreates metadata
+C. User runs specialized programs to create new
+    metadata for specific scientific uses.
+
+\end{verbatim}
+
+\section{Code Technical Material}
+
+In this section we describe
+
+\subsection{Scenarios}
+
+Several scenarios are given, how to operate.  In this nomenclature, we use {\bf P} for
+the projects, and {\bf B} for the bands (spectral windows). Each has NP projects, and 
+NB bands. These bands can be independant on the frequency axis, and can contain
+both line and continuum radiation. The continuum radiation is allowed to have a spectral
+index (or in worst case: a true parameterized shape, e.g. black body)
+
+\subsubsection{Pipeline run}
+
+This would be the mode in which ASTUTE runs in the archive, i.e. from one or more spectral
+windows (ALMA: NB=4, NP=1). 
+
+\footnotesize
+\begin{verbatim}
+# code0.py:
+
+import astute
+
+as = astute.Astute()
+
+\end{verbatim}
+\normalsize
+
+
+\subsubsection{User: Simple single project archive pull}
+
+\footnotesize
+\begin{verbatim}
+# code1.py:
+# use case: start with an archive query, and grab data as well, as needed
+#
+
+import astute
+
+line=[-200, 200, 10]
+
+as = astute.Astute()
+ar = astute.Archive()
+
+projects = ar.query('gal && line(CO) && z<0.2 && T>1')
+np = size(projects)
+
+for p in projects:
+    as.setdir(p.name)                 # move into the proper directory
+    nc = size(p.cubes)
+    for c in p.cubes:                 # project 'p' and a series of 'c' cubes
+        x = p.grab('x')
+        if x.hasline('co'):
+            f = p.grab('fits')
+            as.importfits(f)         # this writes a MS
+            as.regridvel(f,line)
+            rms = x.get_rms(line)
+            as.moment0(f)
+        #
+    #
+#
+
+\end{verbatim}
+\normalsize
+
+
+\subsubsection{User: code2}
+
+\footnotesize
+\begin{verbatim}
+# code2.py:
+# In a currently astute activated code
+#
+
+
+import astute
+
+line=[-200, 200, 10]
+
+as = astute.Astute()
+ar = astute.Archive()
+
+#  search here and below for astute.xml files
+#  optionally a query for science, e.g. only CO lines
+projects = as.query_dir('.','line(CO)')
+np = size(projects)
+
+#  loop over the ones found, p is a container for lots of ASTUTE goodies
+for p in projects:
+    as.setdir(p.name)                # move into the proper directory
+    nc = size(p.cubes)
+    for c in p.cubes:
+        x = p.grab('x')
+        if x.hasline('co'):
+            f = p.grab('fits')
+            as.importfits(f)         # this writes a MS
+            as.regridvel(f,line)
+            rms = x.get_rms(line)
+            as.moment0(f)
+        #
+    #
+#
+
+\end{verbatim}
+\normalsize
+
+
+\subsubsection{User: code3}
+
+\footnotesize
+\begin{verbatim}
+# code3.py:
+#
+# Example code3
+#
+# use case here is that you have a series of astute enabled directories
+# in which you've done all kinds of interesting work, but results
+# are stored back in "astute" (astute.xml)
+#
+
+
+import astute
+
+as = astute.Astute()
+
+projects = as.query_dir('.','line(CO)')
+np = size(projects)
+
+#  we want to plot L vs. S
+s=[]
+l=[]
+
+#  loop over the ones found, p is a container for lots of ASTUTE goodies
+for p in projects:
+    as.setdir(p.name)                # move into the proper project directory
+    s.append(p.getpar("s"))
+    l.append(p.getpar("l"))
+    #
+#
+
+\end{verbatim}
+\normalsize
+
+
+
+
 
 \section{Line Identification}
 
@@ -94,43 +317,17 @@ $$
  f_{2R} = f_{1R} + {  {\Delta f} \over { (1-z) }}
 $$
 
-\section*{Appendix: Technical Material}
-
-In this section we describe
-
-\subsection{Scenarios}
-
-Several scenarios are given, how to operate.  In this nomenclature, we use {\bf P} for
-the projects, and {\bf B} for the bands (spectral windows). Each has NP projects, and 
-NB bands. These bands can be independant on the frequency axis, and can contain
-both line and continuum radiation. The continuum radiation is allowed to have a spectral
-index (or in worst case: a true parameterized shape, e.g. black body)
-
-\subsubsection{Pipeline run}
-
-This would be the mode in which ASTUTE runs in the archive, i.e. from one or more spectral
-windows (ALMA: NB=4, NP=1). 
-
-\subsubsection{Simple single project archive pull}
-
-\subsubsection{Pipeline run}
-
-\subsubsection{Pipeline run}
-
-\subsubsection{Pipeline run}
-
-
 
 \subsection{Archive}
 
 Some of ASTUTE's functionality depends on how well it hooks into the archive.
 
-Is it going to depend on VO services.
+Is it going to depend on VO services. The SIAV2 data access protocol
 
 By default ASTUTE runs and the ``big'' cubes are locally present. But if derived
 product
 
-\subsection{astute.zip}
+\subsection{admit.zip}
 
 Python has good methods to manage zip files, maintenance will be done in 
 a temporary (?) subdirectory per project.
