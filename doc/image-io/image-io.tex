@@ -26,7 +26,8 @@ of the available community codes, and a unified frontend
 to running and analyzing comparing their clumps is 
 described.
 
-This is work in progress for AStute.
+This is work in progress for AStute, technical material for ASTUTE
+(now renamed to ADMIT) can be found in the ADMIT memo.
 \end{abstract}
 
 
@@ -37,6 +38,8 @@ This is work in progress for AStute.
 {Add cube examples }
 \addrevision{0.3}{2013-Apr-12}{P. Teuben}{}
 {Various updates for AStute, added clumpfinders}
+\addrevision{0.3}{2013-Aug-11}{P. Teuben}{}
+{Cleanup for material into ADMIT}
 \ChangeRecordEnd
 
 
@@ -1052,46 +1055,6 @@ $$
  f_{2R} = f_{1R} + {  {\Delta f} \over { (1-z) }}
 $$
 
-\section*{Appendix: Technical Material}
-
-In this section we describe
-
-\subsection{Scenarios}
-
-Several scenarios are given, how to operate.  In this nomenclature, we use {\bf P} for
-the projects, and {\bf B} for the bands (spectral windows). Each has NP projects, and 
-NB bands. These bands can be independant on the frequency axis, and can contain
-both line and continuum radiation. The continuum radiation is allowed to have a spectral
-index (or in worst case: a true parameterized shape, e.g. black body)
-
-\subsubsection{Pipeline run}
-
-This would be the mode in which ASTUTE runs in the archive, i.e. from one or more spectral
-windows (ALMA: NB=4, NP=1). 
-
-\subsubsection{Simple single project archive pull}
-
-\subsubsection{Pipeline run}
-
-\subsubsection{Pipeline run}
-
-\subsubsection{Pipeline run}
-
-
-
-\subsection{Archive}
-
-Some of ASTUTE's functionality depends on how well it hooks into the archive.
-
-Is it going to depend on VO services.
-
-By default ASTUTE runs and the ``big'' cubes are locally present. But if derived
-product
-
-\subsection{astute.zip}
-
-Python has good methods to manage zip files, maintenance will be done in 
-a temporary (?) subdirectory per project.
 
 \end{document}
 
