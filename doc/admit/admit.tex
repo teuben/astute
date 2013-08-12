@@ -62,7 +62,13 @@ these will be combined into one single source image datacube.
 
 \section{Outline}
 
-The following plugins are considered to be part of ADMIT:
+Here we outline a numbers of plugins in ADMIT. Although they are
+presented here in a serial fashion, there is some advantage of a waterfall
+type model, where you do redo the statistics based on the knowledge where
+the signal is, derived from later steps. At each step new meta-data is
+gathered that describes the data, and makes it accessible to recompute, 
+given the user will not always have access to the redundant data products.
+
 
 \begin{enumerate}
 
@@ -72,97 +78,69 @@ sources (NS), bands (NB) and lines (NL) will (eventually) be set. This, and
 associated table describing these, will determine the workflow in the
 ADMIT pipeline. In each subseqent step this container (maintained in XML) will
 be updated such that at activating ADMIT in a project, it will quickly
-present a summary of everything that has been gathered and computed.
+present a summary of everything that has been gathered and computed. Part of
+this summary is also a simple table with properties such as 
+min, max, mean, rms per channel, which can be the input for the next step:
 
 \item
 {\bf Line Identification}
-
+A {\it line-strength} vs. {\it frequency} table is the essential outcome
+that will be input into a line identification procedure (see e.g. datasplat).
+The input can be as simple as the previously computed cube statistics, 
+but aided by cross-correllation techniques in PV diagrams or the cube itself,
+aided by where the source material is (see next two steps).
+The output will be a series of identified and unidentified lines in the different
+bands (and sources), NL in total.
 
 \item
 {\bf Moment Maps}
-
+From the previous step NL cubes will be cut from the NB bands, bringing the data
+volume down. In addition, there is an option to re-bin the cubes in frequency
+space. Cubes will now be labeled in doppler velocity space., with the intent
+that all cubes have the same gridding applied.  Simple moment 0, 1 and 2 maps
+are created with a selected method for source identification (but see also next
+step). Moment maps (in fits and/or jpg?) are exported to {\tt admit.zip}.
 
 \item
 {\bf Source Extraction}
-
+More sophisticated source extraction routines are available from the literature
+(clumpfind, dendrograms, gaussclumps, etc.etc), which essentially produce
+a table of properties for each clump. This table is stored as a VO Table 
+in {\tt admit.zip}
 
 \item
 {\bf Source Characterization}
+Since for each of the NL line's, a catalog of sources/clumps is avaibale,
+characterization of the emission accross different molecules is now 
+possible on a grand scale never been possible before. Principle Component
+Analysis (PCA) and an Overlap Integral (OI) are two ways to quantify
+and visualize this. A linked data tool (e.g. {\tt glue}) can be of
+help here.
 
 
 \end{enumerate}
 
+At each stage ADMIT will return data structures in python, for easy integration
+in casapy or any other python module. Some example of this are given in the code
+fragments below.
 
-\begin{verbatim}
-
-1. ALMA and the Context of this study
-
-ALMA overview 2-3 slides
-Basic data is fourier components Pipeline creates images
-CASA software package
-CASAViewer
-Capacity of instrument to produce data
-Target Users
-  novice
-  experienced
-  expert Goals:
-  Create a metadata product which enhances the
-     user experience by giving statistucs and
-     overviews of the data
-  Create metadata products which facilitates the
-     user's ability to visualize the data and
-     analyze the data
-  Enable new methods for doing science with the data
-  Create an infrastructure which encourages user
-     contributed methods/codes and allows
-
-Study is perparation for a Project
-Constraints: need to work within the system
-
-2. ALMA Arichive, Data flow and metadata flow
-
-Data flow -- from correlator at site
-             to Santiago
-         to pipeline
-         to archive and science centers
-Archive structure
-    Diagram and explanation
-    Ground rule for our project -- not ours to change
-
-Scale of archive as a science treasure trove
-
-Modes of use:
-   Current user interaction
-       retrieve observations for own project
-       retrieve archival observations on desired object
-   Future science mining activities
-      pulling together multiple object samples
-      gathing all data on single objects
-
-Implimentation:
-A. Create metadata as tail end of imaging pipeline
-    metadata goes into archive and is served from there
-B. User improves images and recreates metadata
-C. User runs specialized programs to create new
-    metadata for specific scientific uses.
-\end{verbatim}
-
-\section{Code Technical Material}
-
-In this section we describe
-
-\subsection{Scenarios}
+\section{Scenarios}
 
 Several scenarios are given how ADMIT can be used.  For nomenclature, we use {\bf P} for
-the projects, {\bf S} for a source, {\bf B} for the bands (spectral windows), and 
+the projects, {\bf S} for the sources, {\bf B} for the bands (spectral windows), and 
 {\bf L} for the identified and unidentified lines. They count to 
-NP projects, with NS sources, NB bands and NL lines.
-These spectral window bands can be independant sections on the frequency axis, 
-and can contain both line and continuum radiation. The continuum radiation is 
-allowed to have a spectral 
-index (or in worst case: a true parameterized shape, e.g. black body)
+NP projects, NS sources, NB bands and NL lines.
+These spectral window bands can be independent sections on the frequency axis, 
+and can contain both line and continuum radiation. NL will then refer to all the
+lines in all the NB bands.
+The continuum radiation is allowed to have a spectral 
+index (or in worst case: a true parameterized shape, e.g. black body).
 
-\subsubsection{Pipeline: run a single project}
+
+In each of the 4 code scenarios we will expose the enourmous power of the
+ADMIT toolkit in handling such a new situation.
+
+\subsection{Pipeline: run a single project}
 
 This would be the mode in which ASTUTE runs in the archive, i.e. from one or more spectral
 windows (ALMA: NP=1, NS$\ge$1, NB=4, NL$\ge$0)\footnote{do we need to say something about 
@@ -180,7 +158,7 @@ as = astute.Astute()
 \normalsize
 
 
-\subsubsection{User: simple project archive pull}
+\subsection{User: simple project archive pull}
 
 This example is the case where a user has selected one project (NP=1)
 in which one source was present (NS=1), but 4 associated 
@@ -224,9 +202,12 @@ for p in projects:
 \normalsize
 
 
-\subsubsection{User: code2}
+\subsection{User: code2}
 
-In this case the user has decided to select another undefined line
+In this case the user has decided to select another undefined line, add this 
+to the ADMIT database, in addition, suggest a feedback to the ALMA data archive
+(speculative). Recomputing and re-correlating data is an essential ingredient
+of ADMIT.
 
 \footnotesize
 \begin{verbatim}
@@ -267,13 +248,18 @@ for p in projects:
 \normalsize
 
 
-\subsubsection{User: code3}
+\subsection{User: code3}
 
 In this example the user has harvested a series of CO cubes from
 an archive query  that resulted in many projects (NP=120), 
 from these CO cubes, clumps have been identified using a modified
 algorithm from the one the ASTUTE pipeline had used, and the slope
 of the mass  spectrum is correlated against the mass of the galaxy.
+This really shows some of the more advanced power in ADMIT
+of gathering datasets (be it via an archive query, or assembly by
+other means), and datamining these dataset with ADMIT tools.
+Under the hood these tools are not limited to CASA tools and tasks, but
+can also be taken from external packages with minimal work.
 
 \footnotesize
 \begin{verbatim}
@@ -310,7 +296,21 @@ for p in projects:
 \normalsize
 
 
-\subsection{Archive Access}
+\begin{figure}[ht]
+% \epsscale{0.60} 
+\plotone{mock1.eps}
+\caption{Example GUI: On the left from top to bottom the Inspector, Moment, 
+Morphological Analysis, Principal Component Analysis, and Spectral Cutout
+actions for the data selected in the middle panel. On the top row tab's are
+visible for a number of collected sources. NOTE: the middle panel will be replaced
+with real figures from ADMIT/matplotlib}
+\label{fig:gui1}
+\end{figure}
+
+
+
+
+\section{Archive Access}
 
 Some of ASTUTE's functionality depends on how well it hooks into the archive.
 
@@ -346,7 +346,8 @@ CASA is using Qt (not GTK+) as their GUI. Our mockup version with glade is GTK+ 
 so we'll have to switch as soon as we go and do the real thing.
 
 \item
-The now working VLA pipeline is written in casapy, and would be worthwhile studying.
+The now working VLA pipeline (Chandler) 
+is written in casapy, and would be worthwhile studying.
 
 \item
 The {\tt ParselTongue} package (ascl:1208.020, Kettenis et al, 2006ASPC..351..497K)
@@ -443,6 +444,217 @@ can show that the rest frequency of the unknown line is given by:
 $$
  f_{2R} = f_{1R} + {  {\Delta f} \over { (1-z) }}
 $$
+
+\section{Source Extraction}
+
+
+Separating signal from noise is one of the most important first steps
+in the analysis of an image or a data cube. Many algorithms have
+been developed and published over the last 30 years. They basically
+can be classified in two main  categories:  thresholding and pattern
+matching.
+
+Some recent reviews are available:
+Popping et al. 2012,  Hassan (2012) Thesis Section 5.   
+% koribalski 2012 - targeted source finding techniques
+% Koribalski, B., 2012. Overview on spectral line source finding and visualisati
+on. 
+% Publications of the Astronomical Society of Australia. xix, 10, 131, 140, 141,
+ 226
+% http://adsabs.harvard.edu/abs/2012PASA...29..359K
+
+
+Here we review some methods in common use with published papers. 
+We are ignoring a very similar cottage industry in the N-body (points)
+world. A good recent review and code comparison 
+by Knebe et al. (2013) can be found
+in {\tt http://arxiv.org/abs/1304.0585}.
+
+ASCL references listed below can be found off {\tt http://ascl.net}, as well
+as in ADS {\tt http://adsabs.harvard.edu/}. This is probably the easiest
+reference point to find everything related to the listed software.
+
+\subsection{clumpfind}
+
+The Williams et al. 1994 
+ClumpFind
+\footnote{http://adsabs.harvard.edu/abs/1994ApJ...428..693W}
+algorithm has been implemented as {\tt clfind}
+in miriad, but is also available in an IDL version. 
+{\bf ascl:1107.014}
+Now superseded
+by {\tt cprops} (CloudProps, Rosolowski and Leroy 2006) {\bf ascl:1102.012}
+\footnote{http://arxiv.org/abs/astro-ph/0601706/}.
+
+
+
+\subsection{duchamp / selavy}
+
+Whiting (2011,2012) for 2D and 3D. Used in ASKAP pipeline. 
+{\tt selavy} is the ASKAP 21-cm version. {\bf ascl:1201.011}
+\footnote{http://adsabs.harvard.edu/abs/2012MNRAS.421.3242W}
+
+\subsection{blobcat}
+
+Hales et al. 2012.  2D.
+{\bf ascl:1208.009}
+
+\subsection{getsources}
+
+Menshchikov et al. 2012. Herschell based. 2D.
+\footnote{http://adsabs.harvard.edu/abs/2012A\&A...542A..81M}
+
+\subsection{gaussclumps}
+
+The original stutzki code is also available in GILDAS, as well as in
+STARLINK.  It iteratively decomposes a 3D cube into a series of
+Gaussian shaped clumps.  It starts by fitting a 3-dimensional clump
+locally to the maximum of the input lbv cube. It then subtracts this
+clump from the cube, creating a residual map, and then continues with
+the maximum of this residual map.  The procedure is repeated until a
+stop criterion is met, for instance when the maximum of the residual
+maps drops below the 3 sigma level.
+
+{\tt gaussclumps} was developed by Stutzki \& Guesten (1990, ApJ, 356, 513)
+who applied it to their M17SW data sets. It was later described and
+analyzed in more detail by Kramer et al. (1998, A\&A, 329, 249) who
+also applied it to data cubes of various Galactic clouds.  The papers
+of e.g. Heithausen et al. (1998) and Simon et al. (2000) give more examples
+of the application of gaussclumps to large scale CO maps.
+
+\subsection{imsad}
+
+{\tt imsad} = Image Search and Destroy. 
+Implemented in MIRIAD, based on {\tt imfit}, esssentially fits a gaussian
+to a peak that sticks out of some plateau.
+
+\subsection{SExtractor}
+
+A widely source extractor (Bertin \& Arnouts 1996), but not so good for blended 
+objects.
+{\bf ascl:1010.064}
+
+\subsection{SFind}
+
+Hopkins et al. 2002.   Implemented in MIRIAD.
+
+\subsection{MultiFind}
+perl script using a series of miriad commands. Kilborn 2001. Written for HIPASS.
+
+\subsection{tophat}
+
+Meyer et al. 2004. For HIPASS. Uses a pattern matching of shapes and cross corre
+lation
+to find signals.
+
+\subsection{lovedata}
+
+Saintonge 2007. For ALFALFA. Written in IDL. Pattern matching.
+
+
+\subsection{GammaFinder}
+
+Boyce 2003. Masters thesis Cardiff.  In java. Use gamma function to estimate
+noise and reject non-signal
+
+\subsection{1d-1d wavelet}
+
+C++ by FLoer and Winkel 2012.
+
+\subsection{smooth plus clip}
+
+An old method from the WSRT Bosma time, but more formally
+introduced by Serra et al. 2011. ATLAS3D.
+
+\subsection{CNHI}
+
+Jurek 2012. for WALLABY project design study. CNHI = 
+Characterised Noise HI Source Finder. Pattern matching. Also mentions the
+Lutz (1980) one path algorithm, which is used to group regions from
+the same source into a single source.
+
+
+\subsection{DisPerSE}
+
+DisPerSE is open source software for the identification of persistent
+topological features such as peaks, voids, walls and in particular
+filamentary structures within noisy sampled distributions in 2D,
+3D. Sousbie (2013) {\bf ascl:1302.015}
+\footnote{http://www2.iap.fr/users/sousbie/web/html/indexd41d.html}
+ 
+
+Using DisPerSE, structure identification can be achieved through
+the computation of the discrete Morse-Smale complex. The software can
+deal directly with noisy datasets via the concept of persistence (a
+measure of the robustness of topological features). Although developed
+for the study of the properties of filamentary structures in the
+cosmic web of galaxy distribution over large scales in the Universe,
+the present version is quite versatile and should be useful for any
+application where a robust structure identification is required, such
+as for segmentation or for studying the topology of sampled functions
+(for example, computing persistent Betti numbers). Currently, it can
+be applied can work indifferently on many kinds of cell complex (such
+as structured and unstructured grids, 2D manifolds embedded within a
+3D space, discrete point samples using delaunay tesselation, and
+Healpix tesselations of the sphere). The only constraint is that the
+distribution must be defined over a manifold, possibly with
+boundaries.
+
+\subsection{FIVe}
+
+Hacar et al. (2013) discuss a new Friends of Friends (FOF) 
+algorithm they dubbed {\tt FIVe} (Friends in Velocity), and
+implemented in the R scripting language.
+\footnote{http://arxiv.org/abs/1303.2118}
+
+
+\subsection{Kemper}
+
+A multi-scale approach to automated feature extraction from HI
+data cubes. 
+So far only published as a research note, Kempker (2005) from RUG.
+
+
+\subsection{PyFind}
+
+% Paolo Serra <serra@astron.nl>
+Serra (2012) at WSRT/ASTRON
+has developed this not-yet-named code. PyFind is his current 
+placeholder name. 
+
+It is a simple Python code working on FITS files. It smooths
+the cube using a set of specified kernels and finds emission at each
+resolution by applying a specified threshold. The program applies also
+a size filter at each resolution and makes a final mask as the union
+of all masks. Two papers in 2012, one on MNRAS and one on PASA, discuss
+it.
+
+\subsection{GRID\_core}
+
+Gong and Ostriker (2013),
+coming from a more theoretical angle and 
+instead of working with densities, developed 
+{\tt GRID\_core} that works with
+the gravitational potential.
+In essense this is simply a more smooth version of
+the density. It uses a watershed model (much like ClumpFind)
+to define clumpy structures.  If the potential is not directly
+available, a poisson solver can be be used to define densities
+and with an assumed conversion factor, regions of bound structures
+can be defined as well.  {\bf ascl:1302.007}
+
+
+\subsection{TODO}
+
+Here's some catchphrases that need to be tracked down if they have
+relevant code.
+
+GAIA, MATADOR, AstroMed, SPLAT-VO, Herschel DP, S2Plot, AstroMD. 
+
+
+
+
+
 
 \section*{References}
 
