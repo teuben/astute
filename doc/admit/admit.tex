@@ -46,7 +46,8 @@ find the latter name where the former is meant.
 ADMIT (ALMA Data MIning Toolkit)\footnote{formerly known as ASTUTE. 
 This document will still use the name ASTUTE in places where ADMIT is meant.}
 is a toolkit that operates on ALMA data, and from existing data cubes, 
-creates a number of ``added value'' datasets that summarizes to the user
+creates a number of ``added value'' datasets and descriptions 
+that summarizes to the user
 what science they can expect from this data. They are wrapped into what
 we call the {\tt admit.zip} file, and contain both the descriptive XML
 file, and all associated -- but small -- FITS and JPG files.
@@ -55,19 +56,22 @@ The ALMA pipeline ingests visibility data (in ASDM format) and after calibration
 and mapping produces a series of image datacubes, one for each band (currently 
 NB=4 for ALMA, with 3840 channels per band), and one for each distinct
 source (usually NS=1, but if that applies to the science 
-goals the project has been set up, with multiple sources are possible). If
-single dish has been added, and/or a source contains multiple fields,
-these will be combined into one single source image datacube.
+goals the project has been set up with, multiple sources are possible). If
+single dish is available, and/or a source contains multiple fields,
+these will be combined into one single source mosaiced image datacube.
 
 
 \section{Outline}
 
 Here we outline a numbers of plugins in ADMIT. Although they are
 presented here in a serial fashion, there is some advantage of a waterfall
-type model, where you do redo the statistics based on the knowledge where
+type model, where for example you redo the statistics based on 
+the knowledge where
 the signal is, derived from later steps. At each step new meta-data is
 gathered that describes the data, and makes it accessible to recompute, 
 given the user will not always have access to the redundant data products.
+
+Each plugin will expect information from previous steps to be present.
 
 
 \begin{enumerate}
@@ -75,22 +79,39 @@ given the user will not always have access to the redundant data products.
 \item
 {\bf Summary}: this creates a container in which the number of projects (NP),
 sources (NS), bands (NB) and lines (NL) will (eventually) be set. This, and 
-associated table describing these, will determine the workflow in the
+associated tables describing these, will determine the workflow in the
 ADMIT pipeline. In each subseqent step this container (maintained in XML) will
 be updated such that at activating ADMIT in a project, it will quickly
 present a summary of everything that has been gathered and computed. Part of
-this summary is also a simple table with properties such as 
-min, max, mean, rms per channel, which can be the input for the next step:
+this summary is also a simple cube statistics table with properties such as 
+min, max, mean, rms per channel, which can be the input for the next step.
+
+$$
+cube[NP][NS][NB][NC][NY][NX] \rightarrow stats[NP][NS][NB][NC]
+$$
+and
+$$
+stats = \{min,max,rms,mean,median,...\}
+$$
 
 \item
 {\bf Line Identification}
 A {\it line-strength} vs. {\it frequency} table is the essential outcome
 that will be input into a line identification procedure (see e.g. datasplat).
 The input can be as simple as the previously computed cube statistics, 
-but aided by cross-correllation techniques in PV diagrams or the cube itself,
-aided by where the source material is (see next two steps).
-The output will be a series of identified and unidentified lines in the different
-bands (and sources), NL in total.
+but aided by cross-correllation techniques in a PV diagram, or the cube itself,
+aided by where the sources are (see next two steps).
+The output will be a series of identified and unidentified lines accross the different
+bands, NL in total. This is a simple table of 
+{\it line, frequency, detection probability}, with NL entries.
+
+$$
+    line[NP][NS][NL]
+$$
+with
+$$
+    line = \{name\_id, frequency, probability\}
+$$
 
 \item
 {\bf Moment Maps}
@@ -101,21 +122,43 @@ that all cubes have the same gridding applied.  Simple moment 0, 1 and 2 maps
 are created with a selected method for source identification (but see also next
 step). Moment maps (in fits and/or jpg?) are exported to {\tt admit.zip}.
 
+$$
+    map[NP][NS][NL][NY][NX]
+$$
+with
+$$
+    map = \{mom0, mom1, mom2\}
+$$
+
 \item
 {\bf Source Extraction}
-More sophisticated source extraction routines are available from the literature
-(clumpfind, dendrograms, gaussclumps, etc.etc), which essentially produce
+More sophisticated source extraction routines are available from the community
+(clumpfind, dendrograms, gaussclumps, see list below in Section XX), 
+which essentially produce
 a table of properties for each clump. This table is stored as a VO Table 
-in {\tt admit.zip}
+in {\tt admit.zip}, with NF entries for each feature detected. Features
+are allowed to be hierarchical
+
+$$
+   feature[NP][NS][NL]
+$$
+with
+$$
+   feature = \{X, Y, V, I, shape\}
+$$
+where {\it shape} is a more general description containing (amongst) the size
+and orientation, and possibly higher order moments, at a given location
+{\it X,Y,V} in a cube with total contained emission {\it I}.
+
 
 \item
 {\bf Source Characterization}
-Since for each of the NL line's, a catalog of sources/clumps is avaibale,
-characterization of the emission accross different molecules is now 
-possible on a grand scale never been possible before. Principle Component
+Since for each of the NL line's, a catalog of features is available,
+characterization of the emission accross different molecules/lines is now 
+possible on a scale never been possible before. Principle Component
 Analysis (PCA) and an Overlap Integral (OI) are two ways to quantify
-and visualize this. A linked data tool (e.g. {\tt glue}) can be of
-help here.
+and visualize this. A linked data tool (e.g. {\tt glue}) can be 
+of tremendous help here.
 
 
 \end{enumerate}
@@ -126,10 +169,12 @@ fragments below.
 
 \section{Scenarios}
 
-Several scenarios are given how ADMIT can be used.  For nomenclature, we use {\bf P} for
-the projects, {\bf S} for the sources, {\bf B} for the bands (spectral windows), and 
-{\bf L} for the identified and unidentified lines. They count to 
-NP projects, NS sources, NB bands and NL lines.
+Several scenarios are given how ADMIT can be used.  For nomenclature, we continue
+to use {\bf P} for
+the projects, {\bf S} for the sources, {\bf B} for the bands (spectral windows), 
+{\bf L} for the identified and unidentified lines, and {\bf F} for the extracted
+features in a line cubes. They count to 
+NP projects, NS sources, NB bands, NL lines and NF features.
 These spectral window bands can be independent sections on the frequency axis, 
 and can contain both line and continuum radiation. NL will then refer to all the
 lines in all the NB bands.
@@ -142,10 +187,11 @@ ADMIT toolkit in handling such a new situation.
 
 \subsection{Pipeline: initialize a single project}
 
-This would be the mode in which ASTUTE runs at the tail end of the ALMA pipeline
+This would be the mode in which ADMIT runs at the tail end of the ALMA pipeline
 in the archive, i.e. from one or more spectral
-windows (ALMA: NP=1, NS$\ge$1, NB=4, NL$\ge$0)\footnote{do we need to say something about 
-polarization here?}
+windows (ALMA: NP=1, NS=1, NB=4, NL$\ge$0)\footnote{do we need to say something about 
+polarization here?} the previously described steps produce ancillary data for the
+{\it admit.zip} file.
 
 \footnotesize
 \begin{verbatim}
@@ -154,9 +200,7 @@ polarization here?}
 import astute
 
 as = astute.Astute()               # initialize from the current directory
-
 as.pipeline(0)                     # run a default pipeline
-
 as.save()                          # save everyting in admit.zip
 
 \end{verbatim}
@@ -167,10 +211,14 @@ as.save()                          # save everyting in admit.zip
 
 This example is the case where a user has selected one project (NP=1)
 in which one source was present (NS=1), but 4 associated 
-spectral windows (NB=4). In these 9 spectral lines were detected (NL=9),
-resulting in 9 data-cubes, with associated moment-0,1,2 maps in FITS
+spectral windows (NB=4, NC=3840). In these cubes 19 spectral lines 
+were detected (NL=19),
+resulting in 19 data-cubes, with associated moment-0,1,2 maps in FITS
 and JPG format. An additional clump identification was made, available
-in tabular format.
+in tabular format.  The user visualizes them, and extracts the 19
+data cubes, and recomputes moment maps with a slightly less conservative
+setting of the clipping, and recomputes feature detection and compares
+them with the ones provided previously by ADMIT.
 
 \footnotesize
 \begin{verbatim}
@@ -208,10 +256,10 @@ for p in projects:
 
 \subsection{User: recompute properties using different algorithms}
 
-In this case the user has decided to select another undefined line, add this 
-to the ADMIT database, in addition, suggest a feedback to the ALMA data archive
-(speculative). Recomputing and re-correlating data is an essential ingredient
-of ADMIT.
+In this case the user has decided to select an undefined line, identify it, 
+and add this to the ADMIT database, in addition, suggest a feedback to the ALMA data archive
+(speculative) for this particular project.
+Recomputing and re-correlating data is an essential ingredient of ADMIT.
 
 \footnotesize
 \begin{verbatim}
@@ -252,14 +300,14 @@ for p in projects:
 
 \subsection{User: query archive for many projects and cross-correlate clump properties}
 
-In this example the user has harvested a series of CO cubes from
-an archive query  that resulted in many projects (NP=120), 
-from these CO cubes, clumps have been identified using a modified
-algorithm from the one the ASTUTE pipeline had used, and the slope
-of the mass  spectrum is correlated against the mass of the galaxy.
+In this example the user has harvested a series of CO cubes via
+an archive query that resulted in many object/projects (NP=121).
+From these CO cubes, clumps have been identified using a modified
+algorithm from the one the ADMIT pipeline had used, and the slope
+of the mass spectrum is correlated against the mass of the galaxy.
 This really shows some of the more advanced power in ADMIT
 of gathering datasets (be it via an archive query, or assembly by
-other means), and datamining these dataset with ADMIT tools.
+hand or other means), and datamining these dataset with ADMIT tools.
 Under the hood these tools are not limited to CASA tools and tasks, but
 can also be taken from external packages with minimal work.
 
@@ -286,6 +334,7 @@ for p in projects:
     #
 #
 
+
 \end{verbatim}
 \normalsize
 
@@ -306,7 +355,10 @@ with real figures from ADMIT/matplotlib}
 
 \section{Archive Access}
 
-Some of ASTUTE's functionality depends on how well it hooks into the archive.
+Some of ADMIT's functionality depends on how well it hooks into the archive,
+and until that is open, ADMIT will depend on manually downloading the cubes
+for (re)processing.  By default, ADMIT can only show a graphic summary of
+a dataset, and will need large cubes
 
 Is it going to depend on VO services? The SIAV2 data access protocol
 will handle multi dimensional image data cubes, an early draft is expected
@@ -315,16 +367,13 @@ be demoed at the IVOA interop during ADASS this year (Tody, priv.comm.)
 
 Or is it going to depend on a direct API into the archive? 
 
-By default ASTUTE runs and the ``big'' cubes are locally present. But if derived
-products are not present in the working directory, a procedure will have to 
-extract this from the archive.
 
 \subsection{admit.zip}
 
-The plan is to wrap our XML file and any associated files (
+We wrap our XML data (tables etc.) and any associated files (all meant to be small,
+but the JPG and/or FITS maps) into the {\tt admit.zip} file.
 Python has good methods to manage zip files, maintenance will be done in 
-a temporary (?) subdirectory per project. Code examples are in azip.py
-
+a temporary (?) subdirectory per project. Code example in azip.py
 
 
 \section{Related Technologies}
@@ -341,7 +390,7 @@ so we'll have to switch as soon as we go and do the real thing.
 
 \item
 The now working VLA pipeline (Chandler) 
-is written in casapy, and would be worthwhile studying.
+is written in casapy, and would be worthwhile studying in more detail.
 
 \item
 The {\tt ParselTongue} package (ascl:1208.020, Kettenis et al, 2006ASPC..351..497K)
@@ -378,6 +427,11 @@ these are based on theory. Bolatto's N253 CO data cube received much attention i
 literature with Rosalowski assisted in producing a 3D visualization of the clumps
 in N253.
 
+\item
+{\tt ipython} has a {\it notebook} capability, much like Mathematica's Notebook,
+which allows one to play back (think verifyability). In another way one could see
+this as parallel to the {\tt admit.zip} file. notebooks are stored in JSON
+format.
 
 
 \end{enumerate}
@@ -641,14 +695,15 @@ can be defined as well.  {\bf ascl:1302.007}
 \subsection{TODO}
 
 Here's some catch phrases that need to be tracked down if they have
-relevant code.
+relevant code for the source and feature extraction problem.
 
 GAIA, MATADOR, AstroMed, SPLAT-VO, Herschel DP, S2Plot, AstroMD. 
 
 
+\section{Timeline and Deliverables}
 
-
-
+In this section we describe the technical approach, the
+timeline and the deliverables. All in a self-contained package.
 
 \section*{References}
 
