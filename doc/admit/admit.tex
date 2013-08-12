@@ -14,15 +14,23 @@
 
 \begin{abstract}
 
-An overview of ADMIT (ALMA Data Mining Toolkit) V1
-is given. This is the outcome of an ALMA Development
-Study awarded to Mundy and Varshney (2012/2013), in
-preparation for an ALMA Development Project, due
-Augus 16, 2013.
+An overview of ADMIT (ALMA Data Mining Toolkit) V1 is given. This is
+the outcome of an ALMA Development Study awarded to Mundy and Varshney
+(2012), in preparation for an ALMA Development Project, due Augus 16,
+2013.
 
-This memo describes the technical aspects of ADMIT, some
-working, some a mockup. All working and example code
-is available in a CVS module named {\tt astute}.
+This memo describes the technical aspects of ADMIT, some working, and
+some still a mockup. All working and example codes are available in a
+CVS module named {\tt astute}, including this memo.
+
+ADMIT is targeted at both a novice user (via a convenient GUI), as
+well as an experienced user (python toolkit within the CASA
+framework), and from the ground up is designed to be extensible via
+plugins.
+
+{\bf CAVEAT}: ADMIT was formerly known as ASTUTE, and you will still
+find the latter name where the former is meant.
+
 
 \end{abstract}
 
@@ -36,28 +44,54 @@ is available in a CVS module named {\tt astute}.
 \section{Introduction}
 
 ADMIT (ALMA Data MIning Toolkit)\footnote{formerly known as ASTUTE. 
-This document will still use the name ASTUTE, where ADMIT is be meant.}
-is a toolkit that operates on ALMA data, and from existing spectral window data cubes, 
+This document will still use the name ASTUTE in places where ADMIT is meant.}
+is a toolkit that operates on ALMA data, and from existing data cubes, 
 creates a number of ``added value'' datasets that summarizes to the user
-what science they can expect from this data.
+what science they can expect from this data. They are wrapped into what
+we call the {\tt admit.zip} file, and contain both the descriptive XML
+file, and all associated -- but small -- FITS and JPG files.
 
 The ALMA pipeline ingests visibility data (in ASDM format) and after calibration
-and mapping produces a series of datacubes, one for each band (currently 
-NB=4 for ALMA, with 3840 channels per band). 
-
-
-
-
-"If there are 10 sources in a proposal, this will comprise a single
-project with one or more science goals (depending on exactly how the
-10 different observations need to be set up). In the archive, there
-will be 10x(number of spectral windows) products (i.e. FITS cubes),
-unless those 10 sources are pointings within a single mosaic (in which
-case they are technically "fields" in CASA language). Hope that makes
-things clearer!"
+and mapping produces a series of image datacubes, one for each band (currently 
+NB=4 for ALMA, with 3840 channels per band), and one for each distinct
+source (usually NS=1, but if that applies to the science 
+goals the project has been set up, with multiple sources are possible). If
+single dish has been added, and/or a source contains multiple fields,
+these will be combined into one single source image datacube.
 
 
 \section{Outline}
+
+The following plugins are considered to be part of ADMIT:
+
+\begin{enumerate}
+
+\item
+{\bf Summary}: this creates a container in which the number of projects (NP),
+sources (NS), bands (NB) and lines (NL) will (eventually) be set. This, and 
+associated table describing these, will determine the workflow in the
+ADMIT pipeline. In each subseqent step this container (maintained in XML) will
+be updated such that at activating ADMIT in a project, it will quickly
+present a summary of everything that has been gathered and computed.
+
+\item
+{\bf Line Identification}
+
+
+\item
+{\bf Moment Maps}
+
+
+\item
+{\bf Source Extraction}
+
+
+\item
+{\bf Source Characterization}
+
+
+\end{enumerate}
+
 
 \begin{verbatim}
 
@@ -111,7 +145,6 @@ A. Create metadata as tail end of imaging pipeline
 B. User improves images and recreates metadata
 C. User runs specialized programs to create new
     metadata for specific scientific uses.
-
 \end{verbatim}
 
 \section{Code Technical Material}
@@ -120,16 +153,20 @@ In this section we describe
 
 \subsection{Scenarios}
 
-Several scenarios are given, how to operate.  In this nomenclature, we use {\bf P} for
-the projects, and {\bf B} for the bands (spectral windows). Each has NP projects, and 
-NB bands. These bands can be independant on the frequency axis, and can contain
-both line and continuum radiation. The continuum radiation is allowed to have a spectral
+Several scenarios are given how ADMIT can be used.  For nomenclature, we use {\bf P} for
+the projects, {\bf S} for a source, {\bf B} for the bands (spectral windows), and 
+{\bf L} for the identified and unidentified lines. They count to 
+NP projects, with NS sources, NB bands and NL lines.
+These spectral window bands can be independant sections on the frequency axis, 
+and can contain both line and continuum radiation. The continuum radiation is 
+allowed to have a spectral 
 index (or in worst case: a true parameterized shape, e.g. black body)
 
-\subsubsection{Pipeline run}
+\subsubsection{Pipeline: run a single project}
 
 This would be the mode in which ASTUTE runs in the archive, i.e. from one or more spectral
-windows (ALMA: NB=4, NP=1). 
+windows (ALMA: NP=1, NS$\ge$1, NB=4, NL$\ge$0)\footnote{do we need to say something about 
+polarization here?}
 
 \footnotesize
 \begin{verbatim}
@@ -143,7 +180,14 @@ as = astute.Astute()
 \normalsize
 
 
-\subsubsection{User: Simple single project archive pull}
+\subsubsection{User: simple project archive pull}
+
+This example is the case where a user has selected one project (NP=1)
+in which one source was present (NS=1), but 4 associated 
+spectral windows (NB=4). In these 9 spectral lines were detected (NL=9),
+resulting in 9 data-cubes, with associated moment-0,1,2 maps in FITS
+and JPG format. An additional clump identification was made, available
+in tabular format.
 
 \footnotesize
 \begin{verbatim}
@@ -181,6 +225,8 @@ for p in projects:
 
 
 \subsubsection{User: code2}
+
+In this case the user has decided to select another undefined line
 
 \footnotesize
 \begin{verbatim}
@@ -223,6 +269,12 @@ for p in projects:
 
 \subsubsection{User: code3}
 
+In this example the user has harvested a series of CO cubes from
+an archive query  that resulted in many projects (NP=120), 
+from these CO cubes, clumps have been identified using a modified
+algorithm from the one the ASTUTE pipeline had used, and the slope
+of the mass  spectrum is correlated against the mass of the galaxy.
+
 \footnotesize
 \begin{verbatim}
 # code3.py:
@@ -258,7 +310,82 @@ for p in projects:
 \normalsize
 
 
+\subsection{Archive Access}
 
+Some of ASTUTE's functionality depends on how well it hooks into the archive.
+
+Is it going to depend on VO services? The SIAV2 data access protocol
+will handle multi dimensional image data cubes, an early draft is expected
+by Aug 16, and a SIAV2 prototype / reference implementation is planned to 
+be demoed at the IVOA interop during ADASS this year (Tody, priv.comm.)
+
+Or is it going to depend on a direct API into the archive? 
+
+By default ASTUTE runs and the ``big'' cubes are locally present. But if derived
+products are not present in the working directory, a procedure will have to 
+extract this from the archive.
+
+\subsection{admit.zip}
+
+The plan is to wrap our XML file and any associated files (
+Python has good methods to manage zip files, maintenance will be done in 
+a temporary (?) subdirectory per project. Code examples are in azip.py
+
+
+
+\section{Related Technologies}
+
+There are a few notes on existing technologies that 
+impact further development of ADMIT\footnote{where missing, the wiki probably has 
+links and more info}:
+
+\begin{enumerate}
+
+\item
+CASA is using Qt (not GTK+) as their GUI. Our mockup version with glade is GTK+ based,
+so we'll have to switch as soon as we go and do the real thing.
+
+\item
+The now working VLA pipeline is written in casapy, and would be worthwhile studying.
+
+\item
+The {\tt ParselTongue} package (ascl:1208.020, Kettenis et al, 2006ASPC..351..497K)
+is a python package that lets you run AIPS (and other) tasks. 
+They have many methods that resemble what ADMIT has to do. In particular, having
+an option to wrap other common packages (e.g. MIRIAD) in ADMIT, and/or have an option
+to add any package (AIPS, OBIT, NEMO, ....) would be a powerful addition
+that allows flexible python scripting at a high level.
+
+\item
+Related to the previous two item: lets not forget our own CADRE (ascl:1303.017, Friedel 2013)
+
+\item
+CASA's own {\tt casaviewer} is a client/server program which should be at least as good
+as {\tt ds9} to interactively view image cubes. ADMIT should make use of that, but also
+give an option to use {\tt ds9} if a user already has this loaded and wants to compare/blink  
+from another package.
+
+\item
+The {\tt datasplat} interface to Splatalogue (Kent \& Remijan) is 
+a good example that we can expand on/ collaborate
+on adding line identifications to ADMIT, although we need a number of optional preprocessors
+to extract a good {\it line-strength} vs. {\it frequency} table that is the input 
+to {\tt datasplat}. One of the strengths of ADMIT is that this extraction method is
+flexibly set or determined via heuristics.
+
+\item
+The linked data concept from the python-based 
+{\tt glue} project is highly suited to build tasks in our environment.
+
+\item
+The visualization tools in the python-based {\tt yt} project are impressive, although
+these are based on theory. Bolatto's N253 CO data cube received much attention in the
+literature with Rosalowski assisted in producing a 3D visualization of the clumps
+in N253.
+
+
+
+\end{enumerate}
 
 
 \section{Line Identification}
@@ -317,20 +444,15 @@ $$
  f_{2R} = f_{1R} + {  {\Delta f} \over { (1-z) }}
 $$
 
+\section*{References}
 
-\subsection{Archive}
+\begin{enumerate}
+\item
+ASTUTE wiki:  http://carma.astro.umd.edu/wiki/index.php/AStute
 
-Some of ASTUTE's functionality depends on how well it hooks into the archive.
+\item
 
-Is it going to depend on VO services. The SIAV2 data access protocol
-
-By default ASTUTE runs and the ``big'' cubes are locally present. But if derived
-product
-
-\subsection{admit.zip}
-
-Python has good methods to manage zip files, maintenance will be done in 
-a temporary (?) subdirectory per project.
+\end{enumerate}
 
 \end{document}
 
