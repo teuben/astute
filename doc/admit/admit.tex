@@ -14,9 +14,9 @@
 
 \begin{abstract}
 
-An overview of ADMIT (ALMA Data Mining Toolkit) V1 is given. This is
+An overview of ADMIT (ALMA Data Mining Toolkit) V0.5 is given. This is
 the outcome of an ALMA Development Study awarded to Mundy and Varshney
-(2012), in preparation for an ALMA Development Project, due Augus 16,
+(2012), in preparation for an ALMA Development Project, due August 16,
 2013.
 
 This memo describes the technical aspects of ADMIT, some working, and
@@ -25,8 +25,7 @@ CVS module named {\tt astute}, including this memo.
 
 ADMIT is targeted at both a novice user (via a convenient GUI), as
 well as an experienced user (python toolkit within the CASA
-framework), and from the ground up is designed to be extensible via
-plugins.
+framework), and is designed to be extensible via plugins.
 
 {\bf CAVEAT}: ADMIT was formerly known as ASTUTE, and you will still
 find the latter name where the former is meant.
@@ -47,18 +46,19 @@ ADMIT (ALMA Data MIning Toolkit)\footnote{formerly known as ASTUTE.
 This document will still use the name ASTUTE in places where ADMIT is meant.}
 is a toolkit that operates on ALMA data, and from existing data cubes, 
 creates a number of ``added value'' datasets and descriptions 
-that summarizes to the user
-what science they can expect from this data. They are wrapped into what
+that summarize to the user
+what science they can expect from these data. They are wrapped into what
 we call the {\tt admit.zip} file, and contain both the descriptive XML
 file, and all associated -- but small -- FITS and JPG files.
 
 The ALMA pipeline ingests visibility data (in ASDM format) and after calibration
 and mapping produces a series of image datacubes, one for each band (currently 
-NB=4 for ALMA, with 3840 channels per band), and one for each distinct
-source (usually NS=1, but if that applies to the science 
-goals the project has been set up with, multiple sources are possible). If
+NB=4 for ALMA, with NC=3840 channels per band), and one for each distinct
+source (usually NS=1, but depending on the science 
+goals the project has established, multiple sources are possible). If
 single dish is available, and/or a source contains multiple fields,
-these will be combined into one single source mosaiced image datacube.
+the ALMA pipeline will combine them into one single source 
+mosaiced image datacube.
 
 
 \section{Outline}
@@ -71,13 +71,15 @@ the signal is, derived from later steps. At each step new meta-data is
 gathered that describes the data, and makes it accessible to recompute, 
 given the user will not always have access to the redundant data products.
 
-Each plugin will expect information from previous steps to be present.
+Each plugin will expect information from (some) previous steps to be present.
 
+
+\subsection{Proposed Plugins}
 
 \begin{enumerate}
 
 \item
-{\bf Summary}: this creates a container in which the number of projects (NP),
+{\bf Summary}: This creates a container in which the number of projects (NP),
 sources (NS), bands (NB) and lines (NL) will (eventually) be set. This, and 
 associated tables describing these, will determine the workflow in the
 ADMIT pipeline. In each subseqent step this container (maintained in XML) will
@@ -89,6 +91,10 @@ min, max, mean, rms per channel, which can be the input for the next step.
 $$
 cube[NP][NS][NB][NC][NY][NX] \rightarrow stats[NP][NS][NB][NC]
 $$
+where 
+$$
+     cube = \{ intensity [, mask] \}
+$$
 and
 $$
 stats = \{min,max,rms,mean,median,...\}
@@ -99,8 +105,8 @@ $$
 A {\it line-strength} vs. {\it frequency} table is the essential outcome
 that will be input into a line identification procedure (see e.g. datasplat).
 The input can be as simple as the previously computed cube statistics, 
-but aided by cross-correllation techniques in a PV diagram, or the cube itself,
-aided by where the sources are (see next two steps).
+but aided by cross-correlation techniques in a PV diagram, or the cube itself,
+aided by where the sources are (see also Section~\ref{s:line} and next two steps).
 The output will be a series of identified and unidentified lines accross the different
 bands, NL in total. This is a simple table of 
 {\it line, frequency, detection probability}, with NL entries.
@@ -120,7 +126,7 @@ volume down. In addition, there is an option to re-bin the cubes in frequency
 space. Cubes will now be labeled in doppler velocity space., with the intent
 that all cubes have the same gridding applied.  Simple moment 0, 1 and 2 maps
 are created with a selected method for source identification (but see also next
-step). Moment maps (in fits and/or jpg?) are exported to {\tt admit.zip}.
+step). Moment maps (in FITS and/or JPG?) are exported to {\tt admit.zip}.
 
 $$
     map[NP][NS][NL][NY][NX]
@@ -131,11 +137,11 @@ $$
 $$
 
 \item
-{\bf Source Extraction}
+{\bf Feature Extraction}
 More sophisticated source extraction routines are available from the community
-(clumpfind, dendrograms, gaussclumps, see list below in Section XX), 
+(clumpfind, dendrograms, gaussclumps, see list below in Section~\ref{s:feature}, 
 which essentially produce
-a table of properties for each clump. This table is stored as a VO Table 
+a table of properties for each feature. This table is stored as a VO Table 
 in {\tt admit.zip}, with NF entries for each feature detected. Features
 are allowed to be hierarchical
 
@@ -152,7 +158,7 @@ and orientation, and possibly higher order moments, at a given location
 
 
 \item
-{\bf Source Characterization}
+{\bf Feature Characterization}
 Since for each of the NL line's, a catalog of features is available,
 characterization of the emission accross different molecules/lines is now 
 possible on a scale never been possible before. Principle Component
@@ -163,8 +169,8 @@ of tremendous help here.
 
 \end{enumerate}
 
-At each stage ADMIT will return data structures in python, for easy integration
-in casapy or any other python module. Some example of this are given in the code
+At each stage ADMIT will return data structures in Python, for easy integration
+in casapy or any other Python module. Some example of this are given in the code
 fragments below.
 
 \section{Scenarios}
@@ -190,7 +196,8 @@ ADMIT toolkit in handling such a new situation.
 This would be the mode in which ADMIT runs at the tail end of the ALMA pipeline
 in the archive, i.e. from one or more spectral
 windows (ALMA: NP=1, NS=1, NB=4, NL$\ge$0)\footnote{do we need to say something about 
-polarization here?} the previously described steps produce ancillary data for the
+polarization here? Not on 2 yr timescale?} 
+the previously described steps produce ancillary data for the
 {\it admit.zip} file.
 
 \footnotesize
@@ -214,7 +221,7 @@ in which one source was present (NS=1), but 4 associated
 spectral windows (NB=4, NC=3840). In these cubes 19 spectral lines 
 were detected (NL=19),
 resulting in 19 data-cubes, with associated moment-0,1,2 maps in FITS
-and JPG format. An additional clump identification was made, available
+and JPG format. An additional feature identification was made, available
 in tabular format.  The user visualizes them, and extracts the 19
 data cubes, and recomputes moment maps with a slightly less conservative
 setting of the clipping, and recomputes feature detection and compares
@@ -365,15 +372,46 @@ will handle multi dimensional image data cubes, an early draft is expected
 by Aug 16, and a SIAV2 prototype / reference implementation is planned to 
 be demoed at the IVOA interop during ADASS this year (Tody, priv.comm.)
 
-Or is it going to depend on a direct API into the archive? 
+Or is it going to depend on a direct API into the archive?  
 
 
 \subsection{admit.zip}
 
-We wrap our XML data (tables etc.) and any associated files (all meant to be small,
-but the JPG and/or FITS maps) into the {\tt admit.zip} file.
+We wrap our XML data (tables etc.) and any associated files (all meant to be small)
+into the {\tt admit.zip} file.
 Python has good methods to manage zip files, maintenance will be done in 
 a temporary (?) subdirectory per project. Code example in azip.py
+
+There are two types of {\tt admit.zip} files: the one per project, that describes
+all data and science products, and one that describes projects.
+
+Possible hierarchy we find in {\tt admit.zip}: (products with * are large and don't come
+with ADMIT and have to be recomputed and refetched from archive)
+\footnotesize
+\begin{verbatim}
+ProjectName
+    Nsource
+    SourceName1
+       Ra
+       Dec
+       Nband
+       Band1
+           FreqSetup
+           BandCube (*)
+       Band2
+       ...
+       Nline
+       Line1
+           LineCube (*)
+           Mom0
+           Mom1
+           Mom2
+       Line2
+       ...
+    Sourcename2
+    ...    
+\end{verbatim}
+\normalsize
 
 
 \section{Related Technologies}
@@ -407,7 +445,7 @@ Related to the previous two item: lets not forget our own CADRE (ascl:1303.017, 
 CASA's own {\tt casaviewer} is a client/server program which should be at least as good
 as {\tt ds9} to interactively view image cubes. ADMIT should make use of that, but also
 give an option to use {\tt ds9} if a user already has this loaded and wants to compare/blink  
-from another package.
+from another package. Plans exist to replace {\tt casaviewer}.
 
 \item
 The {\tt datasplat} interface to Splatalogue (Kent \& Remijan) is 
@@ -418,7 +456,7 @@ to {\tt datasplat}. One of the strengths of ADMIT is that this extraction method
 flexibly set or determined via heuristics.
 
 \item
-The linked data concept from the python-based 
+The linked data concept from the Python-based 
 {\tt glue} project is highly suited to build tasks in our environment.
 
 \item
@@ -438,7 +476,7 @@ format.
 
 
 \section{Line Identification}
-
+\label{s:line}
 
 The topic of detection and identification of spectal
 lines in a complex source datacube is a complex one,
@@ -468,11 +506,13 @@ to identify lines. The experimental codes are in NEMO as {\tt pvcorr}.
 
 \item
 A related and derived case of this
-cross-correllation technique would be to compute the intensity
+cross-correlation technique would be to compute the intensity
 weighted velocity within the template, and move this curved line up and down in V and resample
 the PV diagram along this shifted line, then add up all the emission along this curved
 sample, and this will also be an indication of the detected lines.  Obviously this
 method will generate more noise, but will typically have $\sqrt{2}$ more resolution.
+
+Also consider hyperfine structures, coadding their features to increase signal-to-noise.
 
 \item
 To balance the noise, a certain amount of smoothing to the data will always help
@@ -493,8 +533,8 @@ $$
  f_{2R} = f_{1R} + {  {\Delta f} \over { (1-z) }}
 $$
 
-\section{Source Extraction}
-
+\section{Feature Extraction}
+\label{s:feature}
 
 Separating signal from noise is one of the most important first steps
 in the analysis of an image or a data cube. Many algorithms have
@@ -533,6 +573,10 @@ in miriad, but is also available in an IDL version.
 Now superseded
 by {\tt cprops} (CloudProps, Rosolowski and Leroy 2006) {\bf ascl:1102.012}
 \footnote{http://arxiv.org/abs/astro-ph/0601706/}.
+
+\subsection{Dendogram}
+
+Also of note is the dendogram approach,
 
 
 
@@ -695,7 +739,7 @@ can be defined as well.  {\bf ascl:1302.007}
 \subsection{TODO}
 
 Here's some catch phrases that need to be tracked down if they have
-relevant code for the source and feature extraction problem.
+relevant code for the source and feature extraction module.
 
 GAIA, MATADOR, AstroMed, SPLAT-VO, Herschel DP, S2Plot, AstroMD. 
 
@@ -703,7 +747,21 @@ GAIA, MATADOR, AstroMed, SPLAT-VO, Herschel DP, S2Plot, AstroMD.
 \section{Timeline and Deliverables}
 
 In this section we describe the technical approach, the
-timeline and the deliverables. All in a self-contained package.
+timeline and the deliverables. Management Plan? 
+All in a self-contained package.
+2 years, 2.5 FTE is what we have on the whiteboard.
+
+\subsection{Risk Factors}
+
+\begin{enumerate}
+\item
+Pipeline Archive Integration (Low) : build on local fake archive
+\item
+Pipeline Access API (Medium): user will manually have to download files
+\item
+Some tools too hard (Low): Deliver fewer tools
+
+\end{enumerate}
 
 \section*{References}
 
