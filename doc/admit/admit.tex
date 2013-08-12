@@ -140,9 +140,10 @@ index (or in worst case: a true parameterized shape, e.g. black body).
 In each of the 4 code scenarios we will expose the enourmous power of the
 ADMIT toolkit in handling such a new situation.
 
-\subsection{Pipeline: run a single project}
+\subsection{Pipeline: initialize a single project}
 
-This would be the mode in which ASTUTE runs in the archive, i.e. from one or more spectral
+This would be the mode in which ASTUTE runs at the tail end of the ALMA pipeline
+in the archive, i.e. from one or more spectral
 windows (ALMA: NP=1, NS$\ge$1, NB=4, NL$\ge$0)\footnote{do we need to say something about 
 polarization here?}
 
@@ -152,13 +153,17 @@ polarization here?}
 
 import astute
 
-as = astute.Astute()
+as = astute.Astute()               # initialize from the current directory
+
+as.pipeline(0)                     # run a default pipeline
+
+as.save()                          # save everyting in admit.zip
 
 \end{verbatim}
 \normalsize
 
 
-\subsection{User: simple project archive pull}
+\subsection{User: query archive for a single project}
 
 This example is the case where a user has selected one project (NP=1)
 in which one source was present (NS=1), but 4 associated 
@@ -170,8 +175,7 @@ in tabular format.
 \footnotesize
 \begin{verbatim}
 # code1.py:
-# use case: start with an archive query, and grab data as well, as needed
-#
+
 
 import astute
 
@@ -202,7 +206,7 @@ for p in projects:
 \normalsize
 
 
-\subsection{User: code2}
+\subsection{User: recompute properties using different algorithms}
 
 In this case the user has decided to select another undefined line, add this 
 to the ADMIT database, in addition, suggest a feedback to the ALMA data archive
@@ -212,8 +216,6 @@ of ADMIT.
 \footnotesize
 \begin{verbatim}
 # code2.py:
-# In a currently astute activated code
-#
 
 
 import astute
@@ -248,7 +250,7 @@ for p in projects:
 \normalsize
 
 
-\subsection{User: code3}
+\subsection{User: query archive for many projects and cross-correlate clump properties}
 
 In this example the user has harvested a series of CO cubes from
 an archive query  that resulted in many projects (NP=120), 
@@ -264,14 +266,6 @@ can also be taken from external packages with minimal work.
 \footnotesize
 \begin{verbatim}
 # code3.py:
-#
-# Example code3
-#
-# use case here is that you have a series of astute enabled directories
-# in which you've done all kinds of interesting work, but results
-# are stored back in "astute" (astute.xml)
-#
-
 
 import astute
 
@@ -646,7 +640,7 @@ can be defined as well.  {\bf ascl:1302.007}
 
 \subsection{TODO}
 
-Here's some catchphrases that need to be tracked down if they have
+Here's some catch phrases that need to be tracked down if they have
 relevant code.
 
 GAIA, MATADOR, AstroMed, SPLAT-VO, Herschel DP, S2Plot, AstroMD. 
@@ -660,9 +654,10 @@ GAIA, MATADOR, AstroMed, SPLAT-VO, Herschel DP, S2Plot, AstroMD.
 
 \begin{enumerate}
 \item
-ASTUTE wiki:  http://carma.astro.umd.edu/wiki/index.php/AStute
+{\bf ASTUTE wiki:} {\tt  http://carma.astro.umd.edu/wiki/index.php/AStute}
 
 \item
+{\bf more to come...:}
 
 \end{enumerate}
 
