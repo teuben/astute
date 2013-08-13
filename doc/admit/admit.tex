@@ -24,7 +24,7 @@ some still a mockup. All working and example codes are available in a
 CVS module named {\tt astute}, including this memo.
 
 ADMIT is targeted at both a novice user (via a convenient GUI), as
-well as an experienced user (python toolkit within the CASA
+well as an experienced user (Python toolkit within the CASA
 framework), and is designed to be extensible via plugins.
 
 {\bf CAVEAT}: ADMIT was formerly known as ASTUTE, and you will still
@@ -37,6 +37,8 @@ find the latter name where the former is meant.
 \ChangeRecordBegin
 \addrevision{0.1}{2013-Aug-11}{P. Teuben}{}
 {Relevant material transferred from image-io memo and adopted ASTUTE to ADMIT}
+\addrevision{0.2}{2013-Aug-16}{P. Teuben}{}
+{material for ALMA Development Proposal}
 \ChangeRecordEnd
 
 
@@ -47,7 +49,8 @@ This document will still use the name ASTUTE in places where ADMIT is meant.}
 is a toolkit that operates on ALMA data, and from existing data cubes, 
 creates a number of ``added value'' datasets and descriptions 
 that summarize to the user
-what science they can expect from these data. They are wrapped into what
+what science they can expect from these data. Some of these data
+are then wrapped into what
 we call the {\tt admit.zip} file, and contain both the descriptive XML
 file, and all associated -- but small -- FITS and JPG files.
 
@@ -60,11 +63,16 @@ single dish is available, and/or a source contains multiple fields,
 the ALMA pipeline will combine them into one single source 
 mosaiced image datacube.
 
+ADMIT will then prepare a small summary for the archive, enabling users
+to get an overview before the actual large data has been downloaded.
+
+ADMIT contains two components: the infrastructure and the plugins.
+
 
 \section{Outline}
 
 Here we outline a numbers of plugins in ADMIT. Although they are
-presented here in a serial fashion, there is some advantage of a waterfall
+presented in a serial fashion, there is some advantage of a waterfall
 type model, where for example you redo the statistics based on 
 the knowledge where
 the signal is, derived from later steps. At each step new meta-data is
@@ -79,7 +87,7 @@ Each plugin will expect information from (some) previous steps to be present.
 \begin{enumerate}
 
 \item
-{\bf Summary}: This creates a container in which the number of projects (NP),
+{\bf Summary:} This creates a container in which the number of projects (NP),
 sources (NS), bands (NB) and lines (NL) will (eventually) be set. This, and 
 associated tables describing these, will determine the workflow in the
 ADMIT pipeline. In each subseqent step this container (maintained in XML) will
@@ -101,7 +109,7 @@ stats = \{min,max,rms,mean,median,...\}
 $$
 
 \item
-{\bf Line Identification}
+{\bf Line Identification:}
 A {\it line-strength} vs. {\it frequency} table is the essential outcome
 that will be input into a line identification procedure (see e.g. datasplat).
 The input can be as simple as the previously computed cube statistics, 
@@ -120,7 +128,7 @@ $$
 $$
 
 \item
-{\bf Moment Maps}
+{\bf Moment Maps:}
 From the previous step NL cubes will be cut from the NB bands, bringing the data
 volume down. In addition, there is an option to re-bin the cubes in frequency
 space. Cubes will now be labeled in doppler velocity space., with the intent
@@ -137,7 +145,7 @@ $$
 $$
 
 \item
-{\bf Feature Extraction}
+{\bf Feature Extraction:}
 More sophisticated source extraction routines are available from the community
 (clumpfind, dendrograms, gaussclumps, see list below in Section~\ref{s:feature}, 
 which essentially produce
@@ -158,7 +166,7 @@ and orientation, and possibly higher order moments, at a given location
 
 
 \item
-{\bf Feature Characterization}
+{\bf Feature Characterization:}
 Since for each of the NL line's, a catalog of features is available,
 characterization of the emission accross different molecules/lines is now 
 possible on a scale never been possible before. Principle Component
@@ -166,11 +174,23 @@ Analysis (PCA) and an Overlap Integral (OI) are two ways to quantify
 and visualize this. A linked data tool (e.g. {\tt glue}) can be 
 of tremendous help here.
 
+\item
+{\bf Overlap Integral:}
+For each detected line one assigns a bit in an integer, and then logically ORs
+them accross all lines, giving a map of a bit-mask of the emission present
+at this location. One can do this in a map, or even in a cube, and study
+
+\item
+{\bf Principal Component Analysis:}
+
+
+\item
+{\bf Saliency:}
 
 \end{enumerate}
 
 At each stage ADMIT will return data structures in Python, for easy integration
-in casapy or any other Python module. Some example of this are given in the code
+in casapy or any other Python module. Some examples of this are given in the code
 fragments below.
 
 \section{Scenarios}
@@ -359,6 +379,14 @@ with real figures from ADMIT/matplotlib}
 
 
 
+\section{ADMIT Pipeline}
+
+
+ADMIT consists of two components: an infrastructure to run
+and maintain a pipeline, and a series of ADMIT tools. The pipeline
+infra-structure is loosely based on the MIS pipeline (Pound \& Teuben, 2011?),
+where the tools are simply CASA tools working within the ADMIT environment.
+
 
 \section{Archive Access}
 
@@ -394,18 +422,23 @@ ProjectName
     SourceName1
        Ra
        Dec
+       Vlsr
        Nband
        Band1
-           FreqSetup
            BandCube (*)
+           FreqSetup
+           CubeStats
        Band2
        ...
        Nline
        Line1
            LineCube (*)
+           VelSetup
+           PeakProfile
            Mom0
            Mom1
            Mom2
+           FeatureList
        Line2
        ...
     Sourcename2
@@ -593,8 +626,10 @@ Hales et al. 2012.  2D.
 
 \subsection{getsources}
 
-Menshchikov et al. 2012. Herschell based. 2D.
+Menshchikov et al. 2012. Herschell based. Two dimensional.
 \footnote{http://adsabs.harvard.edu/abs/2012A\&A...542A..81M}
+Code is not freely available yet, but is expected to be. Example
+output made available to us.
 
 \subsection{gaussclumps}
 
@@ -755,13 +790,63 @@ All in a self-contained package.
 
 \begin{enumerate}
 \item
-Pipeline Archive Integration (Low) : build on local fake archive
+Pipeline Archive Integration (Low) : build on local fake archive?
 \item
 Pipeline Access API (Medium): user will manually have to download files
 \item
 Some tools too hard (Low): Deliver fewer tools
 
 \end{enumerate}
+
+\section { MARC: Overview }
+The ALMA Data Mining Toolkit (ADMIT) is a software suite that operates on
+ALMA data cubes. It creates descriptions that summarize to the user key
+observational components of the data, as well as a number of "added value"
+datasets to facilitate standard scientific analysis and to enable new and
+creative ways to derive science from the cubes.  ADMIT is envisioned to
+be run as part of the ALMA pipeline to create a new set of products for
+the ALMA archive; however it is designed to also be capable of running
+as a standalone application operating on user-downloaded cubes.
+
+ADMIT consists of two main components. The core is the infrastructure layer
+that defines data structures and programmatic pipeline; provides methods
+for I/O, data selection, and computation of scientifically relevant
+quantities; extracts and organizes scientific metadata from the cubes; and
+defines the application programming interface (API) for higher-level tools.
+Built upon the infrastructure layer are the ADMIT CASA Tools that provide
+advanced functionality for scientific analysis.
+
+\subsection{ Infrastructure Layer }
+
+% Using present tense here, but perhaps future tense is more appropriate.
+
+ADMIT is fully defined and implemented in a CASA-compatible Python module.
+The basic architecture is a pipeline with certain default image operations
+(described below), to which the user can add further operations.  ADMIT can
+work with images in both FITS and CASA format.  The outputs of the pipeline
+are wrapped into a single, self-describing ZIP archive file, which any
+ADMIT CASA Tool can parse and manipulate.
+
+ADMIT is runnable from within the CASA Python environment, as individual
+commands or a script.  However, for novice users we provide a simple
+graphical user interface (GUI) for launching Tools and viewing results.
+
+The core output of ADMIT is an XML file that contains all metadata
+extracted from the science data, e.g.  project code, source name, sky
+coordinates, ALMA bands used, list of spectral lines covered.  Each ADMIT
+operation builds additional detail into the XML file creating a more
+comprehensive, scientifically useful description.
+
+** Need to mention parallel/recursive work.
+
+\subsection{ CASA Tools }
+
+The default pipeline consists of the Summary, Moment, and Line
+Identification tools.
+
+%a ZIP archive file that contains both the descriptive XML file, and all
+%associated - but small - FITS and JPG files.
+
 
 \section*{References}
 
