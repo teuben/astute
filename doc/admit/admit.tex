@@ -69,31 +69,35 @@ to get an overview before the actual large data has been downloaded.
 ADMIT contains two components: the infrastructure and the plugins.
 
 
-\section{Outline}
+\section{ADMIT Tools outline}
 
-Here we outline a numbers of plugins in ADMIT. Although they are
-presented in a serial fashion, there is some advantage of a waterfall
-type model, where for example you redo the statistics based on 
-the knowledge where
-the signal is, derived from later steps. At each step new meta-data is
-gathered that describes the data, and makes it accessible to recompute, 
-given the user will not always have access to the redundant data products.
+\label{s:tools}
 
-Each plugin will expect information from (some) previous steps to be present.
+Here we outline a number of ADMIT Tools (``plugins'').  Although they
+are presented in a serial fashion, there is some advantage of a
+waterfall type model, where for example you redo the statistics based
+on the knowledge where the signal is, derived from later steps. At
+each step new meta-data is gathered that describes the data, and makes
+it accessible to recompute by a user after they have downloaded the
+data.
+
+At each stage ADMIT will return data structures in Python, for easy
+integration in casapy or any other Python module accessible by
+CASA. Some examples of this are given in code fragments in the next
+Section.
 
 
-\subsection{Proposed Plugins}
+\subsection{Data Summary}
 
-\begin{enumerate}
-
-\item
-{\bf Summary:} This creates a container in which the number of projects (NP),
-sources (NS), bands (NB) and lines (NL) will (eventually) be set. This, and 
+This creates a container in which the number of projects (NP),
+sources (NS), bands (NB), lines (NL) and features (NF) will be set. 
+This, and 
 associated tables describing these, will determine the workflow in the
 ADMIT pipeline. In each subseqent step this container (maintained in XML) will
 be updated such that at activating ADMIT in a project, it will quickly
-present a summary of everything that has been gathered and computed. Part of
-this summary is also a simple cube statistics table with properties such as 
+present a summary of everything that has been gathered and computed. One of
+the first components of this data summary is a 
+simple cube statistics table with properties such as 
 min, max, mean, rms per channel, which can be the input for the next step.
 
 $$
@@ -108,8 +112,9 @@ $$
 stats = \{min,max,rms,mean,median,...\}
 $$
 
-\item
-{\bf Line Identification:}
+
+\subsection{Line Identification}
+
 A {\it line-strength} vs. {\it frequency} table is the essential outcome
 that will be input into a line identification procedure (see e.g. datasplat).
 The input can be as simple as the previously computed cube statistics, 
@@ -127,8 +132,8 @@ $$
     line = \{name\_id, frequency, probability\}
 $$
 
-\item
-{\bf Moment Maps:}
+\subsection{Moment Maps}
+
 From the previous step NL cubes will be cut from the NB bands, bringing the data
 volume down. In addition, there is an option to re-bin the cubes in frequency
 space. Cubes will now be labeled in doppler velocity space., with the intent
@@ -144,8 +149,10 @@ $$
     map = \{mom0, mom1, mom2\}
 $$
 
-\item
-{\bf Feature Extraction:}
+
+
+\subsection{Feature Extraction}
+
 More sophisticated source extraction routines are available from the community
 (clumpfind, dendrograms, gaussclumps, see list below in Section~\ref{s:feature}, 
 which essentially produce
@@ -165,8 +172,8 @@ and orientation, and possibly higher order moments, at a given location
 {\it X,Y,V} in a cube with total contained emission {\it I}.
 
 
-\item
-{\bf Feature Characterization:}
+\subsection{Feature Characterization}
+
 Since for each of the NL line's, a catalog of features is available,
 characterization of the emission accross different molecules/lines is now 
 possible on a scale never been possible before. Principle Component
@@ -174,24 +181,18 @@ Analysis (PCA) and an Overlap Integral (OI) are two ways to quantify
 and visualize this. A linked data tool (e.g. {\tt glue}) can be 
 of tremendous help here.
 
-\item
-{\bf Overlap Integral:}
+\subsection{Overlap Integral}
+
 For each detected line one assigns a bit in an integer, and then logically ORs
 them accross all lines, giving a map of a bit-mask of the emission present
 at this location. One can do this in a map, or even in a cube, and study
 
-\item
-{\bf Principal Component Analysis:}
+\subsection{Principal Component Analysis}
 
 
-\item
-{\bf Saliency:}
+\subsection{Saliency}
 
-\end{enumerate}
 
-At each stage ADMIT will return data structures in Python, for easy integration
-in casapy or any other Python module. Some examples of this are given in the code
-fragments below.
 
 \section{Scenarios}
 
@@ -851,7 +852,9 @@ the sources in these projects.
 \subsection{ CASA Tools }
 
 The default pipeline consists of the Summary, Moment, and Line
-Identification tools.
+Identification tools. 
+
+{\it  PETER: for the moment I'm editing these in section \ref{s:tools}}
 
 %a ZIP archive file that contains both the descriptive XML file, and all
 %associated - but small - FITS and JPG files.
