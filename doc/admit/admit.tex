@@ -806,7 +806,9 @@ datasets to facilitate standard scientific analysis and to enable new and
 creative ways to derive science from the cubes.  ADMIT is envisioned to
 be run as part of the ALMA pipeline to create a new set of products for
 the ALMA archive; however it is designed to also be capable of running
-as a standalone application operating on user-downloaded cubes.
+as a standalone application operating on user-downloaded cubes, and
+re-compute (with perhaps modified parameters) the products created
+in the archive.
 
 ADMIT consists of two main components. The core is the infrastructure layer
 that defines data structures and programmatic pipeline; provides methods
@@ -837,7 +839,14 @@ coordinates, ALMA bands used, list of spectral lines covered.  Each ADMIT
 operation builds additional detail into the XML file creating a more
 comprehensive, scientifically useful description.
 
-** Need to mention parallel/recursive work.
+In addition, ADMIT provides an infrastructure to operate on multiple
+projects, and perform ``the same'' operations on each of those. This
+can be done either in parallel, or recursively. It can then extract
+information from each project and in essence data mine a large suite
+of data, use linked data techniques to visualize the extracted
+information and provide new insight on what is common or different in
+the sources in these projects.
+
 
 \subsection{ CASA Tools }
 
