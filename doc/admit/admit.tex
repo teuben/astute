@@ -826,7 +826,7 @@ creative ways to derive science from the cubes.  ADMIT is envisioned to
 be run as part of the ALMA pipeline to create a new set of products for
 the ALMA archive; however it is designed to also be capable of running
 as a standalone application operating on user-downloaded cubes, and
-re-compute (with perhaps modified parameters) the products created
+recompute (with perhaps modified parameters) the products created
 in the archive.
 
 ADMIT consists of two main components. The core is the infrastructure layer
@@ -837,16 +837,19 @@ defines the application programming interface (API) for higher-level tools.
 Built upon the infrastructure layer are the ADMIT CASA Tools that provide
 advanced functionality for scientific analysis.
 
-\subsection{ Infrastructure Layer }
+\subsection{ Infrastructure Layer \label{s:infrastructure} }
 
 % Using present tense here, but perhaps future tense is more appropriate.
 
 ADMIT is fully defined and implemented in a CASA-compatible Python module.
-The basic architecture is a pipeline with certain default image operations
-(described below), to which the user can add further operations.  ADMIT can
-work with images in both FITS and CASA format.  The outputs of the pipeline
-are wrapped into a single, self-describing ZIP archive file, which any
-ADMIT CASA Tool can parse and manipulate.
+The basic architecture is a pipeline with certain default image operations,
+to which the user can add further operations.  The default pipeline
+consists of the Summary, Moment, and Line Identification tools (see section
+\ref{s:tools}).  ADMIT can work with images in both FITS and CASA format.
+The outputs of the pipeline are wrapped into a single, self-describing
+ZIP archive file, which any ADMIT CASA Tool can parse and manipulate.
+A typical ZIP archive file might contains a descriptive XML file and 
+associated small FITS and JPG files.
 
 ADMIT is runnable from within the CASA Python environment, as individual
 commands or a script.  However, for novice users we provide a simple
@@ -859,18 +862,17 @@ operation builds additional detail into the XML file creating a more
 comprehensive, scientifically useful description.
 
 In addition, ADMIT provides an infrastructure to operate on multiple
-projects, and perform ``the same'' operations on each of those. This
-can be done either in parallel, or recursively. It can then extract
-information from each project and in essence data mine a large suite
-of data, use linked data techniques to visualize the extracted
+projects or sources, and perform the same operations on each of
+those. This can be done either in parallel, or recursively. It can then
+extract information from each project and in essence mine a large
+suite of data, use linked data techniques to visualize the extracted
 information and provide new insight on what is common or different in
-the sources in these projects.
+the sources.
+%% Are we providing a linked data viewer? Scope creep?
 
 
 \subsection{ CASA Tools }
 
-The default pipeline consists of the Summary, Moment, and Line
-Identification tools. 
 
 {\it  PETER: for the moment I'm editing these in section \ref{s:tools}}
 
