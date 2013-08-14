@@ -105,7 +105,6 @@ integration in casapy or any other Python module accessible by
 CASA. Some examples of this are given in code fragments in the next
 Section.
 
-
 \subsection{Data Summary}
 
 This creates a container in which the number of projects (NP),
@@ -140,7 +139,7 @@ A {\it line-strength} vs. {\it frequency} table is the essential input
 into a line identification procedure (see e.g. datasplat).
 The input can be as simple as the previously computed cube statistics, 
 but aided by cross-correlation techniques in a PV diagram, or the cube itself,
-aided by where the sources are (see also Section~\ref{s:line} and next two steps).
+aided by where the emission is (see also Section~\ref{s:line} and next two steps).
 The output will be a series of identified and unidentified lines accross the different
 bands, NL in total. This is a simple table of 
 {\it line, frequency, detection probability}, with NL entries.
@@ -156,8 +155,8 @@ $$
 \subsection{Line Cubes}
 
 Based on the line identification  line cubes can be extracted,
-with now the third axis in doppler velocity space. This also eases
-comparison between the different lines and molecules.
+with now the third axis in doppler velocity space, to ensure
+that we can compare the different lines and molecules.
 
 $$
      linecube[NP][NS][NL][NV][NY][NX]
@@ -169,19 +168,20 @@ $$
 
 Of course a gridding needs to be agreed upon. Binning is an option,
 if signal to noise needs to be increased without loss of  
-spectral resolution. Depending on the amount of lines in the spectra,
+spectral resolution. Depending on the number of lines in the bands,
 keeping only the line cubes can significantly cut down disk usage.
-We denote the number of velocity channels by NV.
+We denote the number of velocity channels by NV. 
 
 \subsection{Moment Maps}
 
-In the previous step NL line cubes have been cut from the NB band cubes, 
-possibly bringing the data volume down. 
-In addition, there is an option to re-bin the cubes.
-Cubes will now be labeled in doppler velocity space., with the intent
+In the previous step NL line cubes have been cut from the NB band cubes,
+with the option to re-bin the cubes.
+Cubes will now be labeled in doppler velocity space, with the intent
 that all cubes have the same gridding applied.  Simple moment 0, 1 and 2 maps
-are created with a selected method for source identification (but see also next
-step). Moment maps are exported to {\tt admit.zip}.
+are created with a selected method for source identification. This can 
+include more sophisticated methods that include local smoothing to
+increase the signal to noise to creater a more robust mask that is used
+for the moments. Moment maps are exported to {\tt admit.zip}.
 
 $$
     map[NP][NS][NL][NY][NX]
@@ -193,7 +193,7 @@ $$
 
 Moment maps can also be produced using parametric shapes, e.g. a gaussian fit, which
 would then store the total emission, mean velocity and width of the spectrum at each
-location. 
+location instead of the classic moments.
 
 \subsection{Feature Extraction}
 
@@ -202,7 +202,7 @@ Many sophisticated feature (``source'') extraction routines are available from t
 which essentially produce
 a table of properties for each feature. This table is stored as a VO Table 
 in {\tt admit.zip}, with NF entries for each feature detected. Features
-are allowed to be hierarchical in nature
+are allowed to be hierarchical in nature. The essential data structure is:
 
 $$
    feature[NP][NS][NL]
@@ -218,9 +218,9 @@ and orientation, and possibly higher order moments, at a given location
 
 \subsection{Feature Characterization}
 
-Since for each of the NL line's, a catalog of features is available,
+Since for each of the NL line cubes, a catalog of features is available,
 characterization of the emission accross different molecules/lines is now 
-possible on a scale never been seed before. Principle Component
+possible on a scale never been seen before. Principle Component
 Analysis (PCA) and an Overlap Integral (OI) are two ways to quantify
 and visualize this. A linked data tool (e.g. {\tt glue}) can be 
 of tremendous help here.
@@ -232,21 +232,36 @@ is the overlap integral.
 For each detected line one assigns a bit in an integer, and then logically ORs
 them accross all lines, giving a map of a bit-mask of the emission present
 at this location. One can do this in a map, or even in a cube, and study
-in which regions certain 
+in which regions certain lines are present and/or absent in relation
+to other lines.
 
 \subsection{Principal Component Analysis}
 
 An extension of the overlap integral would be to not use a simple on/off bit,
-but create a vector containing the full strength for each line, and 
+but create a vector containing the full strength for each line, and using
+a Principle Component Analysis find out the basis vectors of what describes
 
-See paper by ....
+
+See paper by Meier \& Turner (2005), where they took eight molecules 
+observed with OVRO of IC 342.
 
 \subsection{Saliency}
 
-Saliency 
+Saliency in a dataset is based on segmenting the emission and assigning
+a description vector to the features found. Description vectors can be
+picked from a number of properties of the emission. In vision research
+a popular one is a color histogram, which enables a very fast
+cataloging of the types of features, as well as finding the ones similar
+to a selected one.
 
-Description vectors based on moment 0,1,2.  For a selected object , one can
-then ask what other objects have similar description vectors.
+
+In astronomical data cubes, finding the best description vector is key
+to finding the interesting features. One example is a description
+vector based on the moments of inertia, or those based pon a moment
+0,1,2 map.  For a selected object, one can then ask what other objects
+have similar description vectors, as in a PCA, and perform a cluster
+analysis to decipher how many kinds of objects there are given the
+description that was selected.
 
 
 
