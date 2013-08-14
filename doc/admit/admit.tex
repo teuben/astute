@@ -132,14 +132,29 @@ $$
     line = \{name\_id, frequency, probability\}
 $$
 
+\subsection{Line Cubes}
+
+Based on the line identification a line cube can be derived,
+with now the third axis in doppler velocity space. This also eases
+comparison between the different lines and molecules.
+
+$$
+     linecube[NP][NS][NL][NV][NY][NX]
+$$
+where 
+$$
+     linecube = \{ intensity [, mask] \}
+$$
+
 \subsection{Moment Maps}
 
-From the previous step NL cubes will be cut from the NB bands, bringing the data
-volume down. In addition, there is an option to re-bin the cubes in frequency
-space. Cubes will now be labeled in doppler velocity space., with the intent
+In the previous step NL line cubes have been cut from the NB band cubes, 
+possibly bringing the data volume down. 
+In addition, there is an option to re-bin the cubes.
+Cubes will now be labeled in doppler velocity space., with the intent
 that all cubes have the same gridding applied.  Simple moment 0, 1 and 2 maps
 are created with a selected method for source identification (but see also next
-step). Moment maps (in FITS and/or JPG?) are exported to {\tt admit.zip}.
+step). Moment maps are exported to {\tt admit.zip}.
 
 $$
     map[NP][NS][NL][NY][NX]
@@ -150,15 +165,14 @@ $$
 $$
 
 
-
 \subsection{Feature Extraction}
 
-More sophisticated source extraction routines are available from the community
-(clumpfind, dendrograms, gaussclumps, see list below in Section~\ref{s:feature}, 
+Many sophisticated feature (``source'') extraction routines are available from the community
+(clumpfind, dendrograms, gaussclumps, a more complete is given in Section~\ref{s:feature}),
 which essentially produce
 a table of properties for each feature. This table is stored as a VO Table 
 in {\tt admit.zip}, with NF entries for each feature detected. Features
-are allowed to be hierarchical
+are allowed to be hierarchical in nature
 
 $$
    feature[NP][NS][NL]
@@ -169,7 +183,7 @@ $$
 $$
 where {\it shape} is a more general description containing (amongst) the size
 and orientation, and possibly higher order moments, at a given location
-{\it X,Y,V} in a cube with total contained emission {\it I}.
+{\it X,Y,V} in a cube with integrated emission {\it I}.
 
 
 \subsection{Feature Characterization}
@@ -189,8 +203,12 @@ at this location. One can do this in a map, or even in a cube, and study
 
 \subsection{Principal Component Analysis}
 
+See paper by ...
 
 \subsection{Saliency}
+
+Description vectors based on moment 0,1,2.  For a selected object , one can
+then ask what other objects have similar description vectors.
 
 
 
