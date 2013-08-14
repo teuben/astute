@@ -825,8 +825,8 @@ datasets to facilitate standard scientific analysis and to enable new and
 creative ways to derive science from the cubes.  ADMIT is envisioned to
 be run as part of the ALMA pipeline to create a new set of products for
 the ALMA archive; however it is designed to also be capable of running
-as a standalone application operating on user-downloaded cubes, and
-recompute (with perhaps modified parameters) the products created
+as a standalone application operating on user-downloaded cubes, including
+recomputation (with perhaps modified parameters) of the products created
 in the archive.
 
 ADMIT consists of two main components. The core is the infrastructure layer
@@ -848,7 +848,7 @@ consists of the Summary, Moment, and Line Identification tools (see section
 \ref{s:tools}).  ADMIT can work with images in both FITS and CASA format.
 The outputs of the pipeline are wrapped into a single, self-describing
 ZIP archive file, which any ADMIT CASA Tool can parse and manipulate.
-A typical ZIP archive file might contains a descriptive XML file and 
+A typical ZIP archive file might contain a descriptive XML file and 
 associated small FITS and JPG files.
 
 ADMIT is runnable from within the CASA Python environment, as individual
@@ -862,17 +862,24 @@ operation builds additional detail into the XML file creating a more
 comprehensive, scientifically useful description.
 
 In addition, ADMIT provides an infrastructure to operate on multiple
-projects or sources, and perform the same operations on each of
-those. This can be done either in parallel, or recursively. It can then
-extract information from each project and in essence mine a large
-suite of data, use linked data techniques to visualize the extracted
-information and provide new insight on what is common or different in
-the sources.
+projects or sources, and perform the same operations on each of those. This
+can be done either in parallel or recursively. It can then extract
+information from each project and in essence mine a large suite of data,
+allowing linked data techniques to visualize the extracted information
+and provide new insight on what is common or different in the sources.
 %% Are we providing a linked data viewer? Scope creep?
 
 
 \subsection{ CASA Tools }
 
+ADMIT defines a standard architecture that allows users to create and
+"plug in" their own analysis tools to the ADMIT module.  ADMIT provides
+an API for these tools to call existing CASA commands, manipulate images
+or metadata, compute new quantities, return data structures to casapy,
+and store results in the ZIP file with new metadata written to the XML file.
+
+We describe here the N tools we will deliver at the end of the grant
+period, as well as possible future tools.
 
 {\it  PETER: for the moment I'm editing these in section \ref{s:tools}}
 
