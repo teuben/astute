@@ -1,5 +1,5 @@
-%% IMAGE I/O
-%% 17-oct-2011 First Draft     - Peter Teuben
+%% ADMIT.TEX
+%% 11-aug-2013 astute -> admit
 
 \documentclass[preprint]{aastex} % AASTeXv5.0
 \usepackage{carma_memo}
@@ -17,16 +17,35 @@
 An overview of ADMIT (ALMA Data Mining Toolkit) V0.5 is given. This is
 the outcome of an ALMA Development Study awarded to Mundy and Varshney
 (2012), in preparation for an ALMA Development Project, due August 16,
-2013.
+2013. Cut and paste at your hearts content.
 
 This memo describes the technical aspects of ADMIT, some working, and
 some still a mockup. All working and example codes are available in a
 CVS module named {\tt astute}, including this memo.
 
+% ==== a bit about the what it is
+ADMIT operates on ALMA data. Within the ALMA pipeline environment
+it will first construct ``data added value'' components that enables
+an archive user to then quickly acess the scientific value of the data,
+before downloading the actual data. ADMIT will then assist in
+recomputing selected results, and optionally finetune them for the user.
+
+
+ADMIT consists of two main components. The core is the infrastructure layer
+that defines data structures and programmatic pipeline; provides methods
+for I/O, data selection, and computation of scientifically relevant
+quantities; extracts and organizes scientific metadata from the cubes; and
+defines the application programming interface (API) for higher-level tools.
+Built upon the infrastructure layer are the ADMIT CASA Tools that provide
+advanced functionality for scientific analysis.
+
+%===
+
 ADMIT is targeted at both a novice user (via a convenient GUI), as
 well as an experienced user (Python toolkit within the CASA
 framework), and is designed to be extensible via plugins.
 
+\bigskip
 {\bf CAVEAT}: ADMIT was formerly known as ASTUTE, and you will still
 find the latter name where the former is meant.
 
@@ -109,14 +128,16 @@ $$
 $$
 and
 $$
-stats = \{min,max,rms,mean,median,...\}
+stats = \{min,max,rms,mean,median?,...\}
 $$
+
+A {\it (robust) median} is useful, but makes the procedure expensive.
 
 
 \subsection{Line Identification}
 
-A {\it line-strength} vs. {\it frequency} table is the essential outcome
-that will be input into a line identification procedure (see e.g. datasplat).
+A {\it line-strength} vs. {\it frequency} table is the essential input
+into a line identification procedure (see e.g. datasplat).
 The input can be as simple as the previously computed cube statistics, 
 but aided by cross-correlation techniques in a PV diagram, or the cube itself,
 aided by where the sources are (see also Section~\ref{s:line} and next two steps).
@@ -134,7 +155,7 @@ $$
 
 \subsection{Line Cubes}
 
-Based on the line identification a line cube can be derived,
+Based on the line identification  line cubes can be extracted,
 with now the third axis in doppler velocity space. This also eases
 comparison between the different lines and molecules.
 
@@ -145,6 +166,12 @@ where
 $$
      linecube = \{ intensity [, mask] \}
 $$
+
+Of course a gridding needs to be agreed upon. Binning is an option,
+if signal to noise needs to be increased without loss of  
+spectral resolution. Depending on the amount of lines in the spectra,
+keeping only the line cubes can significantly cut down disk usage.
+We denote the number of velocity channels by NV.
 
 \subsection{Moment Maps}
 
@@ -161,9 +188,12 @@ $$
 $$
 with
 $$
-    map = \{mom0, mom1, mom2\}
+    map = \{mom0, mom1, mom2, mask\}
 $$
 
+Moment maps can also be produced using parametric shapes, e.g. a gaussian fit, which
+would then store the total emission, mean velocity and width of the spectrum at each
+location. 
 
 \subsection{Feature Extraction}
 
@@ -183,29 +213,37 @@ $$
 $$
 where {\it shape} is a more general description containing (amongst) the size
 and orientation, and possibly higher order moments, at a given location
-{\it X,Y,V} in a cube with integrated emission {\it I}.
+{\it X,Y,V} in a cube with integrated emission {\it I}. 
 
 
 \subsection{Feature Characterization}
 
 Since for each of the NL line's, a catalog of features is available,
 characterization of the emission accross different molecules/lines is now 
-possible on a scale never been possible before. Principle Component
+possible on a scale never been seed before. Principle Component
 Analysis (PCA) and an Overlap Integral (OI) are two ways to quantify
 and visualize this. A linked data tool (e.g. {\tt glue}) can be 
 of tremendous help here.
 
 \subsection{Overlap Integral}
 
+One way to get an overview of the type of emission accross all lines
+is the overlap integral.
 For each detected line one assigns a bit in an integer, and then logically ORs
 them accross all lines, giving a map of a bit-mask of the emission present
 at this location. One can do this in a map, or even in a cube, and study
+in which regions certain 
 
 \subsection{Principal Component Analysis}
 
-See paper by ...
+An extension of the overlap integral would be to not use a simple on/off bit,
+but create a vector containing the full strength for each line, and 
+
+See paper by ....
 
 \subsection{Saliency}
+
+Saliency 
 
 Description vectors based on moment 0,1,2.  For a selected object , one can
 then ask what other objects have similar description vectors.
