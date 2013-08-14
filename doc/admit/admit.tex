@@ -116,7 +116,8 @@ be updated such that at activating ADMIT in a project, it will quickly
 present a summary of everything that has been gathered and computed. One of
 the first components of this data summary is a 
 simple cube statistics table with properties such as 
-min, max, mean, rms per channel, which can be the input for the next step.
+min, max, mean, rms per channel, which can be the input for the next step
+of line identification.
 
 $$
 cube[NP][NS][NB][NC][NY][NX] \rightarrow stats[NP][NS][NB][NC]
@@ -130,7 +131,7 @@ $$
 stats = \{min,max,rms,mean,median?,...\}
 $$
 
-A {\it (robust) median} is useful, but makes the procedure expensive.
+A {\it (robust) median} is useful, but makes the procedure more expensive.
 
 
 \subsection{Line Identification}
@@ -139,7 +140,8 @@ A {\it line-strength} vs. {\it frequency} table is the essential input
 into a line identification procedure (see e.g. datasplat).
 The input can be as simple as the previously computed cube statistics, 
 but aided by cross-correlation techniques in a PV diagram, or the cube itself,
-aided by where the emission is (see also Section~\ref{s:line} and next two steps).
+aided by where the emission is (see also Figure~\ref{fig:pvcorr4}
+and Section~\ref{s:line}).
 The output will be a series of identified and unidentified lines accross the different
 bands, NL in total. This is a simple table of 
 {\it line, frequency, detection probability}, with NL entries.
@@ -168,7 +170,8 @@ the right}
 
 Based on the line identification  line cubes can be extracted,
 with now the third axis in doppler velocity space, to ensure
-that we can compare the different lines and molecules.
+that we can compare the different lines and molecules on a channel
+by channel basis.
 
 $$
      linecube[NP][NS][NL][NV][NY][NX]
@@ -178,9 +181,10 @@ $$
      linecube = \{ intensity [, mask] \}
 $$
 
-Of course a gridding needs to be agreed upon. Binning is an option,
-if signal to noise needs to be increased without loss of  
-spectral resolution. Depending on the number of lines in the bands,
+Binning is an option, if signal to noise needs to be increased without
+loss of spectral resolution, but the exact gridding needs to be 
+the same.
+Depending on the number of lines in the bands,
 keeping only the line cubes can significantly cut down disk usage.
 We denote the number of velocity channels by NV. 
 
@@ -190,10 +194,12 @@ In the previous step NL line cubes have been cut from the NB band cubes,
 with the option to re-bin the cubes.
 Cubes will now be labeled in doppler velocity space, with the intent
 that all cubes have the same gridding applied.  Simple moment 0, 1 and 2 maps
-are created with a selected method for source identification. This can 
-include more sophisticated methods that include local smoothing to
-increase the signal to noise to creater a more robust mask that is used
-for the moments. Moment maps are exported to {\tt admit.zip}.
+are created with a selected method for where the emission is. This can 
+be based on a simple RMS cutoff, but also
+more sophisticated methods that include local smoothing to
+increase the signal to noise to create a more robust mask that is then used
+for the creation of the moment maps. Moment maps are exported to {\tt admit.zip}
+for visual inspection.
 
 $$
     map[NP][NS][NL][NY][NX]
@@ -246,6 +252,17 @@ them accross all lines, giving a map of a bit-mask of the emission present
 at this location. One can do this in a map, or even in a cube, and study
 in which regions certain lines are present and/or absent in relation
 to other lines.
+
+\begin{figure}[ht]
+% \epsscale{0.60} 
+\plotone{n253_overlap8.eps}
+\caption{Overlap integral: on the right the moment 0 map of one particular line,
+on the left the combined overlap integral - valued 0..255 - of 8 lines, each
+using a single bit in an 8 bit integer}
+\label{fig:overlap}
+\end{figure}
+
+
 
 \subsection{Principal Component Analysis}
 
@@ -957,6 +974,9 @@ period, as well as possible future tools.
 \begin{enumerate}
 \item
 {\bf ASTUTE wiki:} {\tt  http://carma.astro.umd.edu/wiki/index.php/AStute}
+
+\item
+datasplot: URL
 
 \item
 Meier \& Turner, 2005. 2005ApJ...618..259M
