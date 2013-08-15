@@ -95,15 +95,58 @@ ADMIT contains two components: the infrastructure and the plugins.
 Here we outline a number of ADMIT Tools (``plugins'').  Although they
 are presented in a serial fashion, there is some advantage of a
 waterfall type model, where for example you redo the statistics based
-on the knowledge where the signal is, derived from later steps. At
-each step new meta-data is gathered that describes the data, and makes
-it accessible to recompute by a user after they have downloaded the
-data.
+on the knowledge where the signal is, which was derived from later steps. At
+each step new meta-data is gathered that describes the data.
 
 At each stage ADMIT will return data structures in Python, for easy
 integration in casapy or any other Python module accessible by
-CASA. Some examples of this are given in code fragments in the next
-Section.
+CASA. Some examples of this are given in code fragments in the 
+Section~\ref{s:scenarios}.
+
+First we will size up the arrays and tables used in ADMIT, with the 
+following dimensions:
+
+\begin{enumerate}
+
+\item {\bf NP:}
+Number of projects. In the ALMA pipeline this is of course one, but ADMIT
+can also supervise and datamine many projects, in which case this number
+is relevant and larger than 1.
+
+\item {\bf NS:}
+Number of sources per project. This is usually 1, but it can be more.
+
+\item {\bf NB:}
+Number of independant correlator bands, per project/source.
+
+\item {\bf NC:}
+Number of channels in a band.
+
+\item {\bf NL:}
+Number of lines detected accross all bands.
+
+\item {\bf NV:}
+Number of velocity channels in a line cube
+
+\item {\bf NY:}
+Number of Y (DEC) pixels in a cube
+
+\item {\bf NX:}
+Number of X (RA) pixels in a cube
+
+\item {\bf NF:}
+Number of features detected in a line cube
+
+\end{enumerate}
+
+In the data structure array notation we will use below, the C-convention is used, 
+meaning the first indices are the ones on top of the hierarchy, i.e. slowest moving.
+For example $cube[NP][NS][NV][NY][NX]$ would be a set of $(NX,NY,NV)$ cubes, 
+for $NP$ projects, but in each project one can have a different number ($NS$) of
+sources.
+
+Now we will describe a few of the modules in the ADMIT pipeline.
+
 
 \subsection{Data Summary}
 
@@ -113,11 +156,12 @@ This, and
 associated tables describing these, will determine the workflow in the
 ADMIT pipeline. In each subseqent step this container (maintained in XML) will
 be updated such that at activating ADMIT in a project, it will quickly
-present a summary of everything that has been gathered and computed. One of
-the first components of this data summary is a 
-simple cube statistics table with properties such as 
-min, max, mean, rms per channel, which can be the input for the next step
-of line identification.
+present a summary of everything that has been gathered and computed. 
+
+One of the first components of this data summary is a simple cube
+statistics table with properties such as min, max, mean, 
+robust median, rms per channel,
+which can be the input for the next step of line identification.
 
 $$
 cube[NP][NS][NB][NC][NY][NX] \rightarrow stats[NP][NS][NB][NC]
@@ -128,7 +172,7 @@ $$
 $$
 and
 $$
-stats = \{min,max,rms,mean,median?,...\}
+stats = \{min,max,rms,mean,median,...\}
 $$
 
 A {\it (robust) median} is useful, but makes the procedure more expensive.
@@ -143,7 +187,8 @@ but aided by cross-correlation techniques in a PV diagram, or the cube itself,
 aided by where the emission is (see also Figure~\ref{fig:pvcorr4}
 and Section~\ref{s:line}).
 The output will be a series of identified and unidentified lines accross the different
-bands, NL in total. This is a simple table of 
+bands, NL in total, therefore reducing a dimension of NB*NC to NL.
+This is a simple table of 
 {\it line, frequency, detection probability}, with NL entries.
 
 $$
@@ -160,8 +205,10 @@ $$
 \plotone{pvcorr4.eps}
 \caption{Line identification can be tremendously improved in a PV diagram
 by cross-correlating the signal in the V direction. Compare the more traditional
-noisy peak/rms plot in the middle with the smooth cross-correlation technique on
-the right}
+noisy peak/rms plot in the middle (in white) 
+with the smooth cross-correlation technique on
+the right (in red). The two vertical lines denote zero and a 3 sigma clipping 
+above which we deem the line significant.}
 \label{fig:pvcorr4}
 \end{figure}
 
@@ -187,6 +234,9 @@ the same.
 Depending on the number of lines in the bands,
 keeping only the line cubes can significantly cut down disk usage.
 We denote the number of velocity channels by NV. 
+
+For some interesting point in the moment 0 map (the peak?), a spectral profile
+is stored by ADMIT to guide the user to the new 3rd dimension.
 
 \subsection{Moment Maps}
 
@@ -219,8 +269,9 @@ Many sophisticated feature (``source'') extraction routines are available from t
 (clumpfind, dendrograms, gaussclumps, a more complete is given in Section~\ref{s:feature}),
 which essentially produce
 a table of properties for each feature. This table is stored as a VO Table 
-in {\tt admit.zip}, with NF entries for each feature detected. Features
-are allowed to be hierarchical in nature. The essential data structure is:
+in {\tt admit.zip}, with NF entries for each  detected feature. Features
+are allowed to be hierarchical in nature, such as for dendrograms. 
+The essential data structure is:
 
 $$
    feature[NP][NS][NL]
@@ -258,7 +309,9 @@ to other lines.
 \plotone{n253_overlap8.eps}
 \caption{Overlap integral: on the right the moment 0 map of one particular line,
 on the left the combined overlap integral - valued 0..255 - of 8 lines, each
-using a single bit in an 8 bit integer}
+using a single bit in an 8 bit integer. As can be seen, most of the peaks
+have all 8 lines present. There are some recombination lines present in this
+cube, which clearly have a different spatial distribution.}
 \label{fig:overlap}
 \end{figure}
 
@@ -266,12 +319,13 @@ using a single bit in an 8 bit integer}
 
 \subsection{Principal Component Analysis}
 
-An extension of the overlap integral would be to not use a simple on/off bit,
+An extension of the overlap integral would be to not use a simple on/off bitmask,
 but create a vector containing the full strength for each line, and using
 a Principle Component Analysis find out the basis vectors of what describes
+the emission, including how many different regions there are, and what they
+represent.
 
-
-See paper by Meier \& Turner (2005), where they took eight molecules 
+See Meier \& Turner (2005), where they took eight molecules 
 observed with OVRO of IC 342.
 
 \subsection{Saliency}
@@ -279,13 +333,19 @@ observed with OVRO of IC 342.
 Saliency in a dataset is based on segmenting the emission and assigning
 a description vector to the features found. Description vectors can be
 picked from a number of properties of the emission. In vision research
+(e.g. Ip et al, 2013)
 a popular one is a color histogram, which enables a very fast
 cataloging of the types of features, as well as finding the ones similar
 to a selected one.
 
 
 In astronomical data cubes, finding the best description vector is key
-to finding the interesting features. One example is a description
+to finding the interesting features.  Extending the experience in
+vision research, where a 3-channel RGB histogram was used, we can see
+our NL lines as a ``color'' and assign a description vector based on 
+this to efficiently catalog the types of regions that exist in large
+datacubes.
+Another example is a description
 vector based on the moments of inertia, or those based pon a moment
 0,1,2 map.  For a selected object, one can then ask what other objects
 have similar description vectors, as in a PCA, and perform a cluster
@@ -296,13 +356,15 @@ description that was selected.
 
 \section{Scenarios}
 
+\label{s:scenarios}
+
 Several scenarios are given how ADMIT can be used.  For nomenclature, we continue
 to use {\bf P} for
 the projects, {\bf S} for the sources, {\bf B} for the bands (spectral windows), 
 {\bf L} for the identified and unidentified lines, and {\bf F} for the extracted
 features in a line cubes. They count to 
 NP projects, NS sources, NB bands, NL lines and NF features.
-These spectral window bands can be independent sections on the frequency axis, 
+These spectral window bands are independent sections on the frequency axis, 
 and can contain both line and continuum radiation. NL will then refer to all the
 lines in all the NB bands.
 The continuum radiation is allowed to have a spectral 
@@ -341,7 +403,7 @@ This example is the case where a user has selected one project (NP=1)
 in which one source was present (NS=1), but 4 associated 
 spectral windows (NB=4, NC=3840). In these cubes 19 spectral lines 
 were detected (NL=19),
-resulting in 19 data-cubes, with associated moment-0,1,2 maps in FITS
+resulting in 19 line data-cubes, with associated moment-0,1,2 maps in FITS
 and JPG format. An additional feature identification was made, available
 in tabular format.  The user visualizes them, and extracts the 19
 data cubes, and recomputes moment maps with a slightly less conservative
@@ -437,7 +499,8 @@ This really shows some of the more advanced power in ADMIT
 of gathering datasets (be it via an archive query, or assembly by
 hand or other means), and datamining these dataset with ADMIT tools.
 Under the hood these tools are not limited to CASA tools and tasks, but
-can also be taken from external packages with minimal work.
+can also be taken from external packages with minimal work (cf.
+ParselTongue).
 
 \footnotesize
 \begin{verbatim}
@@ -532,9 +595,9 @@ ProjectName
        Band2
        ...
        Nline
+       VelSetup
        Line1
            LineCube (*)
-           VelSetup
            PeakProfile
            Mom0
            Mom1
@@ -542,6 +605,7 @@ ProjectName
            FeatureList
        Line2
        ...
+       OverlapIntegral
     Sourcename2
     ...    
 \end{verbatim}
