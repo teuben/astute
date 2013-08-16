@@ -529,6 +529,71 @@ for p in projects:
 \end{verbatim}
 \normalsize
 
+\subsection{User: A multi-source investigation}
+
+In this use case scenario the user has already downloaded a number
+of galaxies from the ALMA archive, and made sure they include a CO
+line cube and are ADMIT enabled.
+The CO distribution is clumpy and resolved, but is
+generally in a plane where the clumps are rotating around the center
+of the galaxy. The hypothesis is that the clump mass spectrum slope is
+dependent on the total mass of the galaxy, which in turn depends on
+the measured rotation speed at some maximum measured distance. In this
+particular case the user decides to recompute the clumps using a ``clumpfind''
+algorithm with a more conservative setting of the noise. The resulting
+spectrum is computed and a slope fitted.  For the mass, a simple
+rotation curve is fitted, and the mass is derived from the
+outermost radius and rotation speed.  A scatter plot is created of
+the slope vs. log(M).
+
+Here is some sample ADMIT code how you could do this:
+
+\newpage
+
+\footnotesize
+\begin{verbatim}
+import admit, numpy, scipy.stats, math     # grab some needed modules
+
+adm = admit.ADMIT()                        # initialize ADMIT
+
+projects = adm.query_dir('.','line(CO)')   # look for CO cubes
+np = size(projects)                        # see how many we got
+
+
+m_list = []                # accumulate masses of the galaxies
+a_list = []                # accumulate slopes of the clump mass spectra
+
+for p in projects:
+  adm.setdir(p.dirname)    # move into the proper project directory
+  for c in p.cubes:        # loop over cubes (should be only 1 !!!)
+
+    rms = 3 * p.rms                        # set a new rms for clumpfind
+    f  = adm.feature(c,'clumpfind',dt=rms) # recompute clump list
+    cm = f.getcol('mass')
+    logm = numpy.log10(cm)
+    (x,y) = numpy.histogram(logm)
+    slope = scipy.stats.linregress(x,y[1:])[0]
+    a_list.append(slope)                   # Mass Spectrum Slope
+
+    m1 = c.moment(1)                           # reference to the moment-1 map
+    rc = adm.rotcur(m1)                        # fit a rotation curve 
+    rad = rc.getcol('r')                       # grab array of radii
+    vel = rc.getcol('vrot')                    # grab array of rotation speeds
+    rmax = rad.max()                           # radii, in kpc
+    vmax = vel.max()                           # in km/s, inclination corrected
+    dist = rc.getpar('distance')               # distance, in mpc
+    m_list.append(math.log10(vmax*vmax*rmax))  # log(Galaxy_Mass), ignore G
+  #
+#
+m = numpy.array(ml)
+a = numpy.array(al)
+adm.plot2d(m,a)                            # show on a plot
+
+
+\end{verbatim}
+\normalsize
+
+\newpage
 
 \begin{figure}[ht]
 % \epsscale{0.60} 
