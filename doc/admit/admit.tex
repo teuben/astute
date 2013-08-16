@@ -595,6 +595,94 @@ adm.plot2d(m,a)                            # show on a plot
 
 \newpage
 
+\subsection{User: A multi-source investigation}
+
+
+In this use case scenario the user has already downloaded a number of
+projects from the ALMA archive, and all have the basic ADMIT data
+included. The hypothesis to be checked is if the linewidth in CO
+correlates with the presence of a selected number of molecular lines,
+in the sense that for wider profiles some of the molecules would be
+destroyed, and thus the overlap integral would not achieve the maximum
+value (where all molecules are present).  In this case the user
+selected $CO$ as the reference line, and $C^{17}O$, $CS$ and
+$H^{13}CN$ as probes. In this example the user is more interested in a
+global value per object, than a point by point comparison in the map.
+
+
+The code loops over all projects, and first ensures that all lines are
+present. It estimates the line width from the PeakProfile (precomputed
+by ADMIT) in the $CO$ linecube as a representative value for the
+linewidth for the object.  This particular user is conservative and
+wants to recompute the Moment-0 maps with a 3-sigma clip. These new
+Moment-0 maps are then turned into an overlap map (one of the ADMIT
+tools) and via some simple NumPy math the fraction is computed from
+number of pixels with value 15 (where all lines are present) divided
+by the number of pixels with any signal in any of the lines (overlap
+map value more than 0).  The line width is then plotted against this
+fraction, hoping that is starts near 1 and then suddenly drops at some
+linewidth.
+
+Here is some sample ADMIT code how you could do this:
+
+\newpage
+
+
+\footnotesize
+\begin{verbatim}  
+import admit, math                             # grab some needed python modules
+import numpy as np                             #
+
+adm = admit.ADMIT()                            # initialize ADMIT
+
+projects = adm.query_dir('.')                  # look for ADMIT projects here
+np = size(projects)                            # see how many we got
+
+lines = ['co', 'c17o', 'cs', 'h13cn']          # first line is reference line
+omax = math.pow(2,len(lines))-1                # max in overlap map, 15 in this case
+
+s_list = []                                    # accumulate linewidths
+f_list = []                                    # accumulate fractions
+
+for p in projects:
+  adm.setdir(p.dirname)                        # move into the proper project directory
+  line_cubes = {}
+  for c in p.linecubes:                        # loop over line cubes and grab the line name
+    if lines.count(c.line):                    # if we got one of the lines we wanted
+       line_cubes[c.line] = c                  # store reference to that linecube
+
+  if len(lines) != len(line_cubes):
+    print "Skipping ",p.dirname
+    continue
+
+  c_ref   = line_cubes[lines[0]]               # reference to the CO cube
+  x       = c_ref.peakprofile('vlsr')          # spectrum X in KM/S
+  y       = c_ref.peakprofile('value')         # spectrum Y in JY/BEAM
+  x_mean  = (x*y).sum()/y.sum()
+  x_width = (x*x*y).sum()/y.sum() - x_mean*x_mean 
+
+  s_list.append(x_width)                       # accumulate for later
+
+  m = []                                       # accumulate maps for new overlap
+  for l in lines:                           
+    m0 = adm.moment(c,[0],'clip',rms=3*c.rms)  # compute new moment maps
+    m.append(m0)
+
+  o = adm.overlap(p,m)                         # get overlap image
+  oval = o.array()                             # get a numpy reference for work
+  f_all = len(np.where(oval == omax)[0])       
+  f_sig = len(np.where(over > 0)[0])
+
+  f_list.append(f_all/f_sig)
+  #
+#
+adm.plot2d(s_list,f_list)                      # scatterplot of accumulated data 
+
+
+\end{verbatim}
+\normalsize
+\newpage
+
 \begin{figure}[ht]
 % \epsscale{0.60} 
 \plotone{mock1.eps}
