@@ -1,6 +1,11 @@
 See also:  http://carma.astro.umd.edu/wiki/index.php/AStute
 
 The name....  ASTUTE was really hyjacked from another effort, and it stuck.
+for while. What you see in this project "astute" is the old-style pipeline,
+based on MIS and easily allowing foreign packages to be used (MIRIAD, 
+NEMO). The new style ADMIT will be more restricted a designed from the
+ground up.  Experimental things will go into this package, ASTUTE.
+
 Now that it's proposal time (August 16, 2013) we really need a new name.
 Here were the options offered, where the first one got the most votes:
 (and notice Leslie, whe compiled this list, managed to give ASTUTE a few
@@ -21,3 +26,6 @@ AST - ALMA Science Toolkit
 ADAM - ALMA DAta Mining
 ADAMS - ALMA DAta Mining for Science
 ADAMaNT - ALMA DAta MiniNg Toolkit
+
+if the VLA is added:
+RADMIT  Radio Astronomy Data MIning Toolkit 
