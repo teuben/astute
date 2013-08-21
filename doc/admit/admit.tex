@@ -1214,7 +1214,7 @@ Meier \& Turner, 2005. 2005ApJ...618..259M
 % ===============================================================================
 
 
-\chapter{TAS (MIS) Pipeline}
+\section{TAS (MIS) Pipeline}
 
 We describe a adaptation of the MIS pipeline, called TAS, here. Because we
 needed some simple quick hack on the XML based execution pipeline that was
@@ -1234,7 +1234,7 @@ retrieve and store parameters.
 
 
 
-\section{Introduction}
+\section{TAS Introduction}
 
 To process a large number of datasets in a very similar 
 way is a common theme that we have applied for a number of CARMA
@@ -1371,9 +1371,9 @@ pipepar [-1|2] [-h] [-c] [-l] [-f parfile_name] [-s shell] [-p fmt] [-d par] [-v
  -h	    help
  -1         Use single quotes (default)
  -2         Use double quotes
- -c	    create empty mis.def (parfile_name)
+ -c	    create empty tas.def (parfile_name)
  -l         use spaces when printing out (-v) comma separated keyword values
- -f file    use another parfile_name from the default mis.def (not recommended)
+ -f file    use another parfile_name from the default tas.def (not recommended)
  -s shell   output for given shell (csh and bash are currently known)
  -p fmt     C-style format (e.g. %10.2f) used in printing (-v) values
  -v par	    show value of a parameter (multiple allowed, but do not combine with -e flag)
@@ -1551,7 +1551,7 @@ is run again.
 If you want to store these uvflag files in a more
 persisent way, use the advanced feature of
 storing them as pipefiles (see ``Advanced Usage'' below) together
-with {\tt mis.def} do the following
+with {\tt tas.def} do the following
 
 \footnotesize
 \begin{verbatim}
@@ -1585,7 +1585,7 @@ left open to the task
 \item
 each task should define a default value for each parameter
 \item
-the task should then read the global database (usually from the {\tt mis.def} file)
+the task should then read the global database (usually from the {\tt tas.def} file)
 \item
 task can now compute
 \item
@@ -1642,7 +1642,7 @@ a=1
 b=2
 
 if __name__ == "__main__":
-   p = parfile.ParFile('mis.def')
+   p = parfile.ParFile('tas.def')
    p.argv(sys.argv)
    p.set('a',a)
    if p.has('b'): 
@@ -1666,7 +1666,7 @@ Two wrapper scripts exist that help you managing your pipeline
 parameters in a persistent way. Imagine your pipeline directory tree
 runs completely from scratch, so you would like to save and restore
 parameters between different versions of the pipeline. We simply store
-the parameter files ({\tt mis.def}) in an agreed upon location,
+the parameter files ({\tt tas.def}) in an agreed upon location,
 currently the {\bf project} directory within the {\tt \$MIS\_DEF}
 (if present, or else the default {\tt \$MIS/def}) directory), and
 retrieve them in a subsequent run. The commands {\tt pipesetup} and
@@ -1797,10 +1797,10 @@ will restore your previous defaults.
 \end{enumerate}
 
 
-\section{MIS Pipeline Command Summary} 
+\section{TAS Pipeline Command Summary} 
 
-Although the current {\tt \$MIS/bin} directory also contains
-many MIS specific commands, the following commands are very general
+Although the current {\tt \$TAS/bin} directory also contains
+many TAS specific commands, the following commands are very general
 pipeline related, and all start with the 4 letters {\bf pipe}:
 
 \footnotesize
@@ -1817,202 +1817,51 @@ pipeline related, and all start with the 4 letters {\bf pipe}:
 
 \chapter{Installation}
 
-Here we discuss the installation of MIS and 
+Here we discuss the installation of TAS (ASTUTE) and 
 comment on some related packages if you need them.
 
 \section{MIS}
 
 We use the same CVS repository as MIRIAD and NEMO, and the
-installation is very similar. The module is called {\tt mis} and
-once installed it will need MIRIAD, python + scipy/matplotlib and NEMO
-(at least for the actual MIS pipeline, for your own pipeline you only
-need whatever your pipeline programs need):\footnote{In its most basic form 
-the {\bf mis} package does not need MIRIAD, NEMO or anything but
-the most basic pieces of python}:
+installation is very similar. The module is called {\tt astute} and
+once installed it will need CASA, MIRIAD, python + scipy/matplotlib and NEMO.
 
 \footnotesize
 \begin{verbatim}
-  % cvs -d :pserver:anonymous@cvs.astro.umd.edu:/home/cvsroot co mis
-  % cd mis
+  % cvs -d :pserver:anonymous@cvs.astro.umd.edu:/home/cvsroot co astute
+  % cd astute
   % ./configure
-  % source mis_start.csh
+  % source astute_start.csh
 \end{verbatim}
 \normalsize
 
 From this point on you can put new scripts and python modules in
-the appropriate places (e.g. {\tt \$MIS/bin} and {\tt \$MIS/lib}, 
+the appropriate places (e.g. {\tt \$TAS/bin} and {\tt \$TAS/lib}, 
 or your own style somewhere 
 in {\tt \$PATH}\footnote{because pipeline 
 commands are executed in another directory,
 scripts in the current directory will not work.}
 
-\section{MIRIAD}
-
-For the actual MIS pipeline, you will need to have MIRIAD installed.
-See the appropriate MIRIAD documentation. 
-
-A few reminders on updating MIRIAD programs. Lets take an example where
-one subroutine from the library was updated ({\tt fitsio.for} in this example)
-and the fits program ({\tt fits.for}) was updated as well.
-
-\footnotesize
-\begin{verbatim}
-  cd $MIR
-  cvs -nq update
-  cvs update
-  mirboss
-  mir.subs  fitsio
-  mir.prog  fits
-\end{verbatim}
-\normalsize
-
-but these steps assume you have write permission inside the MIRIAD tree. If
-you do not, and if it just a program , for most programs there is an easy
-patch. Again, for the fits program you would do:
-
-\footnotesize
-\begin{verbatim}
-  cd $MIS
-  mkdir miriad
-  cp $MIRPROG/convert/fits.for .
-  cp $MIRPROG/convert/fits.h   .
-  mirmake fits
-  mv fits $MISBIN
-  rehash
-  which fits
-\end{verbatim}
-\normalsize
-
-and now you see the MIS/bin version of the fitsio program, assuming your PATH was set with MIS before MIR.
-
-\section{python}
-
-You will have to have python installed with at least scipy and matplotlib. You can test
-this the following way, and see if you got any error messages about
-none existent modules:
-
-\footnotesize
-\begin{verbatim}
-  % ipython -pylab
-  In [1]: import matplotlib
-  In [2]: import numpy
-\end{verbatim}
-\normalsize
-
-
-However, if you got an error message such as
-\footnotesize
-\begin{verbatim}
-ERROR: matplotlib could NOT be imported!  Starting normal IPython.
-or
-ipython: Command not found.
-\end{verbatim}
-\normalsize
-you are in bad shape. For U of Maryland computers the command(s)
-\footnotesize
-\begin{verbatim}
-  source /astromake/astromake_start
-  astroload python
-\end{verbatim}
-\normalsize
-will give you a version of (i)python with all the proper modules included,
-and even more. The script to ease the installation into your own workspace is
-called {\tt python.install} , and a copy should be in
-{\tt \$NEMO/src/scripts} or {\tt \$MIR/install}.
-
-\section{NEMO}
-
-If you do not have NEMO installed, there is a simple way within
-MIRIAD to install NEMO:
-
-\footnotesize
-\begin{verbatim}
-  % cd $MIR/borrow
-  % cvs -Q checkout nemo
-  % mirboss
-  % mir.install nemo
-  % source $MIR/borrow/nemo/nemo_start.csh
-\end{verbatim}
-\normalsize
-
-and to test a simple program that plots some garbage into a pgplot window, try this
-
-\footnotesize
-\begin{verbatim}
-  % nemoinp 1:10 | tabhist -
-\end{verbatim}
-\normalsize
-
-If you have write permission, and need to install a new version of a task, this
-should do it:
-
-\footnotesize
-\begin{verbatim}
-  % cd $NEMO
-  % cvs -nq update
-  % cvs update
-  % (cd src; make install)
-  % mknemo tabplot
-\end{verbatim}
-\normalsize
-
-
-\chapter{MIS}
-
-This Appendix describes some MIS specific aspects of the MIS pipeline.
-
-\section{MIS parameters}
+\section{TAS parameters}
 
 The global pipeline parameters are stored in ASCII format in
-a small text file, by default this is called {\tt mis.def}. 
-For our MIS pipeline the following
+a small text file, by default this is called {\tt tas.def}. 
+For our TAS pipeline the following
 parameters listed in column 2 are
 defined by the programs listed in column 1:
 
 \footnotesize
 \begin{verbatim}
-pipesetup       project         <optional step for re-running pipes with old mis.def files>
+pipesetup       project         <optional step for re-running pipes with old tas.def files>
                 pipefile        optional comma separated list of to-be-saved filenames
                 step            most pipeline scripts store their last successful step name here
 
-getdata         rawdata         where tar.gz or miriad/mir files live [/n/algol2/mpound/data/carma/CARMA23/rawdata]
+getdata         rawdata         where tar.gz or miriad/mir files live
                 project         e.g. cx323.1E_89NGC133.20
-                ary             e.g. E or D
-                trial           e.g. 20
-                link            normally 1, if symlinks used, use 0 if you want a local copy
-                scp             if used, it will use scp with 'user@host' style syntax
-                cvis            derived from project or ary/trial (e.g. cx323.1E_89NGC133.20.miriad)
 
 
 report          -               create form log files from listobs, uvlist, uvindex
 
-do_uvflag       flagfile        generic flagger using uvflag and a flagfile 
-                vis             would override the default cvis
-
-
-fixOff          offname         for single dish only, creates 'sddata'
-
-do_reduceSD     badants         list of bad antennas (orthogonal to mis.uvflag file)
-                npoly           order of polynomial for sinpoly
-                sleep           normally unset, because it will prompt for next plot, use 0 in batch
-                device          normally /xs for interactive work,use /null in batch
-                goto            ieck, Start (default), Inspect, SinPoly, or  Maps
-
-
-map_inttime     source          for selected source, create xyt.tab files dra,ddec,inttime
-                                see mk_map_inttime.csh  for an example post-processing
-
-
-do_uvcat1                       uvcat to trim interferometry data to our 4 USB windows, creates 'uvdata'
-
-do_inspect1                     inspect your interferometry data
-
-do_cal0         linecal         optional calibrations (linecal, antpos)
-                antpos
-
-do_cal1         -               standard gain and passband calibration
-
-do_map0         -               placeholder for now
 
 pipesave        -               (any parameters in pipesetup also apply here)
 
@@ -2020,70 +1869,7 @@ pipesave        -               (any parameters in pipesetup also apply here)
 \normalsize
 
 
-\subsection{Data products, Diagnostics}
-\footnotesize
-\begin{verbatim}
-
-On top level:
-
-caldir/                          symbolic link to a location (could be itself) where cx* projects are
-cx323.1<ary>_89NGC133.<trial>    project name for given <ary> and <trial>  (we have 22 accepted now)
-flux.{tab,ps}                    flux of 3C84 from mfcal (i.e. before uranus fluxcal)
-<ant>.{tab,ps}                   antenna based 3c84 gains from selfcal
-combined.<mol>_<ary>_<ants>      combined simple 4 channel cube
-
-sd.<mol>.median.cube             single dish cube
-
-
-On project level:
-def/                             symbol link to $MIS/def/$project
-SD/                              antenna based SD data
-mis.def                          all global MIS pipeline variables
-mis.uvflag                       MIS uvflags for do_uvflag
-MOL.median.cube                  for given molecule, median cube from all ants
-MOL.resid.cube                   residual, but all 23 ants in here 
-xyt.tab                          pointing and integration times for this trial
-
-On SD level:
-MOL.ANT.cube                     cube for given MOL and ANT
-MOL.ANT.cube.res
-MOL.ANT.map                      sample map for given MOL and ANT
-MOL.ANT.map.res
-MOL.ANT.ps                       spectrum at 0,0 ?
-rms.resid.ps                     RMS
-
-\end{verbatim} 
-\normalsize
-
-\subsection{Jy/K scaling}
-
-Jy/K  $4108/D^2$, where $D$ is given in m, is the scaling for a perfect radio
-telescope, independant of observing frequency. For example, for a 10.2m OVRO
-dish this would be 38.0, for a 6.2m BIMA dish at 106.9 and the 3.5m SZA dish
-comes in at 335.3. Aperture efficiency will increase these values.
-
-\subsection{A benchmark case}
-
-A benchmark dataset is available seperately, and should be run
-to confirm the software works properly.
-\footnotesize
-\begin{verbatim}
-
-% cd $MIS
-% wget ftp://ftp.astro.umd.edu:/pub/carma/misdata.tar.gz
-% tar zxf misdata.tar.gz
-% rm  misdata.tar.gz
-% mkdir tmp; cd tmp
-% ../misdata/test-all
-
-\end{verbatim}
-\normalsize
-
 \section{MIS ISSUES}
-
-\subsection{WIKI}
-See also our
-N1333 wiki: {\tt http://carma.astro.umd.edu/wiki/index.php/NGC1333}
 
 BAD:
 
