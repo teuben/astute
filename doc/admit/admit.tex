@@ -732,6 +732,15 @@ all data and science products, and one that describes projects.
 
 Possible hierarchy we find in {\tt admit.zip}: (products with * are large and don't come
 with ADMIT and have to be recomputed and refetched from archive)
+
+\subsection{ADMIT SDP}
+
+The ADMIT Basic Data Products (BDP) are are gathered in a single tar
+file: an XML describing the project and associated images and tables
+is one of those files. Although this is not cast in stone, we do have
+a rough outline of the contents of the XML file, which you can see
+reflected in a number of descriptions throughout this proposal.
+
 \footnotesize
 \begin{verbatim}
 ProjectName
@@ -759,6 +768,7 @@ ProjectName
        Line2
        ...
        OverlapIntegral
+       ...
     Sourcename2
     ...    
 \end{verbatim}
@@ -1199,6 +1209,892 @@ datasplot: URL
 Meier \& Turner, 2005. 2005ApJ...618..259M
 
 \end{enumerate}
+
+
+% ===============================================================================
+
+
+\chapter{TAS (MIS) Pipeline}
+
+We describe a adaptation of the MIS pipeline, called TAS, here. Because we
+needed some simple quick hack on the XML based execution pipeline that was
+not present and designed yet, and because MIS was available and understood
+by our group, a quick one hour hack resulted in TAS, while the underlying
+project was still called ASTUTE.
+
+Some of the text below is taken from the MIS manual, which needs some adaptations.
+
+We describe here a simple yet flexible and effective pipeliner for
+Unix commands.  It uses a Makefile (behind the scenes) to define a
+serial set of commands for your choice of the pipeline. The pipeline
+commands share a common set of parameters by which they communicate.
+Pipeline parameters can optionally be made persistent accross multiple
+runs of the pipeline. Commands must follow a simple convention to
+retrieve and store parameters.
+
+
+
+\section{Introduction}
+
+To process a large number of datasets in a very similar 
+way is a common theme that we have applied for a number of CARMA
+observation. We thus developed
+a simple infrastructure to assemble and run a pipeline comprising
+of a set of commands that have to be run in a certain order,
+and depend on each other. We call this 
+package TAS, derived from MIS.
+
+Technically {\bf tas} consists a set of shell and python scripts
+and the infrastructure to setup a serial pipeline, and some aspects
+of running this pipeline in parallel as well.
+
+A summary of typical TAS pipeline commands is:
+
+\footnotesize
+\begin{verbatim}
+  pipeline $MIS/cat/pipeline.001 > Pipefile               # generate control Pipefile
+  pipepar -c project=c0184.3B_108PG2130.13 carmaRefant=2  # set some parameters
+  pipe all                                                # run the pipe
+\end{verbatim}
+\normalsize   
+
+
+\section{Pipeline}
+
+Lets assume we have 4 programs (or scripts) called {\tt step1},
+{\tt step2}, {\tt step3} and {\tt step4} that need to be run in
+succession in each project directory. 
+Each of the {\tt stepX} 
+commands accepts its own unique set of {\tt keyword=value}
+command line arguments, 
+but the pipeline convention is that the values for each of these
+keywords are remembered for any subsequent run if you do not
+specify them explicitly. So if you would manually
+first run a command as ``{\tt step2 foo=bar}'', 
+the next time you would run just
+``{\tt step2}'', it will have remembered the value
+{\tt bar} for {\tt foo}. Users of the MIRIAD shell
+program will recall this type of global parameter behavior. This
+can be very convenient, but can also bite you when you least expect it.
+
+With the ``{\tt pipeline}'' command you establish which commands,
+and in which order, need to be executed for your pipe. This will
+produce a Unix-style Makefile, which by convention we call a
+{\tt Pipefile}:
+
+\footnotesize
+\begin{verbatim}
+  % pipeline 4 step1 step2 step3 step4 > Pipefile
+\end{verbatim}
+\normalsize   
+
+Of course these four commands\footnote{Although we gave
+the command simple stepX names, you can name these any
+way you like, e.g. {\tt pipeline 2 foo bar } is legal}
+must exist in your Unix {\tt \$PATH} and
+most follow the pipeline parameter convention (see below).
+
+Unless for some bizarre reason you do not use pipeline
+parameters, a dummy parameter file needs to be created
+before you can run the pipeline:
+
+\footnotesize
+\begin{verbatim}
+  % pipepar -c
+\end{verbatim}
+\normalsize   
+
+Apart from manually running each command, the ``{\tt pipe}'' 
+command will now run these 4 steps in succession:
+
+\footnotesize
+\begin{verbatim}
+  % pipe
+  Checking ./Pipefile
+  Doing step1 as step1
+  Doing step2 as step2
+  Doing step3 as step3
+  Doing step4 as step4
+\end{verbatim}
+\normalsize   
+
+This command 
+uses the Unix ``{\tt make}'' command, and uses the {\tt Pipefile}
+as the controllng {\tt Makefile} with all dependancies properly defined.
+If for some reason {\tt step2} fails, the pipe will be aborted at that stage. If
+you try and re-run the pipe after it had been successfully
+finished, you will probably see something like the following:
+
+\footnotesize
+\begin{verbatim}
+  % pipe
+  Checking ./Pipefile
+  make: Nothing to be done for `all'.
+\end{verbatim}
+\normalsize   
+
+Technically, it uses Unix dot files for its dependancies.
+These dot files should not be touched or removed, unless you know what you are
+doing. They make sure commands are not run again if not needed because
+nothing was changed.
+
+Here are some simple examples of running and re-running portions
+of the pipeline
+
+\footnotesize
+\begin{verbatim}
+pipe all               does all steps in the pipeline (if needed)
+pipe step2             run just step2 (if even ran ok before)
+pipe all               now will do step3 and step4
+pipe step3 all         does step3 and step4
+pipe clean             wipes the pipeline control files (the dot files)
+\end{verbatim}
+\normalsize
+
+As was hinted to before, a utility is needed to manage the global
+pipe parameter file. This is the file that contains the parameters
+that are passed between the programs and scripts
+in the pipeline. This file is a very simple ascii file with a
+set of ``{\tt par=val}''
+pairs, one per line. No spaces should be used before the parameter,
+or surrounding the '=' sign. 
+You can actually use any text editor to modify this file.
+No quotes are needed as everything is interpreted as text.  
+CHECK THIS FOR VALUES WITH SPACES
+
+Here is the usage line for the {\tt pipepar} command
+\footnotesize
+\begin{verbatim}
+
+pipepar [-1|2] [-h] [-c] [-l] [-f parfile_name] [-s shell] [-p fmt] [-d par] [-v par] [-e par] [-z par] [-a] [par=val ...]
+
+ -h	    help
+ -1         Use single quotes (default)
+ -2         Use double quotes
+ -c	    create empty mis.def (parfile_name)
+ -l         use spaces when printing out (-v) comma separated keyword values
+ -f file    use another parfile_name from the default mis.def (not recommended)
+ -s shell   output for given shell (csh and bash are currently known)
+ -p fmt     C-style format (e.g. %10.2f) used in printing (-v) values
+ -v par	    show value of a parameter (multiple allowed, but do not combine with -e flag)
+ -d par     delete a parameter
+ -e par     print 1 or 0 if a parameter exists (only only occurence allowed now)
+ -z par     sort a multi valued (comma separate) value
+ -a         append a value (in a comma separated way) to the existing value(s)
+ par=val    assign (new) value to a parameter  (multiple allowed, -a will append)  
+
+\end{verbatim}
+\normalsize
+
+
+
+\section{Some Examples}
+
+\begin{enumerate}
+
+\item
+rerun the complete pipeline (from step1 onwards) with a new parameter
+
+\footnotesize
+\begin{verbatim}
+   pipepar foo=1.3
+   pipe step1 all
+\end{verbatim}
+\normalsize
+
+\item
+rerun the pipeline with a new parameter, but only run the pipeline
+from step3 onwards. This also implies you better make sure that {\tt foo}
+is not needed in {\tt step1} and {\tt step2}. The current pipeline
+has no dependancy for this yet.
+
+\footnotesize
+\begin{verbatim}
+
+   pipepar foo=2.3
+   pipe step3 all
+\end{verbatim}
+\normalsize
+
+
+\item
+Rerun piece of the pipeline in each of
+a set of directories. In cumbersome {\tt csh} notation this 
+could be achieved as follows:
+\footnotesize
+\begin{verbatim}
+
+   foreach dir (`cat dirs.txt`)
+     cd $dir
+     pipepar foo=3.3
+     pipe step3 all
+     cd ..
+   end
+\end{verbatim}
+\normalsize
+
+
+and because this is somewhat cumbersome to type, a special command is 
+available to help running (pipeline) commands in a set of directories:
+
+\footnotesize
+\begin{verbatim}
+  piperun dirs.txt 'pipepar foo=3.3 ;  pipe step3 all'
+\end{verbatim}
+\normalsize
+
+does the same thing
+
+\item
+From a set of directories, create a scatterplot of two pipeline
+derived parameters. Again, with the aid of
+the {\tt piperun} command this can be done as follows
+
+\footnotesize
+\begin{verbatim}
+   piperun dirs.txt pipepar -v foo -v bar > foo_bar.tab
+   tabplot foo_bar.tab
+\end{verbatim}
+\normalsize
+
+\item
+Run a (pipe) command on a set of project directories in parallel. Generally
+you will need to understand if your pipeline contains I/O and if running
+them in parallel is an efficient usage of your resources. And of course
+the number of processes you can run them under. Here is an example
+of running a set of pipelines on 4 processors, from step2 and onwards:
+
+\footnotesize
+\begin{verbatim}
+   piperun -n 4 dirs.txt pipe step2 all
+\end{verbatim}
+\normalsize
+
+
+\item
+Re-create a new pipeline using an extra step, and rerun the whole pipeline
+
+\footnotesize
+\begin{verbatim}
+
+   pipeline $MIS/cat/pipeline.002  > Pipefile   
+   pipe clean all
+\end{verbatim}
+\normalsize
+You generally will need to use an extra {\tt clean} step, in order
+to clean up the old ``dot'' control files, since the steps are unlikely
+to be compatible with the old pipeline (the only exception being if
+the new pipeline appends steps to the old one).
+
+\item
+Run the MIS pipeline in parallel on a 4-way processor
+on a set of project directories, and store the
+output in pipe.log (in each project directory):
+
+\footnotesize
+\begin{verbatim}
+  piperun -n 4 -c -o pipe.log dirs.txt 'pipepar -c project=%s showPlots=False; pipe clean all'
+\end{verbatim}
+\normalsize
+
+Note the use of the special ``{\tt \%s}'' construct to replace it with the active
+directory name from the {\tt dirs.txt} file as it loops over the project directories.
+Here is the full usage line for the {\tt piperun} command:
+
+\footnotesize
+\begin{verbatim}
+Usage: piperun [-n #procs] [-o logfile] [-c] [-v] [-w] dirs.txt cmd [args]
+-h         this help
+-n #procs  parallel processing using #procs processors
+-o logfile output log
+-c         create directories
+-v         verbose (debug)
+-w         wait for RETURN after each project
+dirs.txt   text file with directory names
+cmd        unix command to run
+args       arguments to unix command (inlcuding ; cmd2 args2...)
+\end{verbatim}
+\normalsize
+
+% piperun -c -o pipe.log dirs.txt 'pipepar -c project=%s showPlots=False; pipe clean all'
+%
+\item
+Re-Run the TAS pipeline for failed projects
+
+\footnotesize
+\begin{verbatim}
+  % piperun -v -o pipe1.log dirs.txt 'pipepar showPlots=False; pipe all'
+\end{verbatim}
+\normalsize
+
+CAVEAT: There appears to be a Unix issue aborting this command with the usual \^C,
+it will instead work on the next project directory. A better way to halt the
+series, is to issue \^Z, which suspends the task, and then issue 
+``{\tt kill \%\%}'' the currently last suspended task.
+
+\item
+Re-Run a project with some additional flagging :
+\footnotesize
+\begin{verbatim}
+  % echo 'ant(2)'  > CARMA.uvflag
+  % echo 'ant(21)' > SZA.uvflag
+  % pipe reduction all
+\end{verbatim}
+\normalsize
+
+Flagging is acted upon in the {\tt reduction} step, but
+only if files {\tt CARMA.uvflag} and/or
+{\tt SZA.uvflag} are present, they are created with an editor, or
+in this case with a simple {\tt echo} command, and the pipeline
+is run again.
+
+If you want to store these uvflag files in a more
+persisent way, use the advanced feature of
+storing them as pipefiles (see ``Advanced Usage'' below) together
+with {\tt mis.def} do the following
+
+\footnotesize
+\begin{verbatim}
+  % pipepar pipefile=CARMA.uvflag,SZA.uvflag
+  % pipesave 
+\end{verbatim}
+\normalsize
+
+\end{enumerate}
+
+
+\section{Pipeline Parameter Convention}
+
+Any script or program that is part of the pipeline
+must follow the same convention of retrieving named
+parameters from the commandline and override any previously stored
+values in the (default: {\tt tas.def}) pipeline parameter file.
+At the (successfull) end of the script new and changed parameters
+will be written back to this parameter file for the next program in
+the pipe to pick up these variables.
+
+In short, these are the conventions:
+
+\begin{enumerate}
+\item
+arguments to a pipeline tasks should be a unique series of ``{\it par=val}''
+(since parameters can be shared between pipeline tasks)
+\item
+values are stored as a string, assigning a type (integer, real, boolean etc.) are
+left open to the task
+\item
+each task should define a default value for each parameter
+\item
+the task should then read the global database (usually from the {\tt mis.def} file)
+\item
+task can now compute
+\item
+task should write out all parameter back to the global database
+\end{enumerate}
+
+\subsection{csh}
+Here is a very simple example in the {\tt csh} scripting language how
+this can be accomplished:
+
+\footnotesize
+\begin{verbatim}
+#! /bin/csh -f
+#
+
+#  (1) define default values in case not given
+set a=1
+set b=2
+
+#  (2) pipeline interface to grab old defaults
+pipepar -s csh > tmp$$.par;  source tmp$$.par;  rm tmp$$.par
+
+#  (3) poor man's command line processor to override parameters
+foreach _arg ($*)
+  set $_arg
+end
+
+#  (4) The Actual Code where the work can be done
+echo A=$a   B=$b
+
+#  (5) write pipeline parameters back
+pipepar a=$a b=$b c=3
+\end{verbatim}
+\normalsize   
+
+The actual code is in (4), though (1) and (3) are fairly common techniques
+to make your shell script more dynamic and have it accept parameters in
+a simple way. (2) and (5) are the new pipeline based commands to ensure
+previous defaults are read before the commandline sets them (2), and 
+ensure their values are stored back into your local pipeline database (5).
+
+\subsection{python}
+Here is a very simple example in the {\tt python} scripting language how
+this can be accomplished:
+
+\footnotesize
+\begin{verbatim}
+
+#! /bin/env python
+#
+import parfile, sys
+
+a=1
+b=2
+
+if __name__ == "__main__":
+   p = parfile.ParFile('mis.def')
+   p.argv(sys.argv)
+   p.set('a',a)
+   if p.has('b'): 
+      b = p.get('b')
+   else:
+      p.set('b',b)
+   p.set('sum',a+b)
+   p.save()
+\end{verbatim}
+\normalsize   
+
+You can find full examples of this convention for
+bash, csh and python in the {\tt \$MIS/templates/pipeline}
+directory. There are no examples in C or Fortran yet, but
+are relatively easy to implement and add to your library.
+
+
+\section{Advanced Usage}
+
+Two wrapper scripts exist that help you managing your pipeline
+parameters in a persistent way. Imagine your pipeline directory tree
+runs completely from scratch, so you would like to save and restore
+parameters between different versions of the pipeline. We simply store
+the parameter files ({\tt mis.def}) in an agreed upon location,
+currently the {\bf project} directory within the {\tt \$MIS\_DEF}
+(if present, or else the default {\tt \$MIS/def}) directory), and
+retrieve them in a subsequent run. The commands {\tt pipesetup} and
+{\tt pipesave} are used for this
+\footnotesize
+\begin{verbatim}
+  pipesetup a=1 b=2 project=test
+  pipe all
+  pipesave
+\end{verbatim}
+\normalsize   
+
+Another common technique to store large amounts of simulations
+is in a hierarchy where each level identifies a new value in a
+parameter. {\bf mis} supports this method as well, by
+storing the project directories in that same hierarchy. 
+In the example below you see three levels representing values for the
+3 parameters {\tt a, b} and {\tt c}:
+
+\footnotesize
+\begin{verbatim}
+  mkdir par/0.4/0.1/6.0
+  pushd par/0.4/0.1/6.0
+  pipepar -c project=par/0.4/0.1/6.0 a=0.4 b=0.1 c=6.0
+  pipe all
+  pipesave
+  popd 
+
+...
+
+  mkdir test
+  cd test
+  pipesetup project=par/0.4/0.1/6.0
+  pipe all
+  
+\end{verbatim}
+\normalsize   
+
+In addition to the special identifying {\tt project} parameter, 
+the {\tt pipefile} parameter is also treated somewhat special by the
+{\tt pipesetup} and {\tt pipesave} wrappers: they can contain a comma
+separated list of filenames that will be retrieved and saved at the start
+and beginning of a pipeline, if you add these wrappers to your pipeline.
+This would then enable your pipeline to use these files in a more persistent
+way.
+
+Example:
+\footnotesize
+\begin{verbatim}
+  pipepar pipefile=NOTES,uvflags
+  echo flagging ant 2 and 13, both had issues   > NOTES
+  echo 'ant(2),time(10:00,11:00)'   > uvflags
+  echo 'ant(13),time(11:00,12:00)' >> uvflags
+  pipesave
+
+\end{verbatim}
+\normalsize 
+
+
+In the case that you need multiple calls to set a series of {\tt pipefile}'s,
+the {\tt -a} flag to {\tt pipepar} is needed, but to ease persistence, it 
+is recommended you sort them using the {\tt -z} flag before saving the files,
+viz.
+
+\footnotesize
+\begin{verbatim}
+  pipepar -a pipefile=uvflag.mis
+  ...
+  pipepar -a pipefile=NOTES
+  ...
+
+  pipepar -z pipefile
+  pipesave
+
+\end{verbatim}
+\normalsize 
+
+
+
+\section{Building your own Pipeline}
+
+\begin{enumerate}
+
+\item
+Define your pipeline commands, and for each command make sure they
+follow the pipeline parameter convention. Place the commands somewhere
+in your {\tt \$PATH}.
+\item
+Create the Pipefile, for example
+\footnotesize
+\begin{verbatim}
+  pipeline 5 getdata calibrate map deconvolve summary > Pipefile
+\end{verbatim}
+\normalsize   
+You can stick this Pipefile either in each project directory you
+want to run the pipeline on, or make it a default by overwriting
+the example in {\tt \$MIS/cat/Pipefile}
+\item
+Run the pipe, set parameters etc.etc.
+\footnotesize
+\begin{verbatim}
+  pipepar -c foo=bar fum=bar
+  pipe all
+\end{verbatim}
+\normalsize   
+
+
+\item
+If you want save/restore the pipeline parameters, the {\tt project}
+parameter is the key for this:
+\footnotesize
+\begin{verbatim}
+  pipepar project=mytest1
+  pipesave
+\end{verbatim}
+\normalsize   
+
+the next time you setup a pipeline in another directory, the command
+\footnotesize
+\begin{verbatim}
+  pipesetup project=mytest1
+\end{verbatim}
+\normalsize   
+
+will restore your previous defaults.
+
+
+\end{enumerate}
+
+
+\section{MIS Pipeline Command Summary} 
+
+Although the current {\tt \$MIS/bin} directory also contains
+many MIS specific commands, the following commands are very general
+pipeline related, and all start with the 4 letters {\bf pipe}:
+
+\footnotesize
+\begin{verbatim}
+  pipeline            create a Pipefile for running the 'pipe' command
+  pipepar             set and retrieve pipeline parameters
+  pipe                run the pipeline
+  piperun             run (optionally in parallel) pipeline in set of directories
+
+  pipesetup           grab previously run pipeline parameters for a project
+  pipesave            save pipeline parameters for a project
+\end{verbatim}
+\normalsize   
+
+\chapter{Installation}
+
+Here we discuss the installation of MIS and 
+comment on some related packages if you need them.
+
+\section{MIS}
+
+We use the same CVS repository as MIRIAD and NEMO, and the
+installation is very similar. The module is called {\tt mis} and
+once installed it will need MIRIAD, python + scipy/matplotlib and NEMO
+(at least for the actual MIS pipeline, for your own pipeline you only
+need whatever your pipeline programs need):\footnote{In its most basic form 
+the {\bf mis} package does not need MIRIAD, NEMO or anything but
+the most basic pieces of python}:
+
+\footnotesize
+\begin{verbatim}
+  % cvs -d :pserver:anonymous@cvs.astro.umd.edu:/home/cvsroot co mis
+  % cd mis
+  % ./configure
+  % source mis_start.csh
+\end{verbatim}
+\normalsize
+
+From this point on you can put new scripts and python modules in
+the appropriate places (e.g. {\tt \$MIS/bin} and {\tt \$MIS/lib}, 
+or your own style somewhere 
+in {\tt \$PATH}\footnote{because pipeline 
+commands are executed in another directory,
+scripts in the current directory will not work.}
+
+\section{MIRIAD}
+
+For the actual MIS pipeline, you will need to have MIRIAD installed.
+See the appropriate MIRIAD documentation. 
+
+A few reminders on updating MIRIAD programs. Lets take an example where
+one subroutine from the library was updated ({\tt fitsio.for} in this example)
+and the fits program ({\tt fits.for}) was updated as well.
+
+\footnotesize
+\begin{verbatim}
+  cd $MIR
+  cvs -nq update
+  cvs update
+  mirboss
+  mir.subs  fitsio
+  mir.prog  fits
+\end{verbatim}
+\normalsize
+
+but these steps assume you have write permission inside the MIRIAD tree. If
+you do not, and if it just a program , for most programs there is an easy
+patch. Again, for the fits program you would do:
+
+\footnotesize
+\begin{verbatim}
+  cd $MIS
+  mkdir miriad
+  cp $MIRPROG/convert/fits.for .
+  cp $MIRPROG/convert/fits.h   .
+  mirmake fits
+  mv fits $MISBIN
+  rehash
+  which fits
+\end{verbatim}
+\normalsize
+
+and now you see the MIS/bin version of the fitsio program, assuming your PATH was set with MIS before MIR.
+
+\section{python}
+
+You will have to have python installed with at least scipy and matplotlib. You can test
+this the following way, and see if you got any error messages about
+none existent modules:
+
+\footnotesize
+\begin{verbatim}
+  % ipython -pylab
+  In [1]: import matplotlib
+  In [2]: import numpy
+\end{verbatim}
+\normalsize
+
+
+However, if you got an error message such as
+\footnotesize
+\begin{verbatim}
+ERROR: matplotlib could NOT be imported!  Starting normal IPython.
+or
+ipython: Command not found.
+\end{verbatim}
+\normalsize
+you are in bad shape. For U of Maryland computers the command(s)
+\footnotesize
+\begin{verbatim}
+  source /astromake/astromake_start
+  astroload python
+\end{verbatim}
+\normalsize
+will give you a version of (i)python with all the proper modules included,
+and even more. The script to ease the installation into your own workspace is
+called {\tt python.install} , and a copy should be in
+{\tt \$NEMO/src/scripts} or {\tt \$MIR/install}.
+
+\section{NEMO}
+
+If you do not have NEMO installed, there is a simple way within
+MIRIAD to install NEMO:
+
+\footnotesize
+\begin{verbatim}
+  % cd $MIR/borrow
+  % cvs -Q checkout nemo
+  % mirboss
+  % mir.install nemo
+  % source $MIR/borrow/nemo/nemo_start.csh
+\end{verbatim}
+\normalsize
+
+and to test a simple program that plots some garbage into a pgplot window, try this
+
+\footnotesize
+\begin{verbatim}
+  % nemoinp 1:10 | tabhist -
+\end{verbatim}
+\normalsize
+
+If you have write permission, and need to install a new version of a task, this
+should do it:
+
+\footnotesize
+\begin{verbatim}
+  % cd $NEMO
+  % cvs -nq update
+  % cvs update
+  % (cd src; make install)
+  % mknemo tabplot
+\end{verbatim}
+\normalsize
+
+
+\chapter{MIS}
+
+This Appendix describes some MIS specific aspects of the MIS pipeline.
+
+\section{MIS parameters}
+
+The global pipeline parameters are stored in ASCII format in
+a small text file, by default this is called {\tt mis.def}. 
+For our MIS pipeline the following
+parameters listed in column 2 are
+defined by the programs listed in column 1:
+
+\footnotesize
+\begin{verbatim}
+pipesetup       project         <optional step for re-running pipes with old mis.def files>
+                pipefile        optional comma separated list of to-be-saved filenames
+                step            most pipeline scripts store their last successful step name here
+
+getdata         rawdata         where tar.gz or miriad/mir files live [/n/algol2/mpound/data/carma/CARMA23/rawdata]
+                project         e.g. cx323.1E_89NGC133.20
+                ary             e.g. E or D
+                trial           e.g. 20
+                link            normally 1, if symlinks used, use 0 if you want a local copy
+                scp             if used, it will use scp with 'user@host' style syntax
+                cvis            derived from project or ary/trial (e.g. cx323.1E_89NGC133.20.miriad)
+
+
+report          -               create form log files from listobs, uvlist, uvindex
+
+do_uvflag       flagfile        generic flagger using uvflag and a flagfile 
+                vis             would override the default cvis
+
+
+fixOff          offname         for single dish only, creates 'sddata'
+
+do_reduceSD     badants         list of bad antennas (orthogonal to mis.uvflag file)
+                npoly           order of polynomial for sinpoly
+                sleep           normally unset, because it will prompt for next plot, use 0 in batch
+                device          normally /xs for interactive work,use /null in batch
+                goto            ieck, Start (default), Inspect, SinPoly, or  Maps
+
+
+map_inttime     source          for selected source, create xyt.tab files dra,ddec,inttime
+                                see mk_map_inttime.csh  for an example post-processing
+
+
+do_uvcat1                       uvcat to trim interferometry data to our 4 USB windows, creates 'uvdata'
+
+do_inspect1                     inspect your interferometry data
+
+do_cal0         linecal         optional calibrations (linecal, antpos)
+                antpos
+
+do_cal1         -               standard gain and passband calibration
+
+do_map0         -               placeholder for now
+
+pipesave        -               (any parameters in pipesetup also apply here)
+
+\end{verbatim}
+\normalsize
+
+
+\subsection{Data products, Diagnostics}
+\footnotesize
+\begin{verbatim}
+
+On top level:
+
+caldir/                          symbolic link to a location (could be itself) where cx* projects are
+cx323.1<ary>_89NGC133.<trial>    project name for given <ary> and <trial>  (we have 22 accepted now)
+flux.{tab,ps}                    flux of 3C84 from mfcal (i.e. before uranus fluxcal)
+<ant>.{tab,ps}                   antenna based 3c84 gains from selfcal
+combined.<mol>_<ary>_<ants>      combined simple 4 channel cube
+
+sd.<mol>.median.cube             single dish cube
+
+
+On project level:
+def/                             symbol link to $MIS/def/$project
+SD/                              antenna based SD data
+mis.def                          all global MIS pipeline variables
+mis.uvflag                       MIS uvflags for do_uvflag
+MOL.median.cube                  for given molecule, median cube from all ants
+MOL.resid.cube                   residual, but all 23 ants in here 
+xyt.tab                          pointing and integration times for this trial
+
+On SD level:
+MOL.ANT.cube                     cube for given MOL and ANT
+MOL.ANT.cube.res
+MOL.ANT.map                      sample map for given MOL and ANT
+MOL.ANT.map.res
+MOL.ANT.ps                       spectrum at 0,0 ?
+rms.resid.ps                     RMS
+
+\end{verbatim} 
+\normalsize
+
+\subsection{Jy/K scaling}
+
+Jy/K  $4108/D^2$, where $D$ is given in m, is the scaling for a perfect radio
+telescope, independant of observing frequency. For example, for a 10.2m OVRO
+dish this would be 38.0, for a 6.2m BIMA dish at 106.9 and the 3.5m SZA dish
+comes in at 335.3. Aperture efficiency will increase these values.
+
+\subsection{A benchmark case}
+
+A benchmark dataset is available seperately, and should be run
+to confirm the software works properly.
+\footnotesize
+\begin{verbatim}
+
+% cd $MIS
+% wget ftp://ftp.astro.umd.edu:/pub/carma/misdata.tar.gz
+% tar zxf misdata.tar.gz
+% rm  misdata.tar.gz
+% mkdir tmp; cd tmp
+% ../misdata/test-all
+
+\end{verbatim}
+\normalsize
+
+\section{MIS ISSUES}
+
+\subsection{WIKI}
+See also our
+N1333 wiki: {\tt http://carma.astro.umd.edu/wiki/index.php/NGC1333}
+
+BAD:
+
+-once par has been set, hard to set another value
+
+-one single pipeline....  but what if, as here, we have 2
+
+-easy way to set a global def file to be read for each project?
+
+
+
 
 \end{document}
 
