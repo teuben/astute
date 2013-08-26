@@ -1,0 +1,103 @@
+
+More details on design for ADMIT                                   (Aug 26, 2013)
+================================
+
+High level design:
+
+- ADMIT runs a series of commands, which are essentially beefed up
+  casa tools/tasks. ADMIT provides a wrapper around them (much like
+  each casa task has a "foobar.xml" and "task_foobar.py" file) but with 
+  some extra baggage to make it fit within the pipeline and have a
+  persistent state (within the pipeline as well for re-use by the user
+  later on).
+  Users will be able to re-run selected portions of the ADMIT pipeline
+  from either the (casa) commandline, or a (casa) GUI, and compare
+  and improve upon the pipeline produced results.
+  Meta-projects can be defined, and ADMIT be used to steer and control
+  how to run on individual projects and sources, after which selected
+  results can be datamined 
+
+- Breakdown:
+
+xml definition -- the tags, the structure of the tags,
+    one or many files, restricted tags, user created
+    tags, is there a dictionary with attributes?
+    Marc volunteered to work on this part.
+
+    Note:  within a project we have to allow for
+    many sources as well as bands.  In the first "astute"
+    environment, we had each source/band in a different
+    working directory, which certainly as far as bands
+    go, is not a good idea, as it won't easily allow
+
+    The XML file is a container that holds :
+     - top level description of the project/source
+       (ra,dec,vlsr,spectral axes etc.etc.)
+     - derived descriptions: line descriptions
+     - data such as :  line cubes, moment maps
+     - ADMIT procedure state (parameter settings)
+
+
+
+xml i/o and manipulation layer -- this is to standardize
+    the interaction with the xml for all higher level
+    routine and to enable and simplity the xml stucture
+    that we decide upon in the xml definitions
+    Marc and Peter might meet on this level -- from the
+    xml definitions below and the python layer above...
+
+
+
+
+
+python layer -- the layer that enables the interaction with
+    CASA and the pipeline. And.... what else?
+    [peter]
+
+    First of all, we need to distinguish between casa tools and 
+    tasks.  The V0.1 part of the pipeline was only using tasks,
+    and even then very loosely integrated into a "pipeline"
+    via the '#! /usr/bin/env casarun' construct.
+
+
+
+API for tool and GUI -- these are the API for actual tools that do the
+    work and the GUI. What does the interface look like?
+    How does the GUI interact with the lower layers? How
+    can the GUI interact with CASA Viewer?
+
+
+to produce:
+- overall structure, 
+- functional requirements, 
+- use cases to be allowed. 
+
+
+peter:
+  - study VLA/ALMA pipeline
+    VLA:   Claire/Bryan
+
+  - study Chad Hull's "pr" for TADPOL
+
+  - casaviewer interaction options
+
+  - datasplash re-use? expansion?
+
+  
+notes:
+
+  - buildmytasks
+    Naming convention:
+        task_foobar.py
+        foobar.xml
+    Generated are:
+        foobar.py  (!!!  by XLST)
+
+  - the XML key description is undergoing a revision, Wes Young
+    (although in Taiwan) is leading this.
+    e.g.
+
+    <param>
+       <shortdescription>
+       <description>
+
