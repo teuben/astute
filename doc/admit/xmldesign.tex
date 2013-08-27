@@ -10,7 +10,7 @@
 The XML structure should be complete enough to capture proposed use cases,
 but not so restrictive that it precludes future use cases. To that end, a
 limited hierarchy is desirable, with basic ``objects" that can be contained
-within one another but are not \it{defined} within one another.  However, we
+within one another but are not {\it defined} within one another.  However, we
 do need to follow what we understand to be the basic hierarchical structure
 of the archive produces Project$\rightarrow$Source$\rightarrow$Bands.
 We argue it is not necessary to expose the Project container to
@@ -41,6 +41,7 @@ user cannot change it), so there we use an attribute.
 <project readonly="true">
 \end{verbatim}
 
+\subsection{Detailed Structure}
 project
     source
         band
@@ -68,7 +69,7 @@ project
    <type> [data or thumbnail]
    <description> [moment zero, moment one, spectral cutout, full cube. ??] 
 % sources in this image
-   <sourcename>A,B,C</sourcename> % must match source names in <source> tags.
+   <source>A</source> % must match source names in <source> tags.
    <naxisN>
    <crpixN>
    <crvalN>
