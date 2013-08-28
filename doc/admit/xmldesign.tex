@@ -6,6 +6,28 @@
 \begin{document}
 \maketitle
 
+\section{Overview}
+
+ADMIT runs a series of ``admit tasks'', which are essentially beefed up
+CASA tools/tasks. ADMIT provides a wrapper around them (much like
+each CASA task has a {\tt foobar.xml} and {\tt task\_foobar.py} 
+file) but with 
+some extra baggage to make it fit within the pipeline and have a
+persistent state (within the pipeline as well for re-use by the user
+later on).
+
+Users will be able to re-run selected portions of the ADMIT pipeline
+from either the (casapy) commandline, or a (casa) GUI, and compare
+and improve upon the pipeline produced results. ADMIT produces
+Basic Data Product (BDP), in addition to the Alma Data Products
+(ADP), such as the Raw Visibility Data and the Science Data Cubes.
+
+Meta-projects can be defined, and ADMIT be used to steer and control
+how to run on individual projects and sources, after which selected
+results can be datamined 
+
+
+
 \section{Guiding Principles}
 The XML structure should be complete enough to capture proposed use cases,
 but not so restrictive that it precludes future use cases. To that end, a
