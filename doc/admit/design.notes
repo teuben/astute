@@ -17,6 +17,19 @@ High level design:
   how to run on individual projects and sources, after which selected
   results can be datamined 
 
+- Nomenclature:
+
+  MP = meta project
+  P = project
+  S = source (NS=1, but can be >1)n
+  B = band (NB=4 for ALMA)
+  L = line (NL can be large)
+  C = continuum (NC=1 or 0)
+  
+  For ALMA a project (P) is archived, which can contains multiple sources (S),
+  and each source will have a number (4?) of bands's (B), each of which contains
+  a (band)cube that we analyse. So,per project we have NB*NS cubes to deal with.
+
 - Breakdown:
 
 xml definition -- the tags, the structure of the tags,
@@ -45,7 +58,6 @@ xml i/o and manipulation layer -- this is to standardize
     that we decide upon in the xml definitions
     Marc and Peter might meet on this level -- from the
     xml definitions below and the python layer above...
-
 
 
 
@@ -83,6 +95,31 @@ peter:
 
   - datasplash re-use? expansion?
 
+doug?
+  - assuming we have an ADMIT infrastructure that puts an 'azip' in a P/S/B hierarchy,
+    we need something to deal with datamining the various P's:
+
+  - setup a meta-project (MP) based on either all P's that have valid azip's, or use 
+    a complex query that goes into each Project and either selects or deselects.
+    Manual creation is perfectly ok as well :-)
+    We need some use cases here. 
+    - select based on a specific line (L) present
+    - select based on a source name
+    - select based on a previously set user supplied keyword (on what level?)
+    - 
+
+  - MP needs to have some record how it was created
+  
+  - Re-run one more more MPs based on a procedure established in one P ?
+
+  - Data Mining operations in MPs?
+    - acumulate things you did in a P into an MP
+      - e.g. clump spectrum to gain statistics
+    - extract things from a P (or do we need to distinguish P from P/S or P/S/B or P/S/L)
+      and stuff them in python data structures for any plotting or linked data analysis/vis
+      MatplotLib
+      ?Should we use GLUE as our standard example to visualize?
+
   
 notes:
 
@@ -101,3 +138,20 @@ notes:
        <shortdescription>
        <description>
 
+
+
+- Project(name)
+     Source(name)
+        ra,dec,vlsr,....
+        Band(number)
+	   File
+	   LineList(name)
+	   CubeStats/Channel
+	Line(name)
+	   LineCube
+	   RMS (since cubestats can differ per channel)
+	   Mom0, Mom1, Mom2
+	   PeakSpectrum (?peak in LineCube , or peak in Mom0?)
+	      Peak, RMS, V0, FWHM, SdV
+	   IntegratedSpectrum
+	      Peak, RMS, V0, FWHM, SdV
