@@ -25,15 +25,62 @@ ADP's in a project are the Raw Visibility Data (in ASDM format) and
 the Science Data Cubes (in FITS format) for each source and each
 band}
 
-Meta-projects can be defined, and ADMIT be used to steer and control
+Virtual projects can be defined, and ADMIT be used to steer and control
 how to run on individual projects and sources, after which selected
 results can be datamined 
 
-\subsection{Basic Data Products}
+\section{Guiding Principles}
+The XML structure should be complete enough to capture proposed use cases,
+but not so restrictive that it precludes future use cases. To that end, a
+limited hierarchy is desirable, with basic ``objects" that can be contained
+within one another but are not {\it defined} within one another.  However, we
+do need to follow what we understand to be the basic hierarchical structure
+that the archive produces Project$\rightarrow$Source$\rightarrow$Bands.
+We argue it is not necessary to expose the Project container to
+the user, e.g. in the case of a data mining operation that spans multiple
+projects. The science is in the sources not the project. To that end, the
+Project container is extremely thin: it contains only the identificiation
+code, everything else is inside source containers.
 
-Only the smaller portions of the BDP (Basic Data Products) can be found
-in the admit.zip file, others will have to be recreated through the
-ADMIT pipeline. Examples of BDP (both exported and recreatable) are
+\subsection{Elements vs. Attributes}
+We follow the principal that data go in elements and metadata about
+elements go in attributes.   Thus rather than
+
+\begin{verbatim}
+<project name="c0123">  
+\end{verbatim}
+
+\noindent we use 
+
+\begin{verbatim}
+<project>
+    <name>c0123</name>
+\end{verbatim}
+
+\noindent However, if project name is an element we want to
+be read-only (ADMIT user cannot change it), we use an attribute.
+
+\begin{verbatim}
+<project>
+  <name readonly="true">c0123</name>
+\end{verbatim}
+
+\noindent Or if an element has a fixed type, we use an attribute:
+\begin{verbatim}
+<myelement type="float">
+\end{verbatim}
+
+\section{Basic Data Products}
+
+The pipeline results and outputs of ADMIT tasks are described as 
+Basic Data Products. A BDP may contain computed or harvested information
+as well as point to an external resource, such as an image file.
+%% Peter - What do you mean by this?
+Only the smaller portions of the BDP can be found
+in the admit.zip file, others will have to be recreated. 
+%
+Examples of BDP (both exported and recreatable) are
+ADMIT pipeline. 
 
 \begin{enumerate}
 \item
@@ -46,123 +93,64 @@ Line List: a list of all lines detected in a band, but there is also a bandmerge
 Line Cube: foreach line from the Line List there will be a data cube extracted from the
 band cube.  (the cube itself will not be exported)
 \item
-Mom0,1,2: simple moment maps  (these will be exported as JPEG)
+Moment: simple moment maps (0,1,2). These will be also be exported as JPEG.
 \item
-PeakSpectrum: for each line cube a spectrum through the cube at the peak in Mom0 is given
+PeakSpectrum: for each line cube a spectrum through the cube at the peak in moment-0 is given
 \item
 Feature List: for each line cube a list of features (clumps, blobs, etc.) is saved in tabular format.
 \item 
 Overlap Integral: combining all Mom0 maps, an overlap integral map is created.
-
 \end{enumerate}
 
-\subsection{Meta Project Data Mining}
-
-One of the novel ways in which users can interact with ADMIT is the meta project.
-A series of projects (really project/source combinations)
-can be selected for further work and data mined.
-
-
-
-setup a meta-project (MP) based on either all P's that have valid azip's, or use 
-a complex query that goes into each Project and either selects or deselects.
-Manual creation is perfectly ok as well :-)
-
-We need some use cases here. 
-    - select based on a specific line (L) present
-    - select based on a source name
-    - select based on a previously set user supplied keyword (on what level?)
-
-MP needs to have some record how it was created
-  
-Re-run one more more MPs based on a procedure established in one P ?
-
-Data Mining operations in MPs?
-
-- acumulate things you did in a P into an MP (e.g. clump spectrum to gain statistics)
-
-- extract things from a P (or do we need to distinguish P from P/S or P/S/B or P/S/L)
-and stuff them in python data structures for any plotting or linked data analysis/vis
-MatplotLib (?Should we use GLUE as our standard example to visualize?)
-
-
-\section{Guiding Principles}
-The XML structure should be complete enough to capture proposed use cases,
-but not so restrictive that it precludes future use cases. To that end, a
-limited hierarchy is desirable, with basic ``objects" that can be contained
-within one another but are not {\it defined} within one another.  However, we
-do need to follow what we understand to be the basic hierarchical structure
-of the archive produces Project$\rightarrow$Source$\rightarrow$Bands.
-We argue it is not necessary to expose the Project container to
-the user, e.g. in the case of a data mining operation that spans multiple
-projects. The science is in the sources not the project. To that end, the
-Project container is extremely thin: it contains only the identificiation
-code, everything else is inside source containers.
-
-\subsection{Elements vs. Attributes}.  
-We follow the principal that data go in elements and metadata about
-elements go in attributes.   Thus rather than
+\noindent All BDP instances have the following structure:
 
 \begin{verbatim}
-<project name="c0123">  
+BDP
+  name 
+  data element 1
+  data element 2
+  ...
+  data element N
+  task
+  dependencies
 \end{verbatim}
 
-we use 
+\noindent where {\it name} is the descriptive name (``summary,''
+``linelist''), {\it data elements} are harvested information, computed 
+values, tables, or pointers to images, {\it task} is the ADMIT/CASA 
+task used to create this BDP with all all task parameter values specified,
+and {\it dependencies} are other BDPs upon which this one depends. 
+If a dependency BDP changes, this one should be recomputed.
 
+
+\section{Basic XML Types}
+
+Here we outline the basic XML types of which the Basic Data Products
+may be composed, with an example but not exhaustive list of elements for each.
+All tables will be stored in VOTable format.
 \begin{verbatim}
+
 <project>
-<name>c0123</name>
-\end{verbatim}
+    <name>
+</project>
 
-However, project name is an example of element we may want to be read-only
-(ADMIT user cannot change it), so there we use an attribute.
-
-\begin{verbatim}
-<project>
-  <name readonly="true">c0123</name>
-\end{verbatim}
-
-\subsection{Detailed Structure}
-
-\begin{verbatim}
-
-project
-    source
-        band
-        line 
-        image
-        spectrum
-        task
-        procedure
-    
-
-
-<Project>
 <source>
     <name></name>
     <coordinate>
         <crvalN>
         <ctypeN>
     </coordinate>
-    <equinox></equinox>
+    <equinox>
     <type> [galactic, extragalactic, etc]
 </source>
 
-<image>
-   <name>
-   <type> [data or thumbnail]
-   <description> [moment zero, moment one, spectral cutout, full cube. ??] 
-% sources in this image
-   <source>A</source> % must match source names in <source> tags.
-   <naxisN>
-   <crpixN>
-   <crvalN>
-   <ctypeN>
    <statistics>
-%% Can have multiple areas over which statistics are measured.
+%% One can have multiple areas over which statistics are measured.
 %% NB: Does casa multiple boxes print two stats or one?
+%% Are we supporting polygons?
         <region>
             <number>
+            %% If polygonal, this might become a list of vertices.
             <blc>
             <trc>
             <startchannel>
@@ -173,35 +161,90 @@ project
             <clip>
         </region>
    </statistics>
-</image>
+
 <spectrum>
-   <sourcename>
    <start freq>
    <start vel>
+   <dvel>
+   <nchan>  % perhaps VOtable encapsuulates number of channels already
    <statistics> </statistics> %% as above
-   <channel>value</channel>
-   <channel>value</channel>
-   <channel>value</channel>
-   <channel>value</channel> 
-  %% or better as a table?
+   <votable>
 </spectrum>
 
-%% Just rely on CASA for this. Note TASK.last files are keyword=value, not XML!
-<task>
-  <name>
-  <parameters>
-    <keyword>value</keyword>
-    <keyword2>value2</keyword2>
-    ...etc
-  </parameters>
-  <date> date/time of last run? </date>
-</task>
+<image>
+   <URI>
+   <type> [data or thumbnail]
+   <description> [moment zero, moment one, spectral cutout, full cube. ??] 
+   <naxisN>
+   <crpixN>
+   <crvalN>
+   <ctypeN>
+   <statistics></statistics>
+</image>
+\end{verbatim}
+
+We expect the ADMIT task will defined exactly as a CASA task, for which the XML
+representation is already defined as follows:
+
+\begin{verbatim}
+<task type="function" name="foobar" category="fumbar">
+    <shortdescription>
+    <description>
+    <input>
+    <param>
+        <description>
+        <any>
+        <value>
+    <returns>
+    <example>
+</task>  
 
 \end{verbatim}
 
-\subsection{XML Overview}
-Without the cumbersome XML syntax, but simply using indentation, this is an overview
-of the XML tree that admit.zip will contain
+Using these types, a BDP XML definition takes shape:
+
+\begin{verbatim}
+<BDPName type="bdp">
+   <element1>
+   <element2>
+   ...
+   <elementN>
+   <task>
+   <dependencies>
+</BDPName>
+
+\end{verbatim}
+
+\noindent For example, a moment-1 map might look like:
+
+\begin{verbatim}
+<moment type="bdp">
+   <integral>1</integral>
+   <description>velocity centroid</description>
+   <method>clip</method>
+   <image>...</image>  % e.g. the FITS image
+   <image>...</image>  % e.g. the JPEG image
+   <task type="function" name="moment" category="imagefu">
+        <param type="float" name="clip">
+           <value>0.1</value>
+        </param>
+        <param type="float" name="vmin">
+           <value> -123.0</value>
+        </param>
+        <param type="float" name="vmax">
+           <value> 234.0</value>
+        </param>
+   </task>
+   <dependencies>linecube</dependencies>
+   <date>YYYY-MM-DD HH:MM:SS</date>
+</moment>
+
+\end{verbatim}
+ 
+
+\section{XML Overview}
+Without the cumbersome XML syntax, but simply using indentation, this is
+an overview of the XML tree that admit.zip will contain
 
 \newpage
 
@@ -282,42 +325,7 @@ of the XML tree that admit.zip will contain
 
 \newpage
 
-
-
-XML style?
-
-\footnotesize
-\begin{verbatim}
-<PeakSpectrum type="spectrum">
-<Moment0 type="image">
-\end{verbatim}
-\normalsize
-vs.
-
-\footnotesize
-\begin{verbatim}
-<image name="peakspectrum">
-<image name="moment0">
-\end{verbatim}
-\normalsize
-
-vs.
-
-\footnotesize
-\begin{verbatim}
-
-<PeakSpectrum type="BDP"> 
-  <image URI=...> 
-  <atask ...>
-  <dependancy ...>
-</PeakSpectrum>
-
-\end{verbatim}
-\normalsize
-
-
-
-The dependancies might even fit in a Makefile, viz. (using the P/S/B and P/S/L hierarchy)
+The dependencies might even fit in a Makefile, viz. (using the P/S/B and P/S/L hierarchy)
 
 
 \footnotesize
@@ -343,27 +351,6 @@ p1_summary:
 \normalsize
 
 
-\subsection{CASA task}
-
-The {\tt atask} will hopefully be just a casa task, of which the XML representation
-looks as follows:
-\footnotesize
-\begin{verbatim}
-<casaxml>
-    <task type="function" name="foobar" category="fumbar">
-        <shortdescription>
-        <description>
-        <input>
-	    <param>
-	        <description>
-	        <any>
-	        <value>
-        <returns>
-        <example>
-    </task>  
-</casaxml>
-\end{verbatim}
-\normalsize
 
 \section{Use Cases}
 
@@ -380,17 +367,16 @@ products and a descriptive {\tt admit.xml} file and add this as
 
 \subsection{First Look}
 
-The next case covers a user that has gone to his/her project on the
-archive, and downloaded the {\tt admit.zip} file. The ADMIT environment in
-casapy will then either bring up a GUI outlining all BDP (Basic Data
-products) present, or allow looping over and visualizing them via
-python methods.
+The next case covers a user that has gone to his/her project on the archive,
+and downloaded the {\tt admit.zip} file. The ADMIT environment in casapy
+will then either print to screen a GUI outlining all BDPs present, or
+allow looping over and visualizing them via python methods.
 
 \subsection{Rerun Pipeline}
 
 After a first look, the user may be unhappy that a certain obvious line
 was not added to the line cataloge (LineList). Or may want to recreate
-moment maps based on a lower clip level. In the GUI each BDP has an
+moment maps based on a lower clip level. In the user interface each BDP has an
 interaction popup by which its input methods and parameters can be changed.
 
 \subsection{Virtual Projects}
@@ -400,8 +386,36 @@ or more projects in a virtual ADMIT container. Any of the basic ADMIT procedures
 can now be re-run and/or reviewed, but looped over the selected sources.
 Users can write their own procedures,
 and store persistent data back into {\tt admit.zip}. ADMIT has interfaces
-using python to extract numbers and python arrays out of admit.zip, and thereby
+using Python to extract numbers and Python arrays out of admit.zip, and thereby
 allow for flexible data mining, linked data plotting etc.
+
+%\subsection{Virtual Project Data Mining}
+%
+%One of the novel ways in which users can interact with ADMIT is the
+%virtual project.  A series of projects (really project/source combinations)
+%can be selected for further work and data mined.
+%
+%Setup a virtual project (VP) based on either all P's that have valid azip's, or use a complex query that goes into each Project and either selects or deselects.
+%Manual creation is perfectly ok as well.
+%
+%We need some use cases here. 
+%    - select based on a specific line (L) present
+%    - select based on a source name
+%    - select based on a previously set user supplied keyword (on what level?)
+%
+%VP needs to have some record how it was created
+%  
+%Re-run one more more VPs based on a procedure established in one P ?
+%
+%Data Mining operations in VPs?
+%
+%- acumulate things you did in a P into an VP (e.g. clump spectrum to gain statistics)
+%
+%- extract things from a P (or do we need to distinguish P from P/S or P/S/B or P/S/L)
+%and stuff them in Python data structures for any plotting or linked data analysis/vis
+%MatplotLib (?Should we use GLUE as our standard example to visualize?)
+%
+
 
 
 \end{document}
