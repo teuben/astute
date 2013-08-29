@@ -140,41 +140,102 @@ notes:
        <shortdescription>
        <description>
 
+  - CASA task  :  foobar.xml
+
+    <casaxml>
+    <task type="function" name="foobar" category="fumbar">
+      <shortdescription>
+      <description>
+      <input>
+	<param>
+	  <description>
+	  <any>
+	  <value>
+      <returns>
+      <example>
+	  	  
 
 
-- Outline of the XML tree  
+- XML tree
+
+  <project name=cx123>
+     <summary>
+        bla bla
+	<atask name=summary>
+
+
+- Outline of the XML tree   
+
+   * at_asummary creates an initial summary and distributes those in that hierarchy in 3 levels!)
+   * [NP] means this item can occur NP times, otherwise just once. Important for dependancies
 
   Project(name)[NP]
      Summary
-	<atest name=summary>
+	<atask name=at_summary>
      Source(name)[NS]
         Summary
 	   ra,dec,vlsr,....
-	   <atest name=summary>
+	   <atask name=at_summary>
         Band(number)[NB]
 	   File:im
 	   Summary
 		FreqMin,FreqMax,FreqStep
-	   LineList:tab
-	      <atask name=band2line>
 	   CubeStats:tab
+	      <atask name=at_cubestats>
+	      <dep>
+	        File:im
+	   LineList:tab
+	      <atask name=at_band2line>
+	      <dep>
+		CubeStats
 	LineList:tab
-	   <atask name=linemerge>
+	   <atask name=at_linemerge>
 	   <dep>
 	     band[NB].LineList
 	Line(name)[NL]
 	   LineCube:im
-	      <atask name=subimage+imreframe>
+	      <atask name=at_reframe>
+	      <dep>
+	        LineList
 	   RMS (since cubestats can differ per channel)
 	   Mom0:im
-	      <atask name=immoments>
+	      <atask name=at_moment>
+	      <dep>
+	        LineCube
 	   Mom1:im
 	   Mom2:im
 	   PeakSpectrum:tab
 	      <summary>
 		Peak, RMS, V0, FWHM, SdV
-	      <atask name=spectrum>
+	      <atask name=at_spectrum>
+	      <dep>
+	        LineCube
 	   IntegratedSpectrum:tab
 	      <summary>
 	        Peak, RMS, V0, FWHM, SdV
-	      <atask name=spectrum>
+	      <atask name=at_spectrum>
+	      <dep>
+	        LineCube
+
+
+
+- The work needed also fits in a Makefile actually....
+  
+
+
+p1_s1_l1_mom0:		p1_s1_l1_linecube
+
+p1_s1_l1_linecube:	p1_s1_linelist p1_s1_b1
+
+p1_s1_linelist:		p1_s1_b1_linelist p1_s1_b2_linelist p1_s1_b3_linelist p1_s1_b4_linelist
+			at_linemerge
+
+p1_s1_b1_linelist:	p1_s1_b1
+			at_band2line
+
+p1_s1_b1:		file:im
+			at_archive(p1,s1,b1)
+
+p1_summary:
+			at_summary
+	
