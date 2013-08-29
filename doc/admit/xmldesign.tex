@@ -32,7 +32,8 @@ results can be datamined
 \subsection{Basic Data Products}
 
 Only the smaller portions of the BDP (Basic Data Products) can be found
-in the admit.zip file, others will have to be recreated. Examples of BDP are:
+in the admit.zip file, others will have to be recreated through the
+ADMIT pipeline. Examples of BDP (both exported and recreatable) are
 
 \begin{enumerate}
 \item
@@ -40,7 +41,18 @@ Summary of the meta data, as much as is needed for the ADMIT pipeline.
 \item
 Cube Statistics: a simple table of min, max, mean, median etc. for each plane
 \item
-Line List: a list of all lines detected in a band, but 
+Line List: a list of all lines detected in a band, but there is also a bandmerged version
+\item
+Line Cube: foreach line from the Line List there will be a data cube extracted from the
+band cube.  (the cube itself will not be exported)
+\item
+Mom0,1,2: simple moment maps  (these will be exported as JPEG)
+\item
+PeakSpectrum: for each line cube a spectrum through the cube at the peak in Mom0 is given
+\item
+Feature List: for each line cube a list of features (clumps, blobs, etc.) is saved in tabular format.
+\item 
+Overlap Integral: combining all Mom0 maps, an overlap integral map is created.
 
 \end{enumerate}
 
@@ -48,7 +60,8 @@ Line List: a list of all lines detected in a band, but
 
 One of the novel ways in which users can interact with ADMIT is the meta project.
 A series of projects (really project/source combinations)
-can be selected for further work (``data mining''). 
+can be selected for further work and data mined.
+
 
 
 setup a meta-project (MP) based on either all P's that have valid azip's, or use 
@@ -256,6 +269,42 @@ of the XML tree that admit.zip will contain
 \normalsize
 
 \newpage
+
+
+
+XML style?
+
+\footnotesize
+\begin{verbatim}
+<PeakSpectrum type="spectrum">
+<Moment0 type="image">
+\end{verbatim}
+\normalsize
+vs.
+
+\footnotesize
+\begin{verbatim}
+<image name="peakspectrum">
+<image name="moment0">
+\end{verbatim}
+\normalsize
+
+vs.
+
+\footnotesize
+\begin{verbatim}
+
+<PeakSpectrum type="BDP"> 
+  <image URI=...> 
+  <atask ...>
+  <dependancy ...>
+</PeakSpectrum>
+
+\end{verbatim}
+\normalsize
+
+
+
 The dependancies might even fit in a Makefile, viz. (using the P/S/B and P/S/L hierarchy)
 
 
@@ -303,5 +352,21 @@ looks as follows:
 </casaxml>
 \end{verbatim}
 \normalsize
+
+\section{Use Cases}
+
+\subsection{Archive}
+
+The first case covers the first goal for ADMIT:  produce an admit.zip from
+a given project.   A project can contain a number of sources, and
+for each source there will be (for ALMA) 4 image data cubes, in FITS
+format.
+
+\subsection{First Look}
+
+The next case covers a user that has gone to his/her project on the
+archive, and downloaded the admit.zip file. The ADMIT environment in
+casapy will then either bring up a GUI outlining all BDP (Basic Data
+products) present.
 
 \end{document}
