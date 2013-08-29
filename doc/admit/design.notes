@@ -2,9 +2,10 @@
 More details on design for ADMIT                                   (Aug 26, 2013)
 ================================
 
-High level design:
+High level design:   (+ means it's been transferred to xmldesign.tex, 
+     	   	        don't start adding more here)
 
-- ADMIT runs a series of commands, which are essentially beefed up
++ ADMIT runs a series of commands, which are essentially beefed up
   casa tools/tasks. ADMIT provides a wrapper around them (much like
   each casa task has a "foobar.xml" and "task_foobar.py" file) but with 
   some extra baggage to make it fit within the pipeline and have a
@@ -106,7 +107,6 @@ doug?
     - select based on a specific line (L) present
     - select based on a source name
     - select based on a previously set user supplied keyword (on what level?)
-    - 
 
   - MP needs to have some record how it was created
   
@@ -130,6 +130,8 @@ notes:
     Generated are:
         foobar.py  (!!!  by XLST)
 
+  - cyclic graph is needed to figure out the dependancies
+
   - the XML key description is undergoing a revision, Wes Young
     (although in Taiwan) is leading this.
     e.g.
@@ -140,18 +142,39 @@ notes:
 
 
 
-- Project(name)
-     Source(name)
-        ra,dec,vlsr,....
-        Band(number)
-	   File
-	   LineList(name)
-	   CubeStats/Channel
-	Line(name)
-	   LineCube
+- Outline of the XML tree  
+
+  Project(name)[NP]
+     Summary
+	<atest name=summary>
+     Source(name)[NS]
+        Summary
+	   ra,dec,vlsr,....
+	   <atest name=summary>
+        Band(number)[NB]
+	   File:im
+	   Summary
+		FreqMin,FreqMax,FreqStep
+	   LineList:tab
+	      <atask name=band2line>
+	   CubeStats:tab
+	LineList:tab
+	   <atask name=linemerge>
+	   <dep>
+	     band[NB].LineList
+	Line(name)[NL]
+	   LineCube:im
+	      <atask name=subimage+imreframe>
 	   RMS (since cubestats can differ per channel)
-	   Mom0, Mom1, Mom2
-	   PeakSpectrum (?peak in LineCube , or peak in Mom0?)
-	      Peak, RMS, V0, FWHM, SdV
-	   IntegratedSpectrum
-	      Peak, RMS, V0, FWHM, SdV
+	   Mom0:im
+	      <atask name=immoments>
+	   Mom1:im
+	   Mom2:im
+	   PeakSpectrum:tab
+	      <summary>
+		Peak, RMS, V0, FWHM, SdV
+	      <atask name=spectrum>
+	   IntegratedSpectrum:tab
+	      <summary>
+	        Peak, RMS, V0, FWHM, SdV
+	      <atask name=spectrum>
