@@ -56,14 +56,16 @@ we use
 <name>c0123</name>
 \end{verbatim}
 
-However, Project is an example of element we may want to be read-only (ADMIT 
-user cannot change it), so there we use an attribute.
+However, project name is an example of element we may want to be read-only
+(ADMIT user cannot change it), so there we use an attribute.
 
 \begin{verbatim}
-<project readonly="true">
+<project>
+  <name readonly="true">c0123</name>
 \end{verbatim}
 
 \subsection{Detailed Structure}
+\begin{verbatim}
 project
     source
         band
@@ -134,5 +136,6 @@ project
   </parameters>
   <date> date/time of last run? </date>
 </task>
+\end{verbatim}
 
 \end{document}
