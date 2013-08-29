@@ -224,6 +224,10 @@ of the XML tree that admit.zip will contain
               <atask name=at_cubestats>
               <dep>
               File:im
+           PosVelSlice
+              URI:im
+              file:jpg
+              <atask name=at_pv>
            LineList
               VoTable:tab
               <atask name=at_band2line>
@@ -368,5 +372,23 @@ The next case covers a user that has gone to his/her project on the
 archive, and downloaded the admit.zip file. The ADMIT environment in
 casapy will then either bring up a GUI outlining all BDP (Basic Data
 products) present.
+
+\subsection{Rerun Pipeline}
+
+After a first look, the user may be unhappy that a certain obvious line
+was not added to the line cataloge (LineList). Or may want to recreate
+moment maps based on a lower clip level. In the GUI each BDP has an
+interaction by which its input methods and parameters can be changed.
+
+\subsection{Virtual Projects}
+
+In this more advanced case, the user selects a number of sources from one
+or more projects in a virtual ADMIT container. Any of the basic ADMIT procedures
+can now be re-run and/or reviewed, but looped over the selected sources.
+Users can write their own procedures,
+and store persistent data back into {\tt admit.zip}. ADMIT has interfaces
+using python to extract numbers and python arrays out of admit.zip, and thereby
+allow for flexible data mining, linked data plotting etc.
+
 
 \end{document}
