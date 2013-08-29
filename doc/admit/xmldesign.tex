@@ -223,11 +223,13 @@ of the XML tree that admit.zip will contain
               VoTable:tab
               <atask name=at_cubestats>
               <dep>
-              File:im
+                 URI:im
            PosVelSlice
               URI:im
               file:jpg
               <atask name=at_pv>
+                 <dep>
+                 URI:im
            LineList
               VoTable:tab
               <atask name=at_band2line>
@@ -238,6 +240,12 @@ of the XML tree that admit.zip will contain
            <atask name=at_linemerge>
            <dep>
              band[NB].LineList
+        Continuum(name)
+           URI:im
+           file.jpg
+           <atask name=at_continuum>
+           <dep>
+              Band(this)
         Line(name)[NL]
            LineCube
               URI:im
@@ -361,24 +369,29 @@ looks as follows:
 
 \subsection{Archive}
 
-The first case covers the first goal for ADMIT:  produce an admit.zip from
-a given project.   A project can contain a number of sources, and
-for each source there will be (for ALMA) 4 image data cubes, in FITS
-format.
+The first case covers the first goal for ADMIT: produce an {\tt
+  admit.zip} for a given project.  A project contains one or more
+sources, and for each source there will be (at least for ALMA) 4 image
+data cubes, in FITS format. This will produce all the Basic Data
+products and a descriptive {\tt admit.xml} file and add this as 
+{\tt admit.zip} to the archive.
+
+
 
 \subsection{First Look}
 
 The next case covers a user that has gone to his/her project on the
-archive, and downloaded the admit.zip file. The ADMIT environment in
+archive, and downloaded the {\tt admit.zip} file. The ADMIT environment in
 casapy will then either bring up a GUI outlining all BDP (Basic Data
-products) present.
+products) present, or allow looping over and visualizing them via
+python methods.
 
 \subsection{Rerun Pipeline}
 
 After a first look, the user may be unhappy that a certain obvious line
 was not added to the line cataloge (LineList). Or may want to recreate
 moment maps based on a lower clip level. In the GUI each BDP has an
-interaction by which its input methods and parameters can be changed.
+interaction popup by which its input methods and parameters can be changed.
 
 \subsection{Virtual Projects}
 
