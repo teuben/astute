@@ -8,24 +8,69 @@
 
 \section{Overview}
 
-ADMIT runs a series of ``admit tasks'', which are essentially beefed up
-CASA tools/tasks. ADMIT provides a wrapper around them (much like
-each CASA task has a {\tt foobar.xml} and {\tt task\_foobar.py} 
-file) but with 
-some extra baggage to make it fit within the pipeline and have a
-persistent state (within the pipeline as well for re-use by the user
-later on).
+For each science project ADMIT runs a series of ``admit tasks'', which
+are essentially beefed up CASA tools/tasks, and produce Basic Data
+Products (BDP).  ADMIT provides a wrapper around these tasks
+(CASA tasks, but with some extra baggage to make it fit within the pipeline
+and have a persistent state within the pipeline as well for re-use by
+the user later on).
 
-Users will be able to re-run selected portions of the ADMIT pipeline
-from either the (casapy) commandline, or a (casa) GUI, and compare
-and improve upon the pipeline produced results. ADMIT produces
-Basic Data Product (BDP), in addition to the Alma Data Products
-(ADP), such as the Raw Visibility Data and the Science Data Cubes.
+Once users have downloaded the data, they can preview the work the pipeline
+has created for them. They will also be able to re-run
+selected portions of the ADMIT pipeline from either the (casapy)
+commandline, or a (casa) GUI, and compare and improve upon the
+pipeline produced results. ADMIT produces Basic Data Product (BDP), in
+addition to the existing Alma Data Products (ADP)\footnote{Examples of
+ADP's in a project are the Raw Visibility Data (in ASDM format) and
+the Science Data Cubes (in FITS format) for each source and each
+band}
 
 Meta-projects can be defined, and ADMIT be used to steer and control
 how to run on individual projects and sources, after which selected
 results can be datamined 
 
+\subsection{Basic Data Products}
+
+Only the smaller portions of the BDP (Basic Data Products) can be found
+in the admit.zip file, others will have to be recreated. Examples of BDP are:
+
+\begin{enumerate}
+\item
+Summary of the meta data, as much as is needed for the ADMIT pipeline.
+\item
+Cube Statistics: a simple table of min, max, mean, median etc. for each plane
+\item
+Line List: a list of all lines detected in a band, but 
+
+\end{enumerate}
+
+\subsection{Meta Project Data Mining}
+
+One of the novel ways in which users can interact with ADMIT is the meta project.
+A series of projects (really project/source combinations)
+can be selected for further work (``data mining''). 
+
+
+setup a meta-project (MP) based on either all P's that have valid azip's, or use 
+a complex query that goes into each Project and either selects or deselects.
+Manual creation is perfectly ok as well :-)
+
+We need some use cases here. 
+    - select based on a specific line (L) present
+    - select based on a source name
+    - select based on a previously set user supplied keyword (on what level?)
+
+MP needs to have some record how it was created
+  
+Re-run one more more MPs based on a procedure established in one P ?
+
+Data Mining operations in MPs?
+
+- acumulate things you did in a P into an MP (e.g. clump spectrum to gain statistics)
+
+- extract things from a P (or do we need to distinguish P from P/S or P/S/B or P/S/L)
+and stuff them in python data structures for any plotting or linked data analysis/vis
+MatplotLib (?Should we use GLUE as our standard example to visualize?)
 
 
 \section{Guiding Principles}
@@ -65,7 +110,9 @@ However, project name is an example of element we may want to be read-only
 \end{verbatim}
 
 \subsection{Detailed Structure}
+
 \begin{verbatim}
+
 project
     source
         band
@@ -136,6 +183,125 @@ project
   </parameters>
   <date> date/time of last run? </date>
 </task>
+
 \end{verbatim}
+
+\subsection{XML Overview}
+Without the cumbersome XML syntax, but simply using indentation, this is an overview
+of the XML tree that admit.zip will contain
+
+\newpage
+
+\footnotesize
+\begin{verbatim}
+
+ Project(name)[NP]
+    Summary
+       <atask name=at_summary>
+    Source(name)[NS]
+       Summary
+           ra,dec,vlsr,...
+           <atask name=at_summary>
+       Band(number)[NB]
+           URI:im
+           Summary
+              FreqMin,FreqMax,FreqStep
+           CubeStats
+              VoTable:tab
+              <atask name=at_cubestats>
+              <dep>
+              File:im
+           LineList
+              VoTable:tab
+              <atask name=at_band2line>
+              <dep>
+                CubeStats
+        LineList
+           votable:tab
+           <atask name=at_linemerge>
+           <dep>
+             band[NB].LineList
+        Line(name)[NL]
+           LineCube
+              URI:im
+              <atask name=at_reframe>
+              <dep>
+                LineList
+           RMS (since cubestats can differ per channel)
+           Mom0
+              URI:im
+              file:jpg
+              <atask name=at_moment>
+              <dep>
+                LineCube
+           Mom1
+           Mom2
+           PeakSpectrum
+              VoTable:tab
+              <summary>
+                Peak, RMS, V0, FWHM, SdV
+              <atask name=at_spectrum>
+              <dep>
+                LineCube
+           IntegratedSpectrum
+              VoTable:tab
+              <summary>
+                Peak, RMS, V0, FWHM, SdV
+              <atask name=at_spectrum>
+              <dep>
+                LineCube
+
+
+\end{verbatim}
+\normalsize
+
+\newpage
+The dependancies might even fit in a Makefile, viz. (using the P/S/B and P/S/L hierarchy)
+
+
+\footnotesize
+\begin{verbatim}
+
+p1_s1_l1_mom0:          p1_s1_l1_linecube
+
+p1_s1_l1_linecube:      p1_s1_linelist p1_s1_b1
+
+p1_s1_linelist:         p1_s1_b1_linelist p1_s1_b2_linelist p1_s1_b3_linelist p1_s1_b4_linelist
+                        at_linemerge
+
+p1_s1_b1_linelist:      p1_s1_b1
+                        at_band2line
+
+p1_s1_b1:               file:im
+                        at_archive(p1,s1,b1)
+
+p1_summary:
+                        at_summary
+        
+\end{verbatim}
+\normalsize
+
+
+\subsection{CASA task}
+
+The {\tt atask} will hopefully be just a casa task, of which the XML representation
+looks as follows:
+\footnotesize
+\begin{verbatim}
+<casaxml>
+    <task type="function" name="foobar" category="fumbar">
+        <shortdescription>
+        <description>
+        <input>
+	    <param>
+	        <description>
+	        <any>
+	        <value>
+        <returns>
+        <example>
+    </task>  
+</casaxml>
+\end{verbatim}
+\normalsize
 
 \end{document}
