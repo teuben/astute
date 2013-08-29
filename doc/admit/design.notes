@@ -96,7 +96,7 @@ peter:
 
   - datasplash re-use? expansion?
 
-doug?
++doug?
   - assuming we have an ADMIT infrastructure that puts an 'azip' in a P/S/B hierarchy,
     we need something to deal with datamining the various P's:
 
@@ -130,9 +130,10 @@ notes:
     Generated are:
         foobar.py  (!!!  by XLST)
 
-  - cyclic graph is needed to figure out the dependancies
+  - cyclic graph is needed to figure out the dependancies, or use a Makefile?
+    doesn't ira do this in the carma xml?
 
-  - the XML key description is undergoing a revision, Wes Young
+  - the task XML key description is undergoing a revision, Wes Young
     (although in Taiwan) is leading this.
     e.g.
 
@@ -140,7 +141,7 @@ notes:
        <shortdescription>
        <description>
 
-  - CASA task  :  foobar.xml
+  + CASA task  :  foobar.xml
 
     <casaxml>
     <task type="function" name="foobar" category="fumbar">
@@ -164,7 +165,7 @@ notes:
 	<atask name=summary>
 
 
-- Outline of the XML tree   
++ Outline of the XML tree   
 
    * at_asummary creates an initial summary and distributes those in that hierarchy in 3 levels!)
    * [NP] means this item can occur NP times, otherwise just once. Important for dependancies
@@ -219,7 +220,7 @@ notes:
 
 
 
-- The work needed also fits in a Makefile actually....
++ The work needed also fits in a Makefile actually....
   
 
 
