@@ -53,7 +53,7 @@ xml definition -- the tags, the structure of the tags,
 
 
 
-xml i/o and manipulation layer -- this is to standardize
++xml i/o and manipulation layer -- this is to standardize
     the interaction with the xml for all higher level
     routine and to enable and simplity the xml stucture
     that we decide upon in the xml definitions
@@ -63,7 +63,7 @@ xml i/o and manipulation layer -- this is to standardize
 
 
 
-python layer -- the layer that enables the interaction with
++python layer -- the layer that enables the interaction with
     CASA and the pipeline. And.... what else?
     [peter]
 
@@ -74,7 +74,7 @@ python layer -- the layer that enables the interaction with
 
 
 
-API for tool and GUI -- these are the API for actual tools that do the
++API for tool and GUI -- these are the API for actual tools that do the
     work and the GUI. What does the interface look like?
     How does the GUI interact with the lower layers? How
     can the GUI interact with CASA Viewer?
@@ -240,3 +240,53 @@ p1_s1_b1:		file:im
 p1_summary:
 			at_summary
 	
+
+
++ python layer -- the layer that enables the interaction with
+    CASA and the pipeline. And.... what else?
+    [peter]
+
+    First of all, we need to distinguish between casa tools and 
+    tasks.  The V0.1 part of the pipeline was only using tasks,
+    and even then very loosely integrated into a "pipeline"
+    via the '#! /usr/bin/env casarun' construct.
+
+
+   - opening a (single) project:
+
+     - from scratch: discover which sources and bands there are, and initialize
+       all data objects (sources: ra,dec,vlsr  bands:  freq range)
+
+     - from an exist admit.zip: 
+
+     - set the { status / dependency list } of the various data products
+
+
+   - (re)compute a data product
+
+     - review the dependencies (multiple are possible)
+     - set the method
+     - set the parameters
+     - set the style of execution (casa being the default, or only option)
+     - execute the task 
+
+
+   - save a project
+
+   - 
+
+
++ methods:
+
+   - cubestats:
+     1) simple min,max,peak,rms,median
+     2) PVcorr
+        - sum up all emission over 3 or 4 sigma
+	- moments of inertia in the summed image gives a center and PA
+	  but suggests to use an XYVcorr if the axis ratio is round enough
+     3) XYVcorr
+
+
+http://ivoa.net/documents/PDL/
+
+
