@@ -396,7 +396,6 @@ footprint and more flexible parsing.
 
 
 
-
 {\it xml i/o and manipulation layer -- this is to standardize
 the interaction with the xml for all higher level
 routine and to enable and simplity the xml stucture
@@ -410,50 +409,55 @@ xml definitions below and the python layer above...}
 
 This is the layer that enables the interaction with
 CASA and the pipeline. Is there really a clear distinction 
-between this and the previous section?
+between this and the previous section on XML I/O, which
+all happen in python?
 
-First of all, we need to distinguish between casa tools and 
-tasks.  The V0.1 part of the pipeline was only using tasks,
-and even then very loosely integrated into a "pipeline"
-via the {\tt \#! /usr/bin/env casarun} construct.
-
+The basic scheme of ADMIT is to open a project, compute a set of
+tasks, in a serial fashion, and close the project. This is independent
+from being in the archive, or being a user re-asessing the scientific
+value of the datasets. Especially in the latter case, decisions are
+made based on interactive use with the pipeline. In particular it will
+be important to be able to compare basic data products of different
+versions of the pipeline, for example, the velocity field of a line is
+to be compared between two different methods of computing the moments.
 
 \begin{enumerate}
 
 \item
-Opening a (single) project. The first mode is where there no {\tt admit.zip}
-present yet, and everything needs to be initialized: find the sources, the
-number of bands per source, and the variables describing each source/band
-(e.g. ra,dec,vlsr,freq ranges etc.). A basic XML needs to be set up.
-No other tasks will be run in the pipeline, although this summary could
-be seen as the default initialization task.
+Opening a (single) project. The first mode is where there no {\tt admit.zip} 
+present yet, and everything needs to be initialized: find
+the sources, the number of bands per source, and the variables
+describing each source/band (e.g. ra,dec,vlsr,freq ranges etc.). A
+basic XML needs to be set up.  No other tasks will be run in the
+pipeline, although this summary could be seen as the default
+initialization task.
 
 
 \item
 (Re)opening from an existing XML.  All structures will need to be 
-intialized. Dependencies set.
+intialized. Status and Dependency list of the various data products
+need to be set.
 
 \item
 Opening from an existing ZIP. This is very similar to the previous
-item, but 
-
-     - from an exist admit.zip: 
-
-     - set the { status / dependency list } of the various data products
+item, but must also create a directory structure hierarchy and 
+populate basic data products.
 
 \item
-(re)compute a data product:
-
-     - review the dependencies (multiple are possible)
-     - set the method
-     - set the parameters
-     - set the style of execution (casa being the default, or only option)
-     - execute the task 
-
+(Re)compute a basic data product. The dependencies need to be reviewed
+(multiple are possible), as well as allow to bypass recomputing these
+if not desired?  The method needs to be selected, parameters for this
+method set, as well as the style of execution (in theory, we only
+allow casa execution, but basic unix packages such as MIRIAD could 
+also be an option).  When all is set, the task can be executed, so the
+BDP is created.
 
 \item
 Save a project:  either the ADMIT python object is serialized into XML, 
-and/or all associated files are wrapped in a single {\tt admit.zip} file. 
+or in addition all associated allowed basic data products 
+are wrapped in a single {\tt admit.zip} file. Not all data products
+can be wrapped in {\tt admit.zip}. For example Line Cubes are not, given
+their size. Moment maps have both JPG and FITS versions, 
 
 
 \end{enumerate}
@@ -482,7 +486,7 @@ PV diagram, a position angle is needed, which can be obtained
 by summing up all emission above some conservative 3 or 4 times
 the RMS, and using a moment of inertia in the resulting summed
 emission map.  When the axis ratio of this emission is round
-enough, an XYVcorr might give better S/N.
+enough, an XYVcorr might give better S/N.  PosVelSlice
 
 \subsection{XYVcorr}
 
@@ -520,13 +524,15 @@ products and a descriptive {\tt admit.xml} file and add this as
 The next case covers a user that has gone to his/her project on the archive,
 and downloaded the {\tt admit.zip} file. The ADMIT environment in casapy
 will then either print to screen a GUI outlining all BDPs present, or
-allow looping over and visualizing them via python methods.
+allow looping over and visualizing them via python methods. There is no
+essential computing needed in this step.
 
 \subsection{Rerun Pipeline}
 
 After a first look, the user may be unhappy that a certain obvious line
 was not added to the line cataloge (LineList). Or may want to recreate
-moment maps based on a lower clip level. In the user interface each BDP has an
+moment maps based on a lower clip level, or a whole new method of
+computing moments. In the user interface each BDP has an
 interaction popup by which its input methods and parameters can be changed.
 
 \subsection{Virtual Projects}
