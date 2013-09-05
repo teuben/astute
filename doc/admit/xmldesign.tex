@@ -29,6 +29,11 @@ Virtual projects can be defined, and ADMIT be used to steer and control
 how to run on individual projects and sources, after which selected
 results can be datamined 
 
+\section{This Document}
+
+Below we first outline the core XML components of ADMIT, followed by
+the python interface, the XML I/O interface, and an ADMIT GUI.
+
 \section{Guiding Principles}
 The XML structure should be complete enough to capture proposed use cases,
 but not so restrictive that it precludes future use cases. To that end, a
@@ -351,7 +356,15 @@ p1_summary:
 \normalsize
 
 \subsection{Virtual Project}
-The virtual projects defined by the user will have their own xml structure, not saved in the admit.zip file(s), but in a separate xml file. This file will have links to the members of the virtual project (or may import them into its own file, this should be discussed). The virtual project will contain nodes for dividing up the individual parts so that they can be grouped by the user or ADMIT, for further analysis. A sample xml structure follows:
+
+The virtual projects defined by the user will have their own xml
+structure, not saved in the admit.zip file(s), but in a separate xml
+file. This file will have links to the members of the virtual project
+(or may import them into its own file, this should be discussed). The
+virtual project will contain nodes for dividing up the individual
+parts so that they can be grouped by the user or ADMIT, for further
+analysis. A sample xml structure follows:
+
 
 \begin{verbatim}
 <project type="virtual">
@@ -365,6 +378,129 @@ The virtual projects defined by the user will have their own xml structure, not 
     ...
 </project>
 \end{verbatim}
+
+
+\section{Python}
+
+Since CASA interfaces are all in python, most -- if not all -- of
+ADMIT will be in python. Some adaptations to casa routines will
+likely be needed, and this may invoke some changes to the CASA
+C++ core code.
+
+\subsection{XML I/O and manipulation layer}
+
+A choice between SAX and DOM parsing of XML will have to be made.
+SAX appears to be the favorite, based on much smaller memory
+footprint and more flexible parsing.
+
+
+
+
+
+{\it xml i/o and manipulation layer -- this is to standardize
+the interaction with the xml for all higher level
+routine and to enable and simplity the xml stucture
+that we decide upon in the xml definitions
+Marc and Peter might meet on this level -- from the
+xml definitions below and the python layer above...}
+
+
+
+\subsection{Python layer}
+
+This is the layer that enables the interaction with
+CASA and the pipeline. Is there really a clear distinction 
+between this and the previous section?
+
+First of all, we need to distinguish between casa tools and 
+tasks.  The V0.1 part of the pipeline was only using tasks,
+and even then very loosely integrated into a "pipeline"
+via the {\tt \#! /usr/bin/env casarun} construct.
+
+
+\begin{enumerate}
+
+\item
+Opening a (single) project. The first mode is where there no {\tt admit.zip}
+present yet, and everything needs to be initialized: find the sources, the
+number of bands per source, and the variables describing each source/band
+(e.g. ra,dec,vlsr,freq ranges etc.). A basic XML needs to be set up.
+No other tasks will be run in the pipeline, although this summary could
+be seen as the default initialization task.
+
+
+\item
+(Re)opening from an existing XML.  All structures will need to be 
+intialized. Dependencies set.
+
+\item
+Opening from an existing ZIP. This is very similar to the previous
+item, but 
+
+     - from an exist admit.zip: 
+
+     - set the { status / dependency list } of the various data products
+
+\item
+(re)compute a data product:
+
+     - review the dependencies (multiple are possible)
+     - set the method
+     - set the parameters
+     - set the style of execution (casa being the default, or only option)
+     - execute the task 
+
+
+\item
+Save a project:  either the ADMIT python object is serialized into XML, 
+and/or all associated files are wrapped in a single {\tt admit.zip} file. 
+
+
+\end{enumerate}
+
+\section{Methods}
+
+\subsection{CubeStats}
+
+The primary idea of CubeStats is to provide initial guidance for line
+identification, or even the line identification itself. For each
+channel it tabulates the Min, Max, RMS, Mean and Median.
+
+\subsection{LineList}
+
+A LineList is a simple table, tabulating which lines are present
+in the cube, and some idea how strong the line is. Something like
+{\it Signal/(Signal+Noise)}, some number between 0 (unlikely) or 1 
+(very likely).
+
+
+\subsection{PVcorr}
+
+A position-velocity diagram is needed, which can be used to more
+accurately determine the frequencies of lines.  To create a good
+PV diagram, a position angle is needed, which can be obtained
+by summing up all emission above some conservative 3 or 4 times
+the RMS, and using a moment of inertia in the resulting summed
+emission map.  When the axis ratio of this emission is round
+enough, an XYVcorr might give better S/N.
+
+\subsection{XYVcorr}
+
+This is the 3D extension of the 2D PVcorr method. In theory should be
+more sensitive/accurate, if the emission is really not along some
+major axis. This has not been well tested.
+
+
+
+\section{GUI}
+
+
+\subsection{API for tool and GUI}
+
+{\it these are the API for actual tools that do the
+work and the GUI. What does the interface look like?
+How does the GUI interact with the lower layers? How
+can the GUI interact with CASA Viewer?}
 
 \section{Use Cases}
 
