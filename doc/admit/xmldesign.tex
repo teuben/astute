@@ -151,12 +151,15 @@ All tables will be stored in VOTable format.
 </source>
 
    <statistics>
-%% One can have multiple areas over which statistics are measured.
-%% NB: Does casa multiple boxes print two stats or one?
+<!-- One can have multiple areas over which statistics are measured.
+     Does casa multiple boxes print two stats or one?
+ -->
         <region>
             <number>
-            %% CASA Region Text Format, including channel or velocity range. See 
-            % http://casaguides.nrao.edu/index.php?title=CASA_Region_Format
+            <!-- CASA Region Text Format, including channel or velocity range. 
+                 See 
+                 http://casaguides.nrao.edu/index.php?title=CASA_Region_Format
+              -->
             <crtf type="string" >
             <mean>
             <max>
@@ -186,6 +189,11 @@ All tables will be stored in VOTable format.
    <ctypeN>
    <statistics></statistics>
 </image>
+
+<dependencies>
+
+<date>
+
 \end{verbatim}
 
 We expect the ADMIT task will defined exactly as a CASA task, for which the XML
@@ -649,13 +657,18 @@ allow for flexible data mining, linked data plotting etc.
 \footnotesize
 \begin{verbatim}
 <linelist type="bdp">
-   <line>
-       <!-- Fully qualified name. e.g. 12C17O(1-0)
-       <name>
-       <!-- Channel where line is centered -->
-       <centerchannel>
-   </line>
+   <votable>
+   <!-- columns: name, restfreq, peakchannel, probability, where -->
+   <!--     name  : fully qualified name. e.g. 12C17O(1-0)       -->
+   <!--  restfreq : rest frequency in GHz                        -->
+   <!--  peakchannel : channel of peak probability               -->
+   <!--  probability : number between 0 and 1 indicating probability
+                       that peak channel is this line. 
+                       0 = 0% probability, 1 = 100% probability.
+     -->
+   </votable>
    <task type="function" name="linelist" category="admit"> </task>
+   <dependencies>cubestats</dependencies>
 </linelist>
 
 \end{verbatim}
