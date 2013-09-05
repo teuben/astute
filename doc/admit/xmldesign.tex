@@ -1,5 +1,5 @@
 %$Id$
-\documentclass{report}
+\documentclass{article}
 \title{ADMIT XML Design}
 \author{Marc Pound, Peter Teuben, Doug Friedel}
 \date{\today}
@@ -152,14 +152,11 @@ All tables will be stored in VOTable format.
    <statistics>
 %% One can have multiple areas over which statistics are measured.
 %% NB: Does casa multiple boxes print two stats or one?
-%% Are we supporting polygons?
         <region>
             <number>
-            %% If polygonal, this might become a list of vertices.
-            <blc>
-            <trc>
-            <startchannel>
-            <endchannel>
+            %% CASA Region Text Format, including channel or velocity range. See 
+            % http://casaguides.nrao.edu/index.php?title=CASA_Region_Format
+            <crtf type="string" >
             <mean>
             <max>
             <rms>
@@ -542,7 +539,7 @@ essential computing needed in this step.
 \subsection{Rerun Pipeline}
 
 After a first look, the user may be unhappy that a certain obvious line
-was not added to the line cataloge (LineList). Or may want to recreate
+was not added to the line catalogue (LineList). Or may want to recreate
 moment maps based on a lower clip level, or a whole new method of
 computing moments. In the user interface each BDP has an
 interaction popup by which its input methods and parameters can be changed.
@@ -584,6 +581,114 @@ allow for flexible data mining, linked data plotting etc.
 %MatplotLib (?Should we use GLUE as our standard example to visualize?)
 %
 
+\appendix
+\section{BDP Definitions}
+
+\subsection{Band}
+\footnotesize
+\begin{verbatim}
+
+<band type="bdp">
+  <number>
+  <image>
+
+  <summary type="bdp>
+  <linelist type="bdp">
+  <cubestats type="bdp">
+  <posvelslice type="bdp">
+
+  <!-- An "image" dependency means this BDP depends on 
+       its enclosed image URI or, if it has none, that of its parent.
+   -->
+  <dependencies> image </dependencies>
+
+  <date>YYYY-MM-DD HH:MM:SS</date>
+</band>
+
+\end{verbatim}
+
+\subsection{Summary}
+\footnotesize
+\begin{verbatim}
+\end{verbatim}
+
+\subsection{Line List}
+\footnotesize
+\begin{verbatim}
+<linelist type="bdp">
+   <line>
+       <!-- Fully qualified name. e.g. 12C17O(1-0)
+       <name>
+       <!-- Channel where line is centered -->
+       <centerchannel>
+   </line>
+   <task type="function" name="linelist" category="admit"> </task>
+</linelist>
+
+\end{verbatim}
+
+\subsection{Cube Statistics}
+\footnotesize
+\begin{verbatim}
+<cubestats type="bdp">
+<!-- There will be one of <statistics> for each plane of the cube. 
+     The default region will be all of xy space, with the region 
+     keyword defining the boundaries and channel. 
+-->
+  <statistics>  <!-- first channel -->
+  ...
+  <statistics>  <!-- last channel -->
+
+  <!-- Depends on its parent's image -->
+  <dependencies>image</dependencies>
+
+  <task type="function" name="cubestats" category="admit"> </task>
+
+</cubestats>
+\end{verbatim}
+
+\subsection{Moment}
+\footnotesize
+\begin{verbatim}
+<moment type="bdp">
+   <!-- moment value: 0,1,2 -->
+   <integral>          
+
+   <description>
+   <method>
+
+   <!-- The FITS or CASA image -->
+   <image> 
+       <type>data</type>
+       ...
+   </image>  
+
+   <!-- The JPEG image -->
+   <image> 
+       <type>thumbnail</type>
+       ...
+   </image>  
+   <task type="function" name="moment" category="admit">
+        <param type="float" name="clip">
+           <value></value>
+        </param>
+        <param type="float" name="vmin">
+           <value></value>
+        </param>
+        <param type="float" name="vmax">
+           <value></value>
+        </param>
+   </task>
+   <dependencies>linecube</dependencies>
+   <date>YYYY-MM-DD HH:MM:SS</date>
+</moment>
+\end{verbatim}
+
+\subsection{Position Velocity Slice}
+\footnotesize
+\begin{verbatim}
+\end{verbatim}
 
 
 \end{document}
+
