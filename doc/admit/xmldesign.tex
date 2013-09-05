@@ -142,6 +142,7 @@ All tables will be stored in VOTable format.
 <source>
     <name></name>
     <coordinate>
+        %% probably need to map this from/to the official FITS WCS convention
         <crvalN>
         <ctypeN>
     </coordinate>
@@ -165,10 +166,12 @@ All tables will be stored in VOTable format.
    </statistics>
 
 <spectrum>
+   % watch out for gridding effects:   if freq has uniform gridding, vel does not
+   % unless a regrid in that axis was done. Need proper WCS for this.
    <start freq>
    <start vel>
    <dvel>
-   <nchan>  % perhaps VOtable encapsuulates number of channels already
+   <nchan>  % perhaps VOtable encapsulates number of channels already
    <statistics> </statistics> %% as above
    <votable>
 </spectrum>
@@ -258,69 +261,77 @@ an overview of the XML tree that admit.zip will contain
        <atask name=at_summary>
     Source(name)[NS]
        Summary
-           ra,dec,vlsr,...
-           <atask name=at_summary>
+          ra,dec,vlsr,...
+          <atask name=at_summary>
        Band(number)[NB]
-           URI:im
-           Summary
-              FreqMin,FreqMax,FreqStep
-           CubeStats
+          URI:im
+          Summary
+             FreqMin,FreqMax,FreqStep
+          CubeStats
               VoTable:tab
               <atask name=at_cubestats>
               <dep>
                  URI:im
-           PosVelSlice
+          PosVelSlice
               URI:im
               file:jpg
               <atask name=at_pv>
-                 <dep>
+              <dep>
                  URI:im
-           LineList
+          LineList
               VoTable:tab
               <atask name=at_band2line>
               <dep>
-                CubeStats
-        LineList
+                 CubeStats
+       LineList
            votable:tab
            <atask name=at_linemerge>
            <dep>
-             band[NB].LineList
-        Continuum(name)
+              band[NB].LineList
+       Continuum(name)
            URI:im
            file.jpg
            <atask name=at_continuum>
            <dep>
               Band(this)
-        Line(name)[NL]
+       Line(name)[NL]
            LineCube
               URI:im
               <atask name=at_reframe>
               <dep>
-                LineList
+                 LineList
            RMS (since cubestats can differ per channel)
            Mom0
               URI:im
               file:jpg
               <atask name=at_moment>
               <dep>
-                LineCube
+                 LineCube
            Mom1
            Mom2
            PeakSpectrum
               VoTable:tab
               <summary>
-                Peak, RMS, V0, FWHM, SdV
+                 Peak, RMS, V0, FWHM, SdV
               <atask name=at_spectrum>
               <dep>
-                LineCube
+                 LineCube
            IntegratedSpectrum
               VoTable:tab
               <summary>
-                Peak, RMS, V0, FWHM, SdV
+                 Peak, RMS, V0, FWHM, SdV
               <atask name=at_spectrum>
               <dep>
-                LineCube
-
+                 LineCube
+           FeatureList
+              VoTable:tab
+              <atask name=at_feature>
+              <dep>
+                 LineCube 
+           DescriptionVector
+              VoTable:tab
+       DescriptionVector
+           VoTable:tab
 
 \end{verbatim}
 \normalsize
@@ -375,6 +386,10 @@ analysis. A sample xml structure follows:
     ...
 </project>
 \end{verbatim}
+
+VP1 vs. VP2, and how to compare them with e.g. glue.
+
+
 
 
 \section{Python}
@@ -504,6 +519,24 @@ emission, the mean velocity and velocity dispersion) can be done
 with a number of methods, ranging from simple moments along the
 velocity axis, perhaps aided by masks generated from convolved
 data, to fitting model spectra.
+
+
+\subsection{FeatureList}
+
+Some method has to be picked that assignes features  (blobs, clumps, 
+dendograms) to a line cube.  For non-overlapping features, a simple
+table will suffice, for embedded features (e.g. dendogram),
+a hierarchical table will be needed. This latter model is not one of
+the basic data types (tables, image/cubes) that we support, so something
+new is needed here.
+
+\subsection{DescriptionVector}
+
+A ``DV'' can be operated in in a line cube (or even a band cube) by assigning
+such a vector belonging to the features in the cube. But it can also be
+spanning multiple lines, in each line cube computing a vector that is now
+spanning lines, instead of features.
+
 
 \section{GUI}
 
