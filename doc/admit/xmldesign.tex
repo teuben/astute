@@ -450,7 +450,8 @@ if not desired?  The method needs to be selected, parameters for this
 method set, as well as the style of execution (in theory, we only
 allow casa execution, but basic unix packages such as MIRIAD could 
 also be an option).  When all is set, the task can be executed, so the
-BDP is created.
+BDP is created. All of this is wrapped in the {\tt atask} XML tag,
+assumed to be compatible with the CASA {\tt task} XML tag.
 
 \item
 Save a project:  either the ADMIT python object is serialized into XML, 
@@ -464,6 +465,8 @@ their size. Moment maps have both JPG and FITS versions,
 
 \section{Methods}
 
+Here we describe a number of core ADMIT tasks in more detail.
+
 \subsection{CubeStats}
 
 The primary idea of CubeStats is to provide initial guidance for line
@@ -475,7 +478,10 @@ channel it tabulates the Min, Max, RMS, Mean and Median.
 A LineList is a simple table, tabulating which lines are present
 in the cube, and some idea how strong the line is. Something like
 {\it Signal/(Signal+Noise)}, some number between 0 (unlikely) or 1 
-(very likely).
+(very likely). Based on more advanced concepts (e.g. PVCorr, 
+and where the emission is), a better linelist can be derived. Sort
+of like a waterfall model for software development.
+
 
 
 \subsection{PVcorr}
@@ -494,7 +500,13 @@ This is the 3D extension of the 2D PVcorr method. In theory should be
 more sensitive/accurate, if the emission is really not along some
 major axis. This has not been well tested.
 
+\subsection{Moments}
 
+Computing the moments of a line cube (really: deriving the total
+emission, the mean velocity and velocity dispersion) can be done
+with a number of methods, ranging from simple moments along the
+velocity axis, perhaps aided by masks generated from convolved
+data, to fitting model spectra.
 
 \section{GUI}
 
