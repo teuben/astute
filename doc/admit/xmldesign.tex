@@ -214,6 +214,40 @@ representation is already defined as follows:
 
 \end{verbatim}
 
+where a VOTABLE looks roughly as follows:
+\begin{verbatim}
+
+<!DOCTYPE VOTABLE SYSTEM "http://us-vo.org/xml/VOTable.dtd">
+<VOTABLE>
+   <DESCRIPTION>...</DESCRIPTION>
+   <RESOURCE  type="results">
+      <DESCRIPTION>...</DESCRIPTION>
+      <INFO name="QUERY_STATUS"  value="OK"/>
+      <INFO name="distinct_dataset"  value="70"/>
+      <TABLE ID="t1">
+         <DESCRIPTION>...</DESCRIPTION>
+         <FIELD ID="Ra"  unit="deg" datatype="char" name="ra_targ"  ucd="POS_EQ_RA_MAIN"> 
+            <DESCRIPTION>...</DESCRIPTION>
+         </FIELD>
+         <FIELD ID="Dec" unit="deg" datatype="char" name="dec_targ" ucd="POS_EQ_DEC_MAIN">
+            <DESCRIPTION>...</DESCRIPTION>
+         </FIELD>
+         <DATA>
+             <TABLEDATA>
+             <TR>
+                <TD> 161.657 </TD>
+                <TD>  17.152 </TD>
+             </TR>
+             </TABLEDATA>
+         </DATA>
+      </TABLE>
+   </RESOURCE>
+</VOTABLE>
+<!-- sample table for display -->
+         
+
+\end{verbatim}
+
 Using these types, a BDP XML definition takes shape:
 
 \begin{verbatim}
@@ -253,6 +287,8 @@ Using these types, a BDP XML definition takes shape:
 </moment>
 
 \end{verbatim}
+
+
  
 
 \section{XML Overview}
