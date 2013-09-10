@@ -15,15 +15,18 @@ Products (BDP).  ADMIT provides a wrapper around these tasks
 and have a persistent state within the pipeline as well for re-use by
 the user later on).
 
-Once users have downloaded the data, they can preview the work the pipeline
-has created for them. They will also be able to re-run
+ADMIT produces Basic Data Product (BDP), in addition to the existing
+Alma Data Products (ADP)\footnote{Examples of ADP's in a project are
+the Raw Visibility Data (in ASDM format) and the Science Data Cubes
+(in FITS format) for each source and each band}
+
+Once users have downloaded the ADMIT data, they can preview the work
+the pipeline has created for them. They will also be able to re-run
 selected portions of the ADMIT pipeline from either the (casapy)
 commandline, or a (casa) GUI, and compare and improve upon the
-pipeline produced results. ADMIT produces Basic Data Product (BDP), in
-addition to the existing Alma Data Products (ADP)\footnote{Examples of
-ADP's in a project are the Raw Visibility Data (in ASDM format) and
-the Science Data Cubes (in FITS format) for each source and each
-band}
+pipeline produced results.
+
+
 
 Virtual projects can be defined, and ADMIT be used to steer and control
 how to run on individual projects and sources, after which selected
@@ -40,7 +43,8 @@ but not so restrictive that it precludes future use cases. To that end, a
 limited hierarchy is desirable, with basic ``objects" that can be contained
 within one another but are not {\it defined} within one another.  However, we
 do need to follow what we understand to be the basic hierarchical structure
-that the archive produces Project$\rightarrow$Source$\rightarrow$Bands.
+that the archive produces Project$\rightarrow$Source$\rightarrow$Band Cube
+$\rightarrow$Line Cube.
 We argue it is not necessary to expose the Project container to
 the user, e.g. in the case of a data mining operation that spans multiple
 projects. The science is in the sources not the project. To that end, the
@@ -82,29 +86,34 @@ Basic Data Products. A BDP may contain computed or harvested information
 as well as point to an external resource, such as an image file.
 %% Peter - What do you mean by this?
 Only the smaller portions of the BDP can be found
-in the admit.zip file, others will have to be recreated. 
+in the {\tt admit.zip} file, others will have to be recreated. 
 %
-Examples of BDP (both exported and recreatable) are
-ADMIT pipeline. 
+Examples of BDP (both exported and recreatable) are:
+
 
 \begin{enumerate}
 \item
-Summary of the meta data, as much as is needed for the ADMIT pipeline.
+Summary of the meta data, as much as is needed for the ADMIT pipeline. These
+are sprinkled at multiple levels (P/S/B).
 \item
-Cube Statistics: a simple table of min, max, mean, median etc. for each plane
+Cube Statistics: a simple table of min, max, mean, median etc. for each plane in
+an image cube.
 \item
-Line List: a list of all lines detected in a band, but there is also a bandmerged version
+Line List: a list of all lines detected in a band, but there is (can?) also a bandmerged version
 \item
-Line Cube: foreach line from the Line List there will be a data cube extracted from the
+Line Cube: for each line from the Line List there will be a data cube extracted from the
 band cube.  (the cube itself will not be exported)
 \item
-Moment: simple moment maps (0,1,2). These will be also be exported as JPEG.
+Moment: simple Moment maps (0,1,2). These will be also be exported as JPEG.
 \item
-PeakSpectrum: for each line cube a spectrum through the cube at the peak in moment-0 is given
+PeakSpectrum: for each Line Cube a spectrum through the cube at the peak in Moment-0 is given.
 \item
-Feature List: for each line cube a list of features (clumps, blobs, etc.) is saved in tabular format.
+Feature List: for each Line Cube a list of features (clumps, blobs, etc.) is saved in tabular format.
+Some Features require a nested table. 
 \item 
 Overlap Integral: combining all Mom0 maps, an overlap integral map is created.
+\item
+Description Vector: an enumerated type that assigns a vector of values
 \end{enumerate}
 
 \noindent All BDP instances have the following structure:
@@ -122,7 +131,9 @@ BDP
 
 \noindent where {\it name} is the descriptive name (``summary,''
 ``linelist''), {\it data elements} are harvested information, computed 
-values, tables, or pointers to images, {\it task} is the ADMIT/CASA 
+values, tables, or pointers to images (with a True/False value if that
+image is exported to {\tt admit.zip} as well),
+{\it task} is the ADMIT/CASA 
 task used to create this BDP with all all task parameter values specified,
 and {\it dependencies} are other BDPs upon which this one depends. 
 If a dependency BDP changes, this one should be recomputed.
@@ -142,7 +153,7 @@ All tables will be stored in VOTable format.
 <source>
     <name></name>
     <coordinate>
-        %% probably need to map this from/to the official FITS WCS convention
+        %% map this from/to the official FITS WCS convention
         <crvalN>
         <ctypeN>
     </coordinate>
@@ -196,6 +207,7 @@ All tables will be stored in VOTable format.
 
 \end{verbatim}
 
+\subsection{task}
 We expect the ADMIT task will defined exactly as a CASA task, for which the XML
 representation is already defined as follows:
 
@@ -214,7 +226,15 @@ representation is already defined as follows:
 
 \end{verbatim}
 
-where a VOTABLE looks roughly as follows:
+\noindent
+The only difference is that {\tt casapy} keeps a local {\tt task.last}, and a 
+read-only version in {\tt \$CASA/share/xml/task.xml}, in ADMIT the current values
+are stored in the current {\tt atask.xml} portion of {\tt admit.xml}.
+
+\subsection{VOTable}
+
+A VOTABLE looks roughly as follows:
+
 \begin{verbatim}
 
 <!DOCTYPE VOTABLE SYSTEM "http://us-vo.org/xml/VOTable.dtd">
@@ -376,11 +396,24 @@ an overview of the XML tree that admit.zip will contain
               VoTable:tab
        DescriptionVector
            VoTable:tab
+    DescriptionVector
+       VoTable:tab
 
 \end{verbatim}
 \normalsize
 
+\subsection{notes}
+Note that there can be a Description Vector per Line Cube, but also per source, or even per project.
+For example, a Description Vector in a Line Cube could be Feature based (e.g. the moments of inertia)
+or accross different Lines, much like an Overlap Integral (cf. PCA), where they represent a 
+multi-dimensional ``color'' of a feature.
+
+
 \newpage
+
+
+
+
 
 The dependencies might even fit in a Makefile, viz. (using the P/S/B and P/S/L hierarchy)
 
@@ -406,6 +439,9 @@ p1_summary:
         
 \end{verbatim}
 \normalsize
+
+although more than likely this can be solved internally in python without resorting to
+a native Unix task.
 
 \subsection{Virtual Project}
 
@@ -435,6 +471,8 @@ analysis. A sample xml structure follows:
 Each source/band should have a unique ID (e.g. project-source-band) so that the virtual projects can link to all associated data. The link would include both the absolute file name and path and the ID for each member of the virtual project. Each time the virtual project is opened these links should be followed and verified (possibly loading the data also). If a file is not where it is expected should the user be prompted to locate the file again or just fail? We may also want to have an option for the user to package up the associated parts into its own admit.zip file so that it is portable.
 
 VP1 vs. VP2, and how to compare them with e.g. glue.
+
+Should VP's retain the P-S-B/L structure?
 
 
 
@@ -483,7 +521,8 @@ to be compared between two different methods of computing the moments.
 \begin{enumerate}
 
 \item
-Opening a (single) project. The first mode is where there no {\tt admit.zip} 
+Opening a (single) project that is not ADMIT enable yet.
+The first mode is where there no {\tt admit.zip} 
 present yet, and everything needs to be initialized: find
 the sources, the number of bands per source, and the variables
 describing each source/band (e.g. ra,dec,vlsr,freq ranges etc.). A
@@ -508,7 +547,7 @@ populate basic data products.
 if not desired?  The method needs to be selected, parameters for this
 method set, as well as the style of execution (in theory, we only
 allow casa execution, but basic unix packages such as MIRIAD could 
-also be an option).  When all is set, the task can be executed, so the
+also be an option).  When all is set, the task can be executed, and the
 BDP is created. All of this is wrapped in the {\tt atask} XML tag,
 assumed to be compatible with the CASA {\tt task} XML tag.
 
@@ -517,8 +556,8 @@ Save a project:  either the ADMIT python object is serialized into XML,
 or in addition all associated allowed basic data products 
 are wrapped in a single {\tt admit.zip} file. Not all data products
 can be wrapped in {\tt admit.zip}. For example Line Cubes are not, given
-their size. Moment maps have both JPG and FITS versions, 
-
+their size. Moment maps have both JPG and FITS versions, both could be
+exported.
 
 \end{enumerate}
 
@@ -530,7 +569,9 @@ Here we describe a number of core ADMIT tasks in more detail.
 
 The primary idea of CubeStats is to provide initial guidance for line
 identification, or even the line identification itself. For each
-channel it tabulates the Min, Max, RMS, Mean and Median.
+channel it tabulates the Min, Max, RMS, Mean and Robust Median.
+A Robust Median is preferred, but is expensive. A 256x256x2048
+cube takes 5 minutes, otherwise this task takes a mere 5 seconds.
 
 \subsection{LineList}
 
@@ -539,9 +580,9 @@ in the cube, and some idea how strong the line is. Something like
 {\it Signal/(Signal+Noise)}, some number between 0 (unlikely) or 1 
 (very likely). Based on more advanced concepts (e.g. PVCorr, 
 and where the emission is), a better linelist can be derived. Sort
-of like a waterfall model for software development.
-
-
+of like a waterfall model for software development, better
+line list can be derived as source detections get more advanced
+in the pipeline.
 
 \subsection{PVcorr}
 
