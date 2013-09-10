@@ -424,12 +424,15 @@ analysis. A sample xml structure follows:
     	<common item: cutoff, molecule, etc>
     	<member>
     		<file name="file name"/>
+    		<id name=""/>
     	</member>
     	...
     </group>
     ...
 </project>
 \end{verbatim}
+
+Each source/band should have a unique ID (e.g. project-source-band) so that the virtual projects can link to all associated data. The link would include both the absolute file name and path and the ID for each member of the virtual project. Each time the virtual project is opened these links should be followed and verified (possibly loading the data also). If a file is not where it is expected should the user be prompted to locate the file again or just fail? We may also want to have an option for the user to package up the associated parts into its own admit.zip file so that it is portable.
 
 VP1 vs. VP2, and how to compare them with e.g. glue.
 
