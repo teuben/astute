@@ -1,0 +1,9 @@
+#! /bin/csh -f
+#
+#
+# clone a directory, and replace files with hard links
+#
+# linux:   cp -al   f1 f2 f3  dir
+# mac:     pax -rwl f1 f2 f3  dir
+# general: rsync -a --link-dest=../`basename $DATA` $DATA $DATA/../upgrade_tmp
+
