@@ -1,6 +1,6 @@
 %$Id$
 \documentclass{article}
-\title{ADMIT XML Design}
+\title{ADMIT XML/python Design [DRAFT]}
 \author{Marc Pound, Peter Teuben, Doug Friedel}
 \date{\today}
 \begin{document}
@@ -675,6 +675,56 @@ and store persistent data back into {\tt admit.zip}. ADMIT has interfaces
 using Python to extract numbers and Python arrays out of admit.zip, and thereby
 allow for flexible data mining, linked data plotting etc.
 
+\subsection{ADMIT.ZIP}
+
+
+There are two types of admit.zip files: the ones belonging to a genuine archive project, e.g.
+{\tt c0123\_admit.zip} and the ones belonging to a virtual project, e.g.
+{\tt test1\_admit.zip}.  Virtual projects inherit their projects by virtue of a hard
+link. Let's say {\tt c0001}, {\tt c0012}, and {\tt c0123} are three projects that
+are in a virtual project, called {\tt test1}, the directory {\tt test1} will contain
+hard links the directories {\tt c0001}, {\tt c0012}, and {\tt c0123}. This way,
+if in the virtual project one of the BDP's has changed, they overwrite their original
+version. Linux command: {\tt cp -al}, Mac command: {\tt pax -rwl}. But
+rsync is more portable, but harder to use. 
+
+Let assume the user has downloaded a few admit files, for projects 
+p1 and p2 in this case.
+
+\footnotesize
+\begin{verbatim}
+
+% ls
+  p1_admit.zip
+  p2_admit.zip
+% admit --extract p*zip
+
+p1/admit.xml              (via admit)
+   p1.s1.b1.fits          (from archive if also downloaded)
+   p1.s1.b2.fits
+   p1.s1.b3.fits
+   p1.s1.b4.fits
+   p1.s2.b1.fits
+   p1.s2.b2.fits
+   p1.s2.b3.fits
+   p1.s2.b4.fits
+   s1/l1/l1_cube.im       (a recomputed cube)
+         mom0.fits        (fits and/or jpg, via admit)
+         mom1.fits
+         mom2.fits
+      l2/l2_cube.im
+      ...
+      overlap1.jpg
+      
+   s2/
+
+p2/admit.xml
+   ...
+
+\end{verbatim}
+\normalsize
+
+
 %\subsection{Virtual Project Data Mining}
 %
 %One of the novel ways in which users can interact with ADMIT is the
@@ -701,6 +751,11 @@ allow for flexible data mining, linked data plotting etc.
 %and stuff them in Python data structures for any plotting or linked data analysis/vis
 %MatplotLib (?Should we use GLUE as our standard example to visualize?)
 %
+
+\section{ADMIT GUI}
+
+A Graphical User Interface is anticipated to guide users through 
+using ADMIT in an intuitive way. 
 
 \appendix
 \section{BDP Definitions}
