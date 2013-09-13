@@ -447,8 +447,7 @@ a native Unix task.
 
 The virtual projects defined by the user will have their own xml
 structure, not saved in the admit.zip file(s), but in a separate xml
-file. This file will have links to the members of the virtual project
-(or may import them into its own file, this should be discussed). The
+file. This file will have links to the members of the virtual project. The
 virtual project will contain nodes for dividing up the individual
 parts so that they can be grouped by the user or ADMIT, for further
 analysis. A sample xml structure follows:
@@ -468,14 +467,7 @@ analysis. A sample xml structure follows:
 </project>
 \end{verbatim}
 
-Each source/band should have a unique ID (e.g. project-source-band) so that the virtual projects can link to all associated data. The link would include both the absolute file name and path and the ID for each member of the virtual project. Each time the virtual project is opened these links should be followed and verified (possibly loading the data also). If a file is not where it is expected should the user be prompted to locate the file again or just fail? We may also want to have an option for the user to package up the associated parts into its own admit.zip file so that it is portable.
-
-VP1 vs. VP2, and how to compare them with e.g. glue.
-
-Should VP's retain the P-S-B/L structure?
-
-
-
+Each source/band should have a unique ID (e.g. project-source-band) so that the virtual projects can link to all associated data. The link would include both the absolute file name and path and the ID for each member of the virtual project. Each time the virtual project is opened these links should be followed and verified (possibly loading the data also). If a file is not where it is expected the user will be prompted to locate the file again. The links would be like the unix hard link, i.e. it will point to the original data/images unless the analysis is redone, at which point there will be a local version (in the virtual project) of the products, leaving the originals intact for comparison. There will also be an option for the user to package up the associated parts into its own admit.zip file so that it is portable. The virtual projects will retain the same project-source-band structure as the typical project so that processing in ADMIT and other programs is straight forward.
 
 \section{Python}
 
