@@ -467,7 +467,21 @@ analysis. A sample xml structure follows:
 </project>
 \end{verbatim}
 
-Each source/band should have a unique ID (e.g. project-source-band) so that the virtual projects can link to all associated data. The link would include both the absolute file name and path and the ID for each member of the virtual project. Each time the virtual project is opened these links should be followed and verified (possibly loading the data also). If a file is not where it is expected the user will be prompted to locate the file again. The links would be like the unix hard link, i.e. it will point to the original data/images unless the analysis is redone, at which point there will be a local version (in the virtual project) of the products, leaving the originals intact for comparison. There will also be an option for the user to package up the associated parts into its own admit.zip file so that it is portable. The virtual projects will retain the same project-source-band structure as the typical project so that processing in ADMIT and other programs is straight forward.
+Each source/band should have a unique ID (e.g. project-source-band) so
+that the virtual projects can link to all associated data. The link
+would include both the absolute file name and path and the ID for each
+member of the virtual project. Each time the virtual project is opened
+these links should be followed and verified (possibly loading the data
+also). If a file is not where it is expected the user will be prompted
+to locate the file again. The links would be like the unix hard link,
+i.e. it will point to the original data/images unless the analysis is
+redone, at which point there will be a local version (in the virtual
+project) of the products, leaving the originals intact for
+comparison. There will also be an option for the user to package up
+the associated parts into its own admit.zip file so that it is
+portable. The virtual projects will retain the same
+project-source-band structure as the typical project so that
+processing in ADMIT and other programs is straight forward.
 
 \section{Python}
 
@@ -677,11 +691,12 @@ link. Let's say {\tt c0001}, {\tt c0012}, and {\tt c0123} are three projects tha
 are in a virtual project, called {\tt test1}, the directory {\tt test1} will contain
 hard links the directories {\tt c0001}, {\tt c0012}, and {\tt c0123}. This way,
 if in the virtual project one of the BDP's has changed, they overwrite their original
-version. Linux command: {\tt cp -al}, Mac command: {\tt pax -rwl}. But
-rsync is more portable, but harder to use. 
+version. Linux command: {\tt cp -al}, Mac command: {\tt pax -rwl}. Although
+{\tt rsync} is more portable, it is harder to use. 
 
 Let assume the user has downloaded a few admit files, for projects 
-p1 and p2 in this case.
+{\tt p1} and {\tt p2} in this case. {\tt p1} also has two sources,
+{\tt s1} and {\tt s2}.
 
 \footnotesize
 \begin{verbatim}
