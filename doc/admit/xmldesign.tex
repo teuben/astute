@@ -44,7 +44,7 @@ limited hierarchy is desirable, with basic ``objects" that can be contained
 within one another but are not {\it defined} within one another.  However, we
 do need to follow what we understand to be the basic hierarchical structure
 that the archive produces 
-Project$\rightarrow$ Source: $\rightarrow$ Band Cube $\rightarrow$ Line Cube.
+Project$\rightarrow$ Source $\rightarrow$ Band Cube $\rightarrow$ Line Cube.
 We argue it is not necessary to expose the Project container to
 the user, e.g. in the case of a data mining operation that spans multiple
 projects. The science is in the sources not the project. To that end, the
@@ -878,6 +878,26 @@ using ADMIT in an intuitive way.
 \begin{verbatim}
 \end{verbatim}
 
+\section{Future}
+
+Things we should also cover but haven't:
+
+\begin{itemize}
+
+\item
+Scaling to Large Data:  how well will ADMIT scale to large data (see also next)
+
+\item
+Parallel operations:  certain ADMIT operations are emberassingly parallel, spawn
+projects to different processors or computers.  Needs a good filesystem, or
+designed from the start, i.e. data local to processor.
+
+\item
+GPU??
+
+\end{itemize}
+
 
 \end{document}
+
 
