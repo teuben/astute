@@ -692,26 +692,27 @@ p1 and p2 in this case.
 % admit --extract p*zip
 
 p1/admit.xml              (via admit)
-   p1.s1.b1.fits          (from archive if also downloaded)
-   p1.s1.b2.fits
+   p1.s1.b1.fits          (only present from archive if downloaded)
+   p1.s1.b2.fits          (unique names containing P, S and B)
    p1.s1.b3.fits
    p1.s1.b4.fits
    p1.s2.b1.fits
    p1.s2.b2.fits
    p1.s2.b3.fits
    p1.s2.b4.fits
-   s1/l1/l1_cube.im       (a recomputed cube)
+   s1/l1/l1_cube.im       (a recomputed casa cube)
          mom0.fits        (fits and/or jpg, via admit)
          mom1.fits
          mom2.fits
       l2/l2_cube.im
       ...
-      overlap1.jpg
-      
+      overlap1.jpg        (overlap intergral from all Lines)
+      ...
    s2/
-
+   ...
 p2/admit.xml
    ...
+...
 
 \end{verbatim}
 \normalsize
