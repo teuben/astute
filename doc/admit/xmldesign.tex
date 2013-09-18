@@ -8,12 +8,13 @@
 
 \section{Overview}
 
-For each science project ADMIT runs a series of ``admit tasks'', which
-are essentially beefed up CASA tools/tasks, and produce Basic Data
-Products (BDP).  ADMIT provides a wrapper around these tasks
-(CASA tasks, but with some extra baggage to make it fit within the pipeline
-and have a persistent state within the pipeline as well for re-use by
-the user later on).
+For each ALMA science project a set of science quality image cubes
+exist. ADMIT then runs a series of ``admit tasks'', which are
+essentially beefed up CASA tools/tasks, and produce a set of Basic
+Data Products (BDP).  ADMIT provides a wrapper around these tasks, but
+with some extra baggage to make it fit within the pipeline and have a
+persistent state within the pipeline as well for re-use by the user
+later on.
 
 ADMIT produces Basic Data Product (BDP), in addition to the existing
 Alma Data Products (ADP)\footnote{Examples of ADP's in a project are
@@ -21,23 +22,24 @@ the Raw Visibility Data (in ASDM format) and the Science Data Cubes
 (in FITS format) for each source and each band}
 
 Once users have downloaded the ADMIT data, they can preview the work
-the pipeline has created for them. They will also be able to re-run
-selected portions of the ADMIT pipeline from either the (casapy)
-commandline, or a (casa) GUI, and compare and improve upon the
-pipeline produced results.
-
-
+the pipeline has created, without the immediate need to download the
+much large ADP's. They will also be able to re-run selected portions
+of the ADMIT pipeline from either the (casapy) commandline, or a
+(casa) GUI, and compare and improve upon the pipeline produced
+results. For this some of the ADP's may be needed.
 
 Virtual projects can be defined, and ADMIT be used to steer and control
 how to run on individual projects and sources, after which selected
-results can be datamined 
+results can be datamined and correlated.
 
 \section{This Document}
 
 Below we first outline the core XML components of ADMIT, followed by
-the python interface, the XML I/O interface, and an ADMIT GUI.
+the python interface, the XML I/O interface, and briefly outline an
+ADMIT GUI.
 
 \section{Guiding Principles}
+
 The XML structure should be complete enough to capture proposed use cases,
 but not so restrictive that it precludes future use cases. To that end, a
 limited hierarchy is desirable, with basic ``objects" that can be contained
@@ -99,7 +101,8 @@ are sprinkled at multiple levels (P/S/B).
 Cube Statistics: a simple table of min, max, mean, median etc. for each plane in
 an image cube.
 \item
-Line List: a list of all lines detected in a band, but there is (can?) also a bandmerged version
+Line List: a list of all lines detected in a band, but there can also a 
+bandmerged version for the source
 \item
 Line Cube: for each line from the Line List there will be a data cube extracted from the
 band cube.  (the cube itself will not be exported)
@@ -113,7 +116,7 @@ Some Features require a nested table.
 \item 
 Overlap Integral: combining all Mom0 maps, an overlap integral map is created.
 \item
-Description Vector: an enumerated type that assigns a vector of values
+Description Vector: an enumerated type that assigns a vector of values 
 \end{enumerate}
 
 \noindent All BDP instances have the following structure:
@@ -312,8 +315,11 @@ Using these types, a BDP XML definition takes shape:
  
 
 \section{XML Overview}
-Without the cumbersome XML syntax, but simply using indentation, this is
-an overview of the XML tree that admit.zip will contain
+Without the full and cumbersome to read XML syntax, here is
+an overview of the XML tree that {\tt admit.zip} will contain.
+The odd looking {\tt [N]} looking notation means this item
+will occur {\tt N} times at this level, for example for
+ALMA data you would see {\tt NB=4}.
 
 \newpage
 
@@ -402,9 +408,9 @@ an overview of the XML tree that admit.zip will contain
 \end{verbatim}
 \normalsize
 
-\subsection{notes}
-Note that there can be a Description Vector per Line Cube, but also per source, or even per project.
-For example, a Description Vector in a Line Cube could be Feature based (e.g. the moments of inertia)
+\subsection{Notes}
+Note that there can be a Description Vector per Line Cube, but also per source, or even per (virtual) 
+project. For example, a Description Vector in a Line Cube could be Feature based (e.g. the moments of inertia)
 or accross different Lines, much like an Overlap Integral (cf. PCA), where they represent a 
 multi-dimensional ``color'' of a feature.
 
