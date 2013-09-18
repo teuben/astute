@@ -1,4 +1,3 @@
-%$Id$
 \documentclass{article}
 \title{ADMIT XML/python Design [DRAFT]}
 \author{Marc Pound, Peter Teuben, Doug Friedel}
@@ -452,6 +451,7 @@ although more than likely this can be solved internally in python without resort
 a native Unix task such as {\tt make}.
 
 \subsection{Virtual Project}
+A virtual project is a user or ADMIT defined structure that can span multiple projects, sources, and bands. The members of the virtual project can be grouped into one or more subgroups that can be processed in similar manners or to a similar depth.
 
 The virtual projects defined by the user will have their own XML
 structure, not saved in the {\tt admit.zip} file(s), but in a separate XML
