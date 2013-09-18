@@ -486,7 +486,7 @@ i.e. it will point to the original data/images unless the analysis is
 redone, at which point there will be a local version (in the virtual
 project) of the products, leaving the originals intact for
 comparison. There will also be an option for the user to package up
-the associated parts into its own admit.zip file so that it is
+the associated parts into its own {\tt admit.zip} file so that it is
 portable. The virtual projects will retain the same
 project-source-band structure as the typical project so that
 processing in ADMIT and other programs is straight forward.
@@ -528,7 +528,8 @@ CASA and the pipeline.
 The basic scheme of ADMIT is to open a project, compute a set of
 tasks, in a serial fashion, and close the project. This is independent
 from being in the archive, or being a user re-asessing the scientific
-value of the datasets. Especially in the latter case, decisions are
+value of the datasets\footnote{or even a user trying ADMIT on non-ALMA data}.
+Especially in the latter case, decisions are
 made based on interactive use with the pipeline. In particular it will
 be important to be able to compare basic data products of different
 versions of the pipeline, for example, the velocity field of a line is
@@ -546,11 +547,14 @@ basic XML needs to be set up.  No other tasks will be run in the
 pipeline, although this summary could be seen as the default
 initialization task.
 
+Although meant to run on ALMA data, it should be able to run on
+any reasonable set of Band Cubes.
+
 
 \item
 (Re)opening from an existing XML.  All structures will need to be 
 intialized. Status and Dependency list of the various data products
-need to be set.
+need to be set. Missing ADP and BDP are to be identified.
 
 \item
 Opening from an existing ZIP. This is very similar to the previous
@@ -560,18 +564,19 @@ populate basic data products.
 \item
 (Re)compute a basic data product. The dependencies need to be reviewed
 (multiple are possible), as well as allow to bypass recomputing these
-if not desired?  The method needs to be selected, parameters for this
+if not desired.  The method needs to be selected, parameters for this
 method set, as well as the style of execution (in theory, we only
-allow casa execution, but basic unix packages such as MIRIAD could 
+allow casa execution, but basic unix packages such as MIRIAD should 
 also be an option).  When all is set, the task can be executed, and the
 BDP is created. All of this is wrapped in the {\tt atask} XML tag,
-assumed to be compatible with the CASA {\tt task} XML tag.
+assumed to be compatible with the CASA {\tt task} XML tag for
+inclusion into CASA.
 
 \item
 Save a project:  either the ADMIT python object is serialized into XML, 
 or in addition all associated allowed basic data products 
 are wrapped in a single {\tt admit.zip} file. Not all data products
-can be wrapped in {\tt admit.zip}. For example Line Cubes are not, given
+are normally wrapped in {\tt admit.zip}. For example Line Cubes are not, given
 their size. Moment maps have both JPG and FITS versions, both could be
 exported.
 
@@ -584,15 +589,15 @@ Here we describe a number of core ADMIT tasks in more detail.
 \subsection{CubeStats}
 
 The primary idea of CubeStats is to provide initial guidance for line
-identification, or even the line identification itself. For each
-channel it tabulates the Min, Max, RMS, Mean and Robust Median.
-A Robust Median is preferred, but is expensive. A 256x256x2048
-cube takes 5 minutes, otherwise this task takes a mere 5 seconds.
+identification. For each channel it tabulates the Min, Max, RMS, Mean
+and Robust Median.  A Robust Median is preferred, but is expensive. A
+256x256x2048 cube then needs 5 minutes, where else this task takes a
+mere 5 seconds.
 
 \subsection{LineList}
 
 A LineList is a simple table, tabulating which lines are present
-in the cube, and some idea how strong the line is. Something like
+in the cube, and some likelyhood the line is present. Something like
 {\it Signal/(Signal+Noise)}, some number between 0 (unlikely) or 1 
 (very likely). Based on more advanced concepts (e.g. PVCorr, 
 and where the emission is), a better linelist can be derived. Sort
@@ -608,7 +613,10 @@ PV diagram, a position angle is needed, which can be obtained
 by summing up all emission above some conservative 3 or 4 times
 the RMS, and using a moment of inertia in the resulting summed
 emission map.  When the axis ratio of this emission is round
-enough, an XYVcorr might give better S/N.  PosVelSlice
+enough, an XYVcorr might give better S/N.  The strongest line
+defines an area that is then cross-correlated in the V (frequency) 
+direction and this defines a signal and noise within which line
+identification can take place.
 
 \subsection{XYVcorr}
 
@@ -622,17 +630,17 @@ Computing the moments of a line cube (really: deriving the total
 emission, the mean velocity and velocity dispersion) can be done
 with a number of methods, ranging from simple moments along the
 velocity axis, perhaps aided by masks generated from convolved
-data, to fitting model spectra.
+data, to fitting model spectra. All of these are encapsulated.
 
 
 \subsection{FeatureList}
 
-Some method has to be picked that assignes features  (blobs, clumps, 
+A method has to be selected that assignes features  (blobs, clumps, 
 dendograms) to a line cube.  For non-overlapping features, a simple
 table will suffice, for embedded features (e.g. dendogram),
 a hierarchical table will be needed. This latter model is not one of
-the basic data types (tables, image/cubes) that we support, so something
-new is needed here.
+the basic data types (tables, image/cubes) that we support, so a
+new table type might be needed here.
 
 \subsection{DescriptionVector}
 
@@ -661,19 +669,20 @@ The first case covers the first goal for ADMIT: produce an {\tt
 sources, and for each source there will be (at least for ALMA) 4 image
 data cubes, in FITS format. This will produce all the Basic Data
 products and a descriptive {\tt admit.xml} file and add this as 
-{\tt admit.zip} to the archive.
-
+{\tt admit.zip} to the archive. Th
+se files are expected to be small, so users can download them
+quickly for first look/inspection.
 
 
 \subsection{First Look}
 
 The next case covers a user that has gone to his/her project on the archive,
 and downloaded the {\tt admit.zip} file. The ADMIT environment in casapy
-will then either print to screen a GUI outlining all BDPs present, or
+will then either print to screen, or use a GUI, outlining all BDPs present, and
 allow looping over and visualizing them via python methods. There is no
 essential computing needed in this step.
 
-\subsection{Rerun Pipeline}
+\subsection{Rerun (Sections of) Pipeline}
 
 After a first look, the user may be unhappy that a certain obvious line
 was not added to the line catalogue (LineList). Or may want to recreate
@@ -688,21 +697,23 @@ or more projects in a virtual ADMIT container. Any of the basic ADMIT procedures
 can now be re-run and/or reviewed, but looped over the selected sources.
 Users can write their own procedures,
 and store persistent data back into {\tt admit.zip}. ADMIT has interfaces
-using Python to extract numbers and Python arrays out of admit.zip, and thereby
+using Python to extract numbers and Python arrays out of {\tt admit.zip}, and thereby
 allow for flexible data mining, linked data plotting etc.
 
 \subsection{ADMIT.ZIP}
 
 
-There are two types of admit.zip files: the ones belonging to a genuine archive project, e.g.
-{\tt c0123\_admit.zip} and the ones belonging to a virtual project, e.g.
-{\tt test1\_admit.zip}.  Virtual projects inherit their projects by virtue of a hard
-link. Let's say {\tt c0001}, {\tt c0012}, and {\tt c0123} are three projects that
-are in a virtual project, called {\tt test1}, the directory {\tt test1} will contain
-hard links the directories {\tt c0001}, {\tt c0012}, and {\tt c0123}. This way,
-if in the virtual project one of the BDP's has changed, they overwrite their original
-version. Linux command: {\tt cp -al}, Mac command: {\tt pax -rwl}. Although
-{\tt rsync} is more portable, it is harder to use. 
+There are two types of {\tt admit.zip} files: the ones belonging to a
+genuine archive project, e.g.  {\tt c0123\_admit.zip} and the ones
+belonging to a virtual project, e.g.  {\tt test1\_admit.zip}.  Virtual
+projects inherit their projects by virtue of a hard link. Let's say
+{\tt c0001}, {\tt c0012}, and {\tt c0123} are three projects that are
+in a virtual project, called {\tt test1}, the directory {\tt test1}
+will contain hard links the directories {\tt c0001}, {\tt c0012}, and
+{\tt c0123}, and the sub-directories needed by virtual of their selection.
+ This way, if in the virtual project one of the BDP's has
+changed, they overwrite their original version. 
+\footnote{Linux command: {\tt cp -al}, Mac command: {\tt pax -rwl}. Or {\tt rsync}}
 
 Let assume the user has downloaded a few admit files, for projects 
 {\tt p1} and {\tt p2} in this case. {\tt p1} also has two sources,
