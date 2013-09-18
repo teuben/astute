@@ -16,26 +16,26 @@ with some extra baggage to make it fit within the pipeline and have a
 persistent state within the pipeline as well for re-use by the user
 later on.
 
-ADMIT produces Basic Data Product (BDP), in addition to the existing
+ADMIT produces BDPs, in addition to the existing
 Alma Data Products (ADP)\footnote{Examples of ADP's in a project are
 the Raw Visibility Data (in ASDM format) and the Science Data Cubes
-(in FITS format) for each source and each band}
+(in FITS format) for each source and each band}.
 
 Once users have downloaded the ADMIT data, they can preview the work
 the pipeline has created, without the immediate need to download the
-much large ADP's. They will also be able to re-run selected portions
+much larger ADP's. They will also be able to re-run selected portions
 of the ADMIT pipeline from either the (casapy) commandline, or a
 (casa) GUI, and compare and improve upon the pipeline produced
 results. For this some of the ADP's may be needed.
 
-Virtual projects can be defined, and ADMIT be used to steer and control
+Virtual projects can be defined, and ADMIT can be used to steer and control
 how to run on individual projects and sources, after which selected
 results can be datamined and correlated.
 
 \section{This Document}
 
 Below we first outline the core XML components of ADMIT, followed by
-the python interface, the XML I/O interface, and briefly outline an
+the python interface, the XML I/O interface, and we briefly outline an
 ADMIT GUI.
 
 \section{Guiding Principles}
@@ -107,7 +107,7 @@ bandmerged version for the source
 Line Cube: for each line from the Line List there will be a data cube extracted from the
 band cube.  (the cube itself will not be exported)
 \item
-Moment: simple Moment maps (0,1,2). These will be also be exported as JPEG.
+Moment: simple Moment maps (0,1,2). These will be also be exported as PNG.
 \item
 PeakSpectrum: for each Line Cube a spectrum through the cube at the peak in Moment-0 is given.
 \item
@@ -317,7 +317,7 @@ Using these types, a BDP XML definition takes shape:
 \section{XML Overview}
 Without the full and cumbersome to read XML syntax, here is
 an overview of the XML tree that {\tt admit.zip} will contain.
-The odd looking {\tt [N]} looking notation means this item
+The odd looking {\tt [N]} notation means this item
 will occur {\tt N} times at this level, for example for
 ALMA data you would see {\tt NB=4}.
 
