@@ -507,20 +507,20 @@ footprint and more flexible parsing.
 
 
 
-
-{\it xml i/o and manipulation layer -- this is to standardize
-the interaction with the xml for all higher level
-routine and to enable and simplity the xml stucture
-that we decide upon in the xml definitions
-Marc and Peter might meet on this level -- from the
-xml definitions below and the python layer above...}
-
-
+% 
+% xml i/o and manipulation layer -- this is to standardize
+% the interaction with the xml for all higher level
+% routine and to enable and simplity the xml stucture
+% that we decide upon in the xml definitions
+% Marc and Peter might meet on this level -- from the
+% xml definitions below and the python layer above...
+% 
 
 \subsection{Python layer}
 
 This is the layer that enables the interaction with
 CASA and the pipeline. 
+
 % Is there really a clear distinction 
 % between this and the previous section on XML I/O, which
 % all happen in python?
@@ -528,7 +528,7 @@ CASA and the pipeline.
 The basic scheme of ADMIT is to open a project, compute a set of
 tasks, in a serial fashion, and close the project. This is independent
 from being in the archive, or being a user re-asessing the scientific
-value of the datasets\footnote{or even a user trying ADMIT on non-ALMA data}.
+value of the datasets\footnote{or even using ADMIT on non-ALMA data}.
 Especially in the latter case, decisions are
 made based on interactive use with the pipeline. In particular it will
 be important to be able to compare basic data products of different
@@ -784,7 +784,11 @@ p2/admit.xml
 \section{ADMIT GUI}
 
 A Graphical User Interface is anticipated to guide users through 
-using ADMIT in an intuitive way. 
+using ADMIT in an intuitive way. As a project is opened, for each source
+(under a different {\it TAB}) it will overview cube statistics, a PV diagram,
+moment maps, lines detected.  Any of the BDP can be recomputed with a popup
+parameter editor. Selections on projects/sources/lines can be made and group
+them into a virtual project, and re-process these data in parallel.
 
 \appendix
 \section{BDP Definitions}
@@ -894,10 +898,11 @@ using ADMIT in an intuitive way.
 </moment>
 \end{verbatim}
 
-\subsection{Position Velocity Slice}
-\footnotesize
-\begin{verbatim}
-\end{verbatim}
+% \subsection{Position Velocity Slice}
+% \footnotesize
+% \begin{verbatim}
+% \end{verbatim}
+% \normalsize
 
 \section{Future}
 
@@ -918,7 +923,8 @@ designed from the start, i.e. data local to processor.
 How can we get user improvements to admit task settings back to the ALMA archive?
 
 \item
-GPU??
+GPU usage: we don't intend to rely on GPU, although some tasks may depend on this
+via third party clients (such as CASA)
 
 \end{itemize}
 
