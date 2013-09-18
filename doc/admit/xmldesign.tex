@@ -1,6 +1,6 @@
 \documentclass{article}
-\title{ADMIT XML/python Design [DRAFT]}
-\author{Marc Pound, Peter Teuben, Doug Friedel}
+\title{ADMIT Design [DRAFT]}
+\author{Peter Teuben, Marc Pound, Doug Friedel, Lee Mundy, Leslie Looney}
 \date{\today}
 \begin{document}
 \maketitle
@@ -8,34 +8,32 @@
 \section{Overview}
 
 For each ALMA science project a set of science quality image cubes
-exist. ADMIT then runs a series of ``admit tasks'', which are
-essentially beefed up CASA tools/tasks, and produce a set of Basic
-Data Products (BDP).  ADMIT provides a wrapper around these tasks, but
-with some extra baggage to make it fit within the pipeline and have a
-persistent state within the pipeline as well for re-use by the user
-later on.
-
-ADMIT produces BDPs, in addition to the existing
-Alma Data Products (ADP)\footnote{Examples of ADP's in a project are
+exist. ADMIT runs a series of ``ADMIT tasks,'' which are essentially beefed
+up CASA tools/tasks, and produces a set of Basic Data Products (BDP).
+ADMIT provides a wrapper around these tasks for use within the ALMA pipeline
+and to have a persistent state for re-execution later on by the end user.
+ADMIT produces BDPs, contained in a compressed archive file {\it admit.zip},
+in parallel with the existing
+Alma Data Products (ADP)\footnote{Examples of ADP in a project are
 the Raw Visibility Data (in ASDM format) and the Science Data Cubes
 (in FITS format) for each source and each band}.
 
-Once users have downloaded the ADMIT data, they can preview the work
-the pipeline has created, without the immediate need to download the
-much larger ADP's. They will also be able to re-run selected portions
+Once users have downloaded the ADMIT files, they can preview the work
+the ALMA pipeline has created, without the immediate need to download the
+much larger ADP. They will also be able to re-run selected portions
 of the ADMIT pipeline from either the (casapy) commandline, or a
 (casa) GUI, and compare and improve upon the pipeline produced
 results. For this some of the ADP's may be needed.
 
-Virtual projects can be defined, and ADMIT can be used to steer and control
-how to run on individual projects and sources, after which selected
-results can be datamined and correlated.
-
-\subsection{This Document}
+ADMIT introduces the concept of a ``Virtual Project,'' which is a framework
+for a collection of similar ALMA projects.  ADMIT is u sed to manage
+tasks run across all ALMA projects in the Virtual Project, after which
+selected results can be data-mined and correlated.
 
 Below we first outline the core XML components of ADMIT, followed by
-the python interface, the XML I/O interface, and we briefly outline an
-ADMIT GUI.
+the Python interface, the XML I/O interface, use cases. We briefly
+outline an ADMIT GUI, design and development of which is staged after
+the ADMIT XML and Python are in place.
 
 \section{Guiding Principles}
 
@@ -52,33 +50,36 @@ projects. The science is in the sources not the project. To that end, the
 Project container is extremely thin: it contains only the identificiation
 code, everything else is inside source containers.
 
-\subsection{Elements vs. Attributes}
-We follow the principal that data go in elements and metadata about
-elements go in attributes.   Thus rather than
-
-\begin{verbatim}
-<project name="c0123">  
-\end{verbatim}
-
-\noindent we use 
-
-\begin{verbatim}
-<project>
-    <name>c0123</name>
-\end{verbatim}
-
-\noindent However, if project name is an element we want to
-be read-only (ADMIT user cannot change it), we use an attribute.
-
-\begin{verbatim}
-<project>
-  <name readonly="true">c0123</name>
-\end{verbatim}
-
-\noindent Or if an element has a fixed type, we use an attribute:
-\begin{verbatim}
-<myelement type="float">
-\end{verbatim}
+% I think I've lost this battle, since CASA is inconsistent on this.
+%
+%\subsection{Elements vs. Attributes}
+%We follow the principal that data go in elements and metadata about
+%elements go in attributes.   Thus rather than
+%
+%\begin{verbatim}
+%<project name="c0123">  
+%\end{verbatim}
+%
+%\noindent we use 
+%
+%\begin{verbatim}
+%<project>
+%    <name>c0123</name>
+%\end{verbatim}
+%
+%\noindent However, if project name is an element we want to
+%be read-only (ADMIT user cannot change it), we use an attribute.
+%
+%\begin{verbatim}
+%<project>
+%  <name readonly="true">c0123</name>
+%\end{verbatim}
+%
+%\noindent Or if an element has a fixed type, we use an attribute:
+%\begin{verbatim}
+%<myelement type="float">
+%\end{verbatim}
+%
 
 \section{Basic Data Products}
 
@@ -86,18 +87,17 @@ The pipeline results and outputs of ADMIT tasks are described as
 Basic Data Products. A BDP may contain computed or harvested information
 as well as point to an external resource, such as an image file.
 %% Peter - What do you mean by this?
-Only the smaller portions of the BDP can be found
-in the {\tt admit.zip} file, others will have to be recreated. 
+%%Only the smaller portions of the BDP can be found
+%%in the {\tt admit.zip} file, others will have to be recreated. 
 %
 Examples of BDP (both exported and recreatable) are:
 
 
 \begin{enumerate}
 \item
-Summary of the meta data, as much as is needed for the ADMIT pipeline. These
-are sprinkled at multiple levels (P/S/B).
+Summary of the meta data, as much as is needed for the ADMIT pipeline. 
 \item
-Cube Statistics: a simple table of min, max, mean, median etc. for each plane in
+Cube Statistics: a simple table of min, max, mean, median etc., for each plane in
 an image cube.
 \item
 Line List: a list of all lines detected in a band, but there can also a 
@@ -113,7 +113,7 @@ PeakSpectrum: for each Line Cube a spectrum through the cube at the peak in Mome
 Feature List: for each Line Cube a list of features (clumps, blobs, etc.) is saved in tabular format.
 Some Features require a nested table. 
 \item 
-Overlap Integral: combining all Mom0 maps, an overlap integral map is created.
+Overlap Integral: combining all Moment-0 maps, an overlap integral map is created.
 \item
 Description Vector: an enumerated type that assigns a vector of values 
 \end{enumerate}
@@ -143,7 +143,7 @@ If a dependency BDP changes, this one should be recomputed.
 
 \section{Basic XML Types}
 
-Here we outline the basic XML types of which the Basic Data Products
+Here we outline the basic XML types from which the Basic Data Products
 may be composed, with an example but not exhaustive list of elements for each.
 All tables will be stored in VOTable format.
 \begin{verbatim}
@@ -155,7 +155,7 @@ All tables will be stored in VOTable format.
 <source>
     <name></name>
     <coordinate>
-        %% map this from/to the official FITS WCS convention
+        <!-- map this from/to the official FITS WCS convention -->
         <crvalN>
         <ctypeN>
     </coordinate>
@@ -182,8 +182,11 @@ All tables will be stored in VOTable format.
    </statistics>
 
 <spectrum>
-   % watch out for gridding effects:   if freq has uniform gridding, vel does not
-   % unless a regrid in that axis was done. Need proper WCS for this.
+   <!-- 
+     Watch out for gridding effects:  If frequency has uniform gridding, 
+     velocity will not unless a regrid in that axis was done. 
+     Need proper WCS for this.
+   -->
    <start freq>
    <start vel>
    <dvel>
@@ -195,7 +198,7 @@ All tables will be stored in VOTable format.
 <image>
    <URI>
    <type> [data or thumbnail]
-   <description> [moment zero, moment one, spectral cutout, full cube. ??] 
+   <description> [moment zero, moment one, spectral cutout, full cube.] 
    <naxisN>
    <crpixN>
    <crvalN>
@@ -231,44 +234,8 @@ representation is already defined as follows:
 \noindent
 The only difference is that {\tt casapy} keeps a local {\tt task.last}, and a 
 read-only version in {\tt \$CASA/share/xml/task.xml}, in ADMIT the current values
-are stored in the current {\tt atask.xml} portion of {\tt admit.xml}.
+are stored in the current {\tt atask} of {\tt admit.xml}.
 
-\subsection{VOTable}
-
-A VOTABLE looks roughly as follows:
-
-\begin{verbatim}
-
-<!DOCTYPE VOTABLE SYSTEM "http://us-vo.org/xml/VOTable.dtd">
-<VOTABLE>
-   <DESCRIPTION>...</DESCRIPTION>
-   <RESOURCE  type="results">
-      <DESCRIPTION>...</DESCRIPTION>
-      <INFO name="QUERY_STATUS"  value="OK"/>
-      <INFO name="distinct_dataset"  value="70"/>
-      <TABLE ID="t1">
-         <DESCRIPTION>...</DESCRIPTION>
-         <FIELD ID="Ra"  unit="deg" datatype="char" name="ra_targ"  ucd="POS_EQ_RA_MAIN"> 
-            <DESCRIPTION>...</DESCRIPTION>
-         </FIELD>
-         <FIELD ID="Dec" unit="deg" datatype="char" name="dec_targ" ucd="POS_EQ_DEC_MAIN">
-            <DESCRIPTION>...</DESCRIPTION>
-         </FIELD>
-         <DATA>
-             <TABLEDATA>
-             <TR>
-                <TD> 161.657 </TD>
-                <TD>  17.152 </TD>
-             </TR>
-             </TABLEDATA>
-         </DATA>
-      </TABLE>
-   </RESOURCE>
-</VOTABLE>
-<!-- sample table for display -->
-         
-
-\end{verbatim}
 
 Using these types, a BDP XML definition takes shape:
 
@@ -292,7 +259,7 @@ Using these types, a BDP XML definition takes shape:
    <description>velocity centroid</description>
    <method>clip</method>
    <image>...</image>  % e.g. the FITS image
-   <image>...</image>  % e.g. the JPEG image
+   <image>...</image>  % e.g. the PNG image
    <task type="function" name="moment" category="imagefu">
         <param type="float" name="clip">
            <value>0.1</value>
@@ -311,13 +278,10 @@ Using these types, a BDP XML definition takes shape:
 \end{verbatim}
 
 
- 
-
-\section{XML Overview}
-Without the full and cumbersome to read XML syntax, here is
-an overview of the XML tree that {\tt admit.zip} will contain.
-The odd looking {\tt [N]} notation means this item
-will occur {\tt N} times at this level, for example for
+\section{ADMIT XML Overview}
+Without the full and cumbersome to read XML syntax, here is an overview of
+the XML tree that {\tt admit.zip} will contain.  The {\tt [N]} notation
+means this item will occur {\tt N} times at this level, for example for
 ALMA data you would see {\tt NB=4}.
 
 \newpage
@@ -407,49 +371,39 @@ ALMA data you would see {\tt NB=4}.
 \end{verbatim}
 \normalsize
 
-\subsection{Notes}
-Note that there can be a Description Vector per Line Cube, but also per source, or even per (virtual) 
-project. For example, a Description Vector in a Line Cube could be Feature based (e.g. the moments of inertia)
-or accross different Lines, much like an Overlap Integral (cf. PCA), where they represent a 
-multi-dimensional ``color'' of a feature.
 
+%
 
-\newpage
+%The dependencies might even fit in a Makefile, viz. (using the {\tt P/S/B} and {\tt P/S/L} hierarchy, with
+%given {\tt at\_*} tasks:
+%
+%
+%\footnotesize
+%\begin{verbatim}
+%
+%p1_s1_l1_mom0:          p1_s1_l1_linecube
+%
+%p1_s1_l1_linecube:      p1_s1_linelist p1_s1_b1
+%
+%p1_s1_linelist:         p1_s1_b1_linelist p1_s1_b2_linelist p1_s1_b3_linelist p1_s1_b4_linelist
+%                        at_linemerge
+%
+%p1_s1_b1_linelist:      p1_s1_b1
+%                        at_band2line
+%
+%p1_s1_b1:               file:im
+%                        at_archive p1 s1 b1
+%
+%p1_summary:
+%                        at_summary
+%        
+%\end{verbatim}
+%\normalsize
 
-
-
-
-
-The dependencies might even fit in a Makefile, viz. (using the {\tt P/S/B} and {\tt P/S/L} hierarchy, with
-given {\tt at\_*} tasks:
-
-
-\footnotesize
-\begin{verbatim}
-
-p1_s1_l1_mom0:          p1_s1_l1_linecube
-
-p1_s1_l1_linecube:      p1_s1_linelist p1_s1_b1
-
-p1_s1_linelist:         p1_s1_b1_linelist p1_s1_b2_linelist p1_s1_b3_linelist p1_s1_b4_linelist
-                        at_linemerge
-
-p1_s1_b1_linelist:      p1_s1_b1
-                        at_band2line
-
-p1_s1_b1:               file:im
-                        at_archive p1 s1 b1
-
-p1_summary:
-                        at_summary
-        
-\end{verbatim}
-\normalsize
-
-\noindent
-although more than likely this can be solved internally in python without resorting to
-a native Unix task such as {\tt make}.
-
+%\noindent
+%although more than likely this can be solved internally in Python without resorting to
+%a native Unix task such as {\tt make}.
+%
 \subsection{Virtual Project}
 A virtual project is a user or ADMIT defined structure that can span multiple projects, sources, and bands. The members of the virtual project can be grouped into one or more subgroups that can be processed in similar manners or to a similar depth.
 
@@ -481,7 +435,7 @@ would include both the absolute file name and path and the ID for each
 member of the virtual project. Each time the virtual project is opened
 these links should be followed and verified (possibly loading the data
 also). If a file is not where it is expected the user will be prompted
-to locate the file again. The links would be like the unix hard link,
+to locate the file again. The links would be like the Unix hard link,
 i.e. it will point to the original data/images unless the analysis is
 redone, at which point there will be a local version (in the virtual
 project) of the products, leaving the originals intact for
@@ -491,20 +445,20 @@ portable. The virtual projects will retain the same
 project-source-band structure as the typical project so that
 processing in ADMIT and other programs is straight forward.
 
-\section{Python}
+\section{Interfaces}
 
-Since CASA interfaces are all in python, most -- if not all -- of
-ADMIT will be in python. Some adaptations to CASA routines will
+Since CASA interfaces are all in Python, most -- if not all -- of
+ADMIT will be in Python. Some adaptations to CASA routines will
 likely be needed, and this may invoke some changes to the CASA
 C++ core code. A simple example we encountered is
-a robust median.
+a robust median, which is not in CASA core but is quite useful
+in computing statistics.
 
-\subsection{XML I/O and manipulation layer}
+\subsection{XML I/O and Manipulation Layer}
 
 A choice between SAX and DOM parsing of XML will have to be made.
 SAX appears to be the favorite, based on much smaller memory
 footprint and more flexible parsing.
-
 
 
 % 
@@ -513,43 +467,39 @@ footprint and more flexible parsing.
 % routine and to enable and simplity the xml stucture
 % that we decide upon in the xml definitions
 % Marc and Peter might meet on this level -- from the
-% xml definitions below and the python layer above...
+% xml definitions below and the Python layer above...
 % 
 
-\subsection{Python layer}
+\subsection{Python Layer}
 
 This is the layer that enables the interaction with
 CASA and the pipeline. 
 
 % Is there really a clear distinction 
 % between this and the previous section on XML I/O, which
-% all happen in python?
+% all happen in Python?
 
-The basic scheme of ADMIT is to open a project, compute a set of
-tasks, in a serial fashion, and close the project. This is independent
-from being in the archive, or being a user re-asessing the scientific
-value of the datasets\footnote{or even using ADMIT on non-ALMA data}.
-Especially in the latter case, decisions are
-made based on interactive use with the pipeline. In particular it will
-be important to be able to compare basic data products of different
-versions of the pipeline, for example, the velocity field of a line is
-to be compared between two different methods of computing the moments.
+The basic workflow of ADMIT is to open a project, compute a set of tasks,
+in a serial fashion, and close the project. This workflow is is the
+same regardless if ADMIT is run in the ALMA archive or by an end-user.
+Especially in the latter case, decisions are made based on interactive
+use with the pipeline. In particular it will be important to be able to
+compare Basic Data Products of different invocations of an ADMIT task,
+for example, comparing the velocity field of a line using two
+different methods of computing the moments.
 
 \begin{enumerate}
 
 \item
-Opening a (single) project that is not ADMIT enable yet.
-The first mode is where there no {\tt admit.zip} 
-present yet, and everything needs to be initialized: find
-the sources, the number of bands per source, and the variables
-describing each source/band (e.g. ra,dec,vlsr,freq ranges etc.). A
-basic XML needs to be set up.  No other tasks will be run in the
-pipeline, although this summary could be seen as the default
-initialization task.
-
-Although meant to run on ALMA data, it should be able to run on
-any reasonable set of Band Cubes.
-
+Opening a (single) project that is not ADMIT-enabled yet.  There is no
+{\tt admit.zip} present, so everything needs to be initialized: find the
+sources, the number of bands per source, and the variables describing
+each source/band (e.g. RA,DEC,vlsr,freq ranges etc.). The ADMIT XML needs
+to be created.  No other tasks will be run in the pipeline, although this
+summary could be seen as the default initialization task.
+%
+%Although meant to run on ALMA data, it should be able to run on
+%any reasonable set of Band Cubes.
 
 \item
 (Re)opening from an existing XML.  All structures will need to be 
@@ -562,27 +512,27 @@ item, but must also create a directory structure hierarchy and
 populate basic data products.
 
 \item
-(Re)compute a basic data product. The dependencies need to be reviewed
+(Re)compute a Basic Data Product. The dependencies need to be reviewed
 (multiple are possible), as well as allow to bypass recomputing these
 if not desired.  The method needs to be selected, parameters for this
-method set, as well as the style of execution (in theory, we only
-allow casa execution, but basic unix packages such as MIRIAD should 
-also be an option).  When all is set, the task can be executed, and the
-BDP is created. All of this is wrapped in the {\tt atask} XML tag,
-assumed to be compatible with the CASA {\tt task} XML tag for
-inclusion into CASA.
+method set, as well as the style of execution When all is set, the task
+can be executed, and the BDP is created. All of this is wrapped in the
+{\tt atask} XML tag, assumed to be compatible with the CASA {\tt task}
+XML tag for inclusion into CASA.
 
 \item
-Save a project:  either the ADMIT python object is serialized into XML, 
+Save a project:  either the ADMIT Python object is serialized into XML, 
 or in addition all associated allowed basic data products 
 are wrapped in a single {\tt admit.zip} file. Not all data products
 are normally wrapped in {\tt admit.zip}. For example Line Cubes are not, given
-their size. Moment maps have both JPG and FITS versions, both could be
+their size. Moment maps have both PNG and FITS versions, both could be
 exported.
 
 \end{enumerate}
 
 \section{Methods}
+
+HOW DOES THIS SECTION DIFFER FROM OUR DESCRIPTION OF BDPS ABOVE???
 
 Here we describe a number of core ADMIT tasks in more detail.
 
@@ -590,33 +540,31 @@ Here we describe a number of core ADMIT tasks in more detail.
 
 The primary idea of CubeStats is to provide initial guidance for line
 identification. For each channel it tabulates the Min, Max, RMS, Mean
-and Robust Median.  A Robust Median is preferred, but is expensive. A
-256x256x2048 cube then needs 5 minutes, where else this task takes a
-mere 5 seconds.
+and Robust Median.  A Robust Median is preferred, but is computationally 
+expensive. (A 256x256x2048 cube requires 5 minutes as opposed to 5 seconds
+for a standard median).
 
 \subsection{LineList}
 
-A LineList is a simple table, tabulating which lines are present
-in the cube, and some likelyhood the line is present. Something like
-{\it Signal/(Signal+Noise)}, some number between 0 (unlikely) or 1 
-(very likely). Based on more advanced concepts (e.g. PVCorr, 
-and where the emission is), a better linelist can be derived. Sort
-of like a waterfall model for software development, better
-line list can be derived as source detections get more advanced
-in the pipeline.
+A LineList is a simple table, tabulating which lines are present in the
+cube, and a likelihood the line is present. The likelihood is computed as
+{\it Signal/(Signal+Noise)}, thus is always between between 0 (unlikely)
+and 1 (likely).  Based on more advanced concepts (e.g. PVCorr), a revised
+line list could be derived, resulting in a better line list source
+detections algorithms get more advanced in the pipeline.
 
 \subsection{PVcorr}
 
-A position-velocity diagram is needed, which can be used to more
-accurately determine the frequencies of lines.  To create a good
-PV diagram, a position angle is needed, which can be obtained
-by summing up all emission above some conservative 3 or 4 times
-the RMS, and using a moment of inertia in the resulting summed
-emission map.  When the axis ratio of this emission is round
-enough, an XYVcorr might give better S/N.  The strongest line
-defines an area that is then cross-correlated in the V (frequency) 
-direction and this defines a signal and noise within which line
-identification can take place.
+In this task a position-velocity diagram is used more accurately
+determine the frequencies of detected lines.  To create a good PV
+diagram, a position angle is needed, which can be obtained by summing
+up all emission above some value (e.g., a few times the RMS noise) and using
+a moment of inertia in the resulting summed emission map.  When the axis
+ratio of this emission is round enough, an XYVcorr might give better S/N.
+The strongest line defines an area that is then cross-correlated in the V
+% isn't this really an auto-correlation?
+(frequency) direction and this defines a signal and noise within which
+line identification can take place.
 
 \subsection{XYVcorr}
 
@@ -635,7 +583,7 @@ data, to fitting model spectra. All of these are encapsulated.
 
 \subsection{FeatureList}
 
-A method has to be selected that assignes features  (blobs, clumps, 
+A method has to be selected that assigns features  (blobs, clumps, 
 dendograms) to a line cube.  For non-overlapping features, a simple
 table will suffice, for embedded features (e.g. dendogram),
 a hierarchical table will be needed. This latter model is not one of
@@ -644,34 +592,30 @@ new table type might be needed here.
 
 \subsection{DescriptionVector}
 
-A ``DV'' can be operated in in a line cube (or even a band cube) by assigning
-such a vector belonging to the features in the cube. But it can also be
-spanning multiple lines, in each line cube computing a vector that is now
-spanning lines, instead of features.
+A ``DV'' can be operated in in a line cube (or even a band cube) by
+assigning such a vector belonging to the features in the cube. But
+it can also be spanning multiple lines, in each line cube computing a
+vector that is now spanning lines, instead of features.  There can be a
+Description Vector per Line Cube, but also per source, or even per (virtual)
+project. For example, a Description Vector in a Line Cube could be Feature
+based (e.g. the moments of inertia) or across different Lines, much like
+an Overlap Integral (cf. PCA), where they represent a multi-dimensional
+``color'' of a feature.
 
-
-\section{GUI}
-
-
-\subsection{API for tool and GUI}
-
-{\it these are the API for actual tools that do the
-work and the GUI. What does the interface look like?
-How does the GUI interact with the lower layers? How
-can the GUI interact with CASA Viewer?}
 
 \section{Use Cases}
 
+SHOULDN'T USE CASES BE AT THE BEGINNING OF THE DOCUMENT?
+
 \subsection{Archive}
 
-The first case covers the first goal for ADMIT: produce an {\tt
-  admit.zip} for a given project.  A project contains one or more
+The first case covers the first goal for ADMIT: produce an 
+{\tt admit.zip} for a given project.  A project contains one or more
 sources, and for each source there will be (at least for ALMA) 4 image
-data cubes, in FITS format. This will produce all the Basic Data
-products and a descriptive {\tt admit.xml} file and add this as 
-{\tt admit.zip} to the archive. Th
-se files are expected to be small, so users can download them
-quickly for first look/inspection.
+data cubes, in FITS format. This will produce all the Basic Data Products
+and a descriptive {\tt admit.xml} file and add this as {\tt admit.zip} to
+the archive. These files are expected to be small, so users can download
+them quickly for first look/inspection.
 
 
 \subsection{First Look}
@@ -679,26 +623,26 @@ quickly for first look/inspection.
 The next case covers a user that has gone to his/her project on the archive,
 and downloaded the {\tt admit.zip} file. The ADMIT environment in casapy
 will then either print to screen, or use a GUI, outlining all BDPs present, and
-allow looping over and visualizing them via python methods. There is no
+allow looping over and visualizing them via Python methods. There is no
 essential computing needed in this step.
 
 \subsection{Rerun (Sections of) Pipeline}
 
-After a first look, the user may be unhappy that a certain obvious line
-was not added to the line catalogue (LineList). Or may want to recreate
-moment maps based on a lower clip level, or a whole new method of
-computing moments. In the user interface each BDP has an
-interaction popup by which its input methods and parameters can be changed.
+After a first look, the user may wish to modify the BDPs, for instance,
+by adding spectral line to the line catalogue (LineList), recreating
+moment maps based on a lower clip level or by a different method of
+computing moments.  The input methods and parameters to compute a BDP
+can be changed, through by or, in later ADMIT versions, through a GUI.
 
 \subsection{Virtual Projects}
 
-In this more advanced case, the user selects a number of sources from one
-or more projects in a virtual ADMIT container. Any of the basic ADMIT procedures
-can now be re-run and/or reviewed, but looped over the selected sources.
-Users can write their own procedures,
-and store persistent data back into {\tt admit.zip}. ADMIT has interfaces
-using Python to extract numbers and Python arrays out of {\tt admit.zip}, and thereby
-allow for flexible data mining, linked data plotting etc.
+In this more advanced case, the user selects a number of sources from
+one or more projects in a virtual ADMIT container. Any of the basic ADMIT
+procedures can now be re-run and/or reviewed, but looped over the selected
+sources.  Users can write their own procedures, and store persistent data
+back into {\tt admit.zip}. ADMIT has interfaces using Python to extract
+numbers and Python arrays out of {\tt admit.zip}, and thereby allow for
+flexible data mining, linked data plotting, etc.
 
 \subsection{ADMIT.ZIP}
 
@@ -790,6 +734,31 @@ moment maps, lines detected.  Any of the BDP can be recomputed with a popup
 parameter editor. Selections on projects/sources/lines can be made and group
 them into a virtual project, and re-process these data in parallel.
 
+\section{Future}
+
+Things we should also cover but haven't:
+
+\begin{itemize}
+
+\item
+Scaling to Large Data:  how well will ADMIT scale to large data (related
+to next item)
+
+\item
+Parallel operations:  certain ADMIT operations are emberassingly parallel, spawn
+projects to different processors or computers.  Needs a good filesystem, or
+designed from the start, i.e. data local to processor.
+
+\item
+How can we get user improvements to admit task settings back to the ALMA archive?
+
+\item
+GPU usage: we don't intend to rely on GPU, although some tasks may depend on this
+via third party clients (such as CASA)
+
+\end{itemize}
+
+
 \appendix
 \section{BDP Definitions}
 
@@ -815,6 +784,7 @@ them into a virtual project, and re-process these data in parallel.
 </band>
 
 \end{verbatim}
+
 
 \subsection{Summary}
 \footnotesize
@@ -877,7 +847,7 @@ them into a virtual project, and re-process these data in parallel.
        ...
    </image>  
 
-   <!-- The JPEG image -->
+   <!-- The PNG image -->
    <image> 
        <type>thumbnail</type>
        ...
@@ -904,29 +874,42 @@ them into a virtual project, and re-process these data in parallel.
 % \end{verbatim}
 % \normalsize
 
-\section{Future}
+\appendix {VOTable}
 
-Things we should also cover but haven't:
+All ADMIT tables will be VOTables. THe VOTable XML format is as follows:
 
-\begin{itemize}
+\begin{verbatim}
 
-\item
-Scaling to Large Data:  how well will ADMIT scale to large data (related
-to next item)
+<!DOCTYPE VOTABLE SYSTEM "http://us-vo.org/xml/VOTable.dtd">
+<VOTABLE>
+   <DESCRIPTION>...</DESCRIPTION>
+   <RESOURCE  type="results">
+      <DESCRIPTION>...</DESCRIPTION>
+      <INFO name="QUERY_STATUS"  value="OK"/>
+      <INFO name="distinct_dataset"  value="70"/>
+      <TABLE ID="t1">
+         <DESCRIPTION>...</DESCRIPTION>
+         <FIELD ID="Ra"  unit="deg" datatype="char" name="ra_targ"  ucd="POS_EQ_RA_MAIN"> 
+            <DESCRIPTION>...</DESCRIPTION>
+         </FIELD>
+         <FIELD ID="Dec" unit="deg" datatype="char" name="dec_targ" ucd="POS_EQ_DEC_MAIN">
+            <DESCRIPTION>...</DESCRIPTION>
+         </FIELD>
+         <DATA>
+             <TABLEDATA>
+             <TR>
+                <TD> 161.657 </TD>
+                <TD>  17.152 </TD>
+             </TR>
+             </TABLEDATA>
+         </DATA>
+      </TABLE>
+   </RESOURCE>
+</VOTABLE>
+<!-- sample table for display -->
+         
 
-\item
-Parallel operations:  certain ADMIT operations are emberassingly parallel, spawn
-projects to different processors or computers.  Needs a good filesystem, or
-designed from the start, i.e. data local to processor.
-
-\item
-How can we get user improvements to admit task settings back to the ALMA archive?
-
-\item
-GPU usage: we don't intend to rely on GPU, although some tasks may depend on this
-via third party clients (such as CASA)
-
-\end{itemize}
+\end{verbatim}
 
 
 \end{document}
