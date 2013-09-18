@@ -421,7 +421,8 @@ multi-dimensional ``color'' of a feature.
 
 
 
-The dependencies might even fit in a Makefile, viz. (using the P/S/B and P/S/L hierarchy)
+The dependencies might even fit in a Makefile, viz. (using the {\tt P/S/B} and {\tt P/S/L} hierarchy, with
+given {\tt at\_*} tasks:
 
 
 \footnotesize
@@ -438,7 +439,7 @@ p1_s1_b1_linelist:      p1_s1_b1
                         at_band2line
 
 p1_s1_b1:               file:im
-                        at_archive(p1,s1,b1)
+                        at_archive p1 s1 b1
 
 p1_summary:
                         at_summary
@@ -446,17 +447,18 @@ p1_summary:
 \end{verbatim}
 \normalsize
 
+\noindent
 although more than likely this can be solved internally in python without resorting to
-a native Unix task.
+a native Unix task such as {\tt make}.
 
 \subsection{Virtual Project}
 
-The virtual projects defined by the user will have their own xml
-structure, not saved in the admit.zip file(s), but in a separate xml
+The virtual projects defined by the user will have their own XML
+structure, not saved in the {\tt admit.zip} file(s), but in a separate XML
 file. This file will have links to the members of the virtual project. The
 virtual project will contain nodes for dividing up the individual
 parts so that they can be grouped by the user or ADMIT, for further
-analysis. A sample xml structure follows:
+analysis. A sample XML structure follows:
 
 
 \begin{verbatim}
@@ -492,9 +494,10 @@ processing in ADMIT and other programs is straight forward.
 \section{Python}
 
 Since CASA interfaces are all in python, most -- if not all -- of
-ADMIT will be in python. Some adaptations to casa routines will
+ADMIT will be in python. Some adaptations to CASA routines will
 likely be needed, and this may invoke some changes to the CASA
-C++ core code.
+C++ core code. A simple example we encountered is
+a robust median.
 
 \subsection{XML I/O and manipulation layer}
 
@@ -517,9 +520,10 @@ xml definitions below and the python layer above...}
 \subsection{Python layer}
 
 This is the layer that enables the interaction with
-CASA and the pipeline. Is there really a clear distinction 
-between this and the previous section on XML I/O, which
-all happen in python?
+CASA and the pipeline. 
+% Is there really a clear distinction 
+% between this and the previous section on XML I/O, which
+% all happen in python?
 
 The basic scheme of ADMIT is to open a project, compute a set of
 tasks, in a serial fashion, and close the project. This is independent
@@ -891,12 +895,16 @@ Things we should also cover but haven't:
 \begin{itemize}
 
 \item
-Scaling to Large Data:  how well will ADMIT scale to large data (see also next)
+Scaling to Large Data:  how well will ADMIT scale to large data (related
+to next item)
 
 \item
 Parallel operations:  certain ADMIT operations are emberassingly parallel, spawn
 projects to different processors or computers.  Needs a good filesystem, or
 designed from the start, i.e. data local to processor.
+
+\item
+How can we get user improvements to admit task settings back to the ALMA archive?
 
 \item
 GPU??
