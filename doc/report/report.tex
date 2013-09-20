@@ -1,0 +1,77 @@
+\documentclass[12pt,letterpaper]{article}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\pagestyle{plain}                                                      %%
+%%%%%%%%%% EXACT 1in MARGINS %%%%%%%                                   %%
+\setlength{\textwidth}{6.5in}     %%                                   %%
+\setlength{\oddsidemargin}{0in}   %% (It is recommended that you       %%
+\setlength{\evensidemargin}{0in}  %%  not change these parameters,     %%
+\setlength{\textheight}{8.8in}    %%  at the risk of having your       %%
+\setlength{\topmargin}{0in}       %%  proposal dismissed on the basis  %%
+\setlength{\headheight}{0in}      %%  of incorrect formatting!!!)      %%
+\setlength{\headsep}{0in}         %%                                   %%
+\setlength{\footskip}{0.2in}       %%                                  %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%                                   %%
+\newcommand{\required}[1]{\section*{\hfill #1 \hfill}}               %%
+\renewcommand{\refname}{\hfill References Cited \hfill}                %%
+\bibliographystyle{abbrv}                                              %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\usepackage{mathptmx}
+\usepackage{graphicx}
+\usepackage{url}
+\usepackage[bookmarks=false]{hyperref}
+\usepackage{subfig}
+\usepackage{wrapfig}
+
+\usepackage{stfloats}
+\usepackage{paralist}
+\usepackage{aas_macros}
+
+%%% These are just for removing vertical spaces
+\usepackage{mdwlist}
+\usepackage[medium,compact]{titlesec}
+\titlespacing{\section}{0pt}{*0}{*0}
+\titlespacing{\subsection}{0pt}{*0}{*0}
+\titlespacing{\subsubsection}{0pt}{*0}{*0}
+
+\setlength{\parskip}{0.3em}
+\setlength{\parsep}{0em}
+\setlength{\headsep}{0em}
+\setlength{\partopsep}{0em} 
+\setlength{\parindent}{0em} 
+
+\addtolength{\floatsep}{-1em}
+\addtolength{\textfloatsep}{-1em}
+\addtolength{\abovecaptionskip}{-0.5em}
+%%%
+
+\newcommand{\etal}{~\emph{et~al.}~}
+
+\begin{document}
+
+\required{Unleashing ALMA for Big Data}
+
+\input{summary.tex}
+
+\clearpage \setcounter{page}{1}
+
+\input{intro.tex}
+
+\input{data-access.tex}
+
+\input{ADMIT.tex}
+
+\input{quantitative.tex} 
+
+\input{new.tex}
+
+\input{models.tex}
+
+\end{document}
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: t
+%%% End: 

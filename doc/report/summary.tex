@@ -1,0 +1,48 @@
+\section{Summary}
+
+This is the final report for the ALMA Development Study on enhancing
+user access to the science data in large ALMA data cubes and
+creating an environment for scientific data mining. The top
+goal of this study was to create a well-defined plan for
+development of the software infrastructure and prototype 
+key applications for enabling science with large image cubes.
+The second goal was to scope the manpower and cost for achieving
+a specific level of functionality which brings strong scientific
+value. Based on the work done in this study, this team wrote
+an ALMA Development Project Proposal to implement an XML 
+infrastructure and tool set. The costs and man-power requirements
+are presented in the proposal and are not reported here.
+
+The main body of this report presents study results in the
+five proposed areas. First area: in access performance, we found
+that speed of access to data in CASA image format was efficient
+if the data were being accessed in the optimal sequence for the
+tiling; it can be inefficient if accessed against the ``grain''
+of the tiling. This feature of tiling can be minimized by taking
+advantage of larger memory capacities in new generations of machines
+and allowing for a few different tiling choices where appropriate.
+
+Second area: we developed a set of goals for our proposed tool set
+and a technical approach for our package which we call ADMIT:
+ALMA Data MIning Toolkit. We present a conceptual overview of the
+design and operation and how ADMIT fits into the ALMA and CASA
+environment.
+
+Third area: we prototyped some tools for ADMIT as examples of what
+can be done and as mechanisms for defining the way that ADMIT infrastructure
+and tools can interact.
+
+Fourth area: we explored a number of new algorithms that would enhance
+user ability to understand the science content of large data cubes. 
+We specifically discuss the overlap integral and descriptor vectors.
+
+Fifth area: the interface between modeling and simulation data and
+observational data de-emphasized as a study area so that more time
+could be spend in areas two, three, and four, and the Conceptual
+Design Document
+
+The first accompanying memo summaries the results of timing measurements
+of access to data by a number different programs for a number of
+different data configurations. 
+
+The second accompanying memo is a Conceptual Design Document for ADMIT.
