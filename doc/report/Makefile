@@ -2,7 +2,7 @@
 
 
 T1 = bench
-T2 = xmldesign
+T2 = report
 
 F = 
 
