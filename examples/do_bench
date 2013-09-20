@@ -1,0 +1,69 @@
+#! /bin/csh -f
+#
+
+set fits=$1
+set dir=$2
+
+if ($#argv != 2) then
+  echo usage: $0 fits-file working-directory
+  exit 1
+endif
+
+mkdir -p $dir
+cd $dir
+
+if ($?NEMO) then
+  echo NEMO=$NEMO
+  rm -rf n.*
+  echo FITSCCD:
+  time fitsccd in=../$fits out=.
+  time fitsccd in=../$fits out=.
+  time fitsccd in=../$fits out=.
+  time fitsccd in=../$fits out=n.1
+  time fitsccd in=../$fits out=n.2
+  time fitsccd in=../$fits out=n.3
+  echo CCDSTAT
+  time ccdstat n.1
+  time ccdstat n.1
+  time ccdstat n.1
+  echo CCDSMOOTH X
+  time ccdsmooth n.1 dir=x out=.
+  time ccdsmooth n.1 dir=x out=.
+  time ccdsmooth n.1 dir=x out=.
+  time ccdsmooth n.1 dir=x out=n.1x1
+  time ccdsmooth n.1 dir=x out=n.1x2
+  time ccdsmooth n.1 dir=x out=n.1x3
+  echo CCDSMOOTH Y
+  time ccdsmooth n.1 dir=y out=.
+  time ccdsmooth n.1 dir=y out=.
+  time ccdsmooth n.1 dir=y out=.
+  time ccdsmooth n.1 dir=y out=n.1y1
+  time ccdsmooth n.1 dir=y out=n.1y2
+  time ccdsmooth n.1 dir=y out=n.1y3
+  echo CCDSMOOTH Z
+  time ccdsmooth n.1 dir=z out=.
+  time ccdsmooth n.1 dir=z out=.
+  time ccdsmooth n.1 dir=z out=.
+  time ccdsmooth n.1 dir=z out=n.1z1
+  time ccdsmooth n.1 dir=z out=n.1z2
+  time ccdsmooth n.1 dir=z out=n.1z3
+
+endif
+
+
+if ($?MIR) then
+  echo MIR=$MIR
+  rm -rf m.*
+  echo FITS
+  time fits op=xyin in=../$fits out=m.1
+  time fits op=xyin in=../$fits out=m.2
+  time fits op=xyin in=../$fits out=m.3
+  echo STAT
+  time histo in=m.1 > /dev/null
+  time histo in=m.1 > /dev/null
+  time histo in=m.1 > /dev/null
+  echo HANN
+  time hanning in=m.1 out=m.1h1
+  time hanning in=m.1 out=m.1h2
+  time hanning in=m.1 out=m.1h3
+endif
