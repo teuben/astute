@@ -65,3 +65,41 @@ for a stick like cube.
 \end{document}
 
 
+
+
+\section{Access to CASA Image Cubes}
+
+We started our study by looking at approaches for accessing large
+ALMA datasets. Since image cubes, not {\it u,v} data, are the
+focus of this study, we looked at the access speeds for various
+operations to data cubes in a number of different formats including
+the CASA tiled data format. Not too surprisingly, tiled data 
+access works very well for balanced cubes, but can have poor 
+access in some of the directions for slab and stick like cubes.
+This is detailed in the Appendix.
+
+In the course of this work, and from discussions with CASA programmers,
+several points were clear. First, CASA made the decision to not follow
+a memory intensive model. With the expanding capabilities of machines and
+the decrease in memory cost, it is attractive to consider tuning CASA
+to be more memory based, but there is always a limit to the amount of
+data that can be held in memory so any memory based solution is 
+inherently limited. The tiled data storage approach of CASA is
+fairly efficient when the data are being accessed in a sequence which
+follows the tiling. A second advantage of the tile concept is that
+the definition of the tiles can be tuned to the expected access pattern
+to give better performance.
+
+{\it Recommendations: CASA should periodically review the memory model
+for the prototype user machine and tune CASA image storage as possible to optimize
+memory usage. CASA should review the usage patterns of programs to
+optimized the tiling for the most commonly used programs. There may be
+circumstances where it is sufficiently compute efficient to encourage users
+to store a given dataset in multiple tiling formats.}
+
+Given the evolving capability of machines and CASA, it was not clear to us
+that there was clear advantage to another data storage format to increase
+general compute speed at the cost additional disk usage. This conclusion
+might have been different if we had been focused on a specific visualization
+tool or application.
+
