@@ -13,9 +13,8 @@ clean:
 	rm -f $(T1).ps $(T1).pdf $(T1).dvi $(T1).log
 	rm -f $(T2).ps $(T2).pdf $(T2).dvi $(T2).log
 
-all:	$(T1).pdf
 
-all2:	$(T1).pdf $(T2).pdf
+all:	$(T1).pdf $(T2).pdf
 
 $(T1).pdf: $(T1).tex $(F)
 	latex $(T1).tex                
@@ -23,6 +22,4 @@ $(T1).pdf: $(T1).tex $(F)
 	ps2pdf14 $(T1).ps
 
 $(T2).pdf: $(T2).tex $(F)
-	latex $(T2).tex                
-	dvips -t letter -o $(T2).ps $(T2).dvi
-	ps2pdf14 $(T2).ps
+	pdflatex $(T2).tex                
