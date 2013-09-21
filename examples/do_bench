@@ -32,13 +32,13 @@ if (0) then
     set pars_imgen=(object=noise spar=1)
     set pars_fits=(op=xyout)
 
-    time imgen out=bench-cube.ccd imsize=$cube  $pars_imgen
-    time imgen out=bench-cube.ccd imsize=$slab  $pars_imgen
-    time imgen out=bench-cube.ccd imsize=$stick $pars_imgen
+    time imgen out=bench-cube.mir imsize=$cube  $pars_imgen
+    time imgen out=bench-cube.mir imsize=$slab  $pars_imgen
+    time imgen out=bench-cube.mir imsize=$stick $pars_imgen
 
-    time fits in=bench-cube.ccd  out=bench-cube.fits  $pars_fits
-    time fits in=bench-slab.ccd  out=bench-slab.fits  $pars_fits
-    time fits in=bench-stick.ccd out=bench-stick.fits $pars_fits
+    time fits in=bench-cube.mir  out=bench-cube.fits  $pars_fits
+    time fits in=bench-slab.mir  out=bench-slab.fits  $pars_fits
+    time fits in=bench-stick.mir out=bench-stick.fits $pars_fits
   endif
 endif
 
@@ -59,6 +59,13 @@ if ($?NEMO) then
   time ccdstat n.1
   time ccdstat n.1
   time ccdstat n.1
+  echo CCDMATH
+  time ccdmath n.1,n.1 .  %1+%2
+  time ccdmath n.1,n.1 .  %1+%2
+  time ccdmath n.1,n.1 .  %1+%2
+  time ccdmath n.1,n.1 n.1a  %1+%2
+  time ccdmath n.1,n.1 n.1b  %1+%2
+  time ccdmath n.1,n.1 n.1c  %1+%2
   echo CCDSMOOTH X
   time ccdsmooth n.1 dir=x out=.
   time ccdsmooth n.1 dir=x out=.
@@ -91,11 +98,15 @@ if ($?MIR) then
   time fits op=xyin in=../$fits out=m.1
   time fits op=xyin in=../$fits out=m.2
   time fits op=xyin in=../$fits out=m.3
-  echo STAT
+  echo HISTO
   time histo in=m.1 > /dev/null
   time histo in=m.1 > /dev/null
   time histo in=m.1 > /dev/null
-  echo HANN
+  echo MATHS
+  time maths exp='<m.1>+<m.1>' out=m.1a
+  time maths exp='<m.1>+<m.1>' out=m.1b
+  time maths exp='<m.1>+<m.1>' out=m.1c
+  echo HANNING
   time hanning in=m.1 out=m.1h1
   time hanning in=m.1 out=m.1h2
   time hanning in=m.1 out=m.1h3
