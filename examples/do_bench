@@ -9,6 +9,39 @@ if ($#argv != 2) then
   exit 1
 endif
 
+# here are the commands if the benchmark cube don't exist
+if (0) then
+  set cube=1024,1024,1024
+  set slab=4096,4096,64 
+  set stick=128,128,65536 
+
+  if ($?NEMO) then
+    set pars_ccdgen=(object=noise spar=1 seed=123)
+    set pars_ccdfits=(radecvel=true)
+
+    time ccdgen out=bench-cube.ccd size=$cube   $pars_ccdgen
+    time ccdgen out=bench-slab.ccd size=$slab   $pars_ccdgen
+    time ccdgen out=bench-stick.ccd size=$stick $pars_ccdgen 
+
+    time ccdfits bench-cube.ccd bench-cube.fits   $pars_ccdfits
+    time ccdfits bench-stick.ccd bench-stick.fits $pars_ccdfits
+    time ccdfits bench-slab.ccd bench-slab.fits   $pars_ccdfits
+  endif
+
+  if ($?MIR) then
+    set pars_imgen=(object=noise spar=1)
+    set pars_fits=(op=xyout)
+
+    time imgen out=bench-cube.ccd imsize=$cube  $pars_imgen
+    time imgen out=bench-cube.ccd imsize=$slab  $pars_imgen
+    time imgen out=bench-cube.ccd imsize=$stick $pars_imgen
+
+    time fits in=bench-cube.ccd  out=bench-cube.fits  $pars_fits
+    time fits in=bench-slab.ccd  out=bench-slab.fits  $pars_fits
+    time fits in=bench-stick.ccd out=bench-stick.fits $pars_fits
+  endif
+endif
+
 mkdir -p $dir
 cd $dir
 
