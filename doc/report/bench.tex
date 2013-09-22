@@ -12,9 +12,11 @@ I/O patterns for a few packages accessible to us: CASA,
 MIRIAD and NEMO. CASA uses a tiled storage manager, which in principle
 can be tuned. MIRIAD has a traditional row based access, but rarely
 uses memory to store full planes or cubes. NEMO is completely
-memory based, but also stores the data row based (and by default
-in double precision).
-Three datasets of 4GB ($10^9$ pixels) in size were used:
+memory based, and stores data either row or column based
+(by default in double precision).
+Three datasets of 4GB ($10^9$ pixels)\footnote{4GB also happens to
+be a good test to confirm there are no 32bit code issues left}
+in size were used:
 a 1024x1024x1024 true data ``cube'',
 a 4096x4096x64 ``slab'' and a 128x128x65536 ``stick''.
 Four operations were considered:  reading from fits,
@@ -44,9 +46,9 @@ row-wise.
 FITS    & 16.6 & 13.5  &  17.2  & 13.7    & 11.5   & 17.9  & 25.2  &  14.7  & 20.0 \\
 STATS   &      & 11.3  &  11.9  &         & 11.1   & 12.9  &       &  11.1  & 14.0 \\
 MATH    &      &  7.7  &  36.8  &         & 7.8    &       &       &  8.6   &      \\
-HAN-x   & 8.8  &       &  12.9  &  6.0    &        & 13.5  & 27.2  &        & 13.1 \\
+HAN-x   & 8.8  &       &  11.9  &  6.0    &        & 13.5  & 27.2  &        & 13.1 \\
 HAN-y   & 9.8  &       &  23.8  &  8.7    &        & 48.5  & 28.6  &        & 14.2 \\
-HAN-z   & 14.6 &  93.0 & 106.5  & 52.9    & 100.0  & 43.6  &  9.0  &  130.0 & 62.5 \\
+HAN-z   & 14.6 &  93.0 & 110.5  & 52.9    & 100.0  & 43.6  &  9.0  &  130.0 & 62.5 \\
 \hline 
 \end{tabular}
 \end{center}
