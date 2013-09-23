@@ -32,7 +32,8 @@ be a good test to confirm there are no 32bit code issues left}
 in size were used:
 a 1024x1024x1024 true data ``cube'',
 a 4096x4096x64 3-D ``slab'' and a 128x128x65536 3-D ``stick''.
-Four operations were considered:  reading from fits,
+Four operations were considered:  reading from fits
+into the package native format,
 a simple rms/mean statistics that visits the whole cube in the
 most efficient way, adding two cubes, and finally
 a Hanning smooth in X, Y and Z, where possible.  For MIRIAD
@@ -58,11 +59,11 @@ The tests were performed on.... with XX GB of memory utilizing 1 core?
         & CASA  & MIRIAD & NEMO    & CASA  & MIRIAD & NEMO  & CASA & MIRIAD & NEMO \\
 %        & C     & M    & N         & C     & M     & N      & C    & M    & N \\
 \hline
-FITS    & 16.6 & 13.5  &  17.2  & 13.7    & 11.5   & 17.9  & 25.2  &  14.7  & 20.0 \\
-STATS   & 17.0 & 11.3  &  11.9  & 17.1    & 11.1   & 12.9  & 17.1  &  11.1  & 14.0 \\
-MATH    & 8.5  &  7.7  &  36.8  &  8.3    & 7.8    & 38.1  &  7.9  &  8.6   & 37.9  \\
-HAN-x   & 8.8  &       &  11.9  &  6.0    &        & 13.5  & 27.2  &        & 13.1 \\
-HAN-y   & 9.8  &       &  23.8  &  8.7    &        & 48.5  & 28.6  &        & 14.2 \\
+FITS    & 16.6 & 13.5  &  16.0  & 13.7    & 11.5   & 17.9*  & 25.2  &  14.7  & 20.0* \\
+STATS   & 17.0 & 11.3  &  10.4  & 17.1    & 11.1   & 12.9  & 17.1  &  11.1  & 14.0 \\
+MATH    & 8.5  &  7.7  &  35.7  &  8.3    & 7.8    & 38.1  &  7.9  &  8.6   & 37.9  \\
+HAN-x   & 8.8  &       &   8.9  &  6.0    &        & 13.5  & 27.2  &        & 13.1 \\
+HAN-y   & 9.8  &       &  17.3  &  8.7    &        & 48.5  & 28.6  &        & 14.2 \\
 HAN-z   & 14.6 &  93.0 & 110.5  & 52.9    & 100.0  & 43.6  &  9.0  &  130.0 & 62.5 \\
 \hline 
 \end{tabular}
@@ -70,13 +71,14 @@ HAN-z   & 14.6 &  93.0 & 110.5  & 52.9    & 100.0  & 43.6  &  9.0  &  130.0 & 62
 \caption{Comparing I/O access in a ``cube'', ``slab'' and ``stick'' like dataset. 
 Times reported
 are the sum of user and system time, in seconds, on a 3.6GHz i7-3820 CPU.
-Columns designated are for C=CASA  M=MIRIAD N=NEMO(double) -- need to change NEMO to float!}
+Columns designated are for C=CASA  M=MIRIAD N=NEMO(float).}
 \end{table}
 
 
-The tiled access in CASA performs well for true
-cubes, independant of the access direction.
-But does poorly in a slab like cube, but outperforms anything else
-for a stick like cube.
+The tiled access in CASA performs well for true cubes, independant of
+the access direction.  But does poorly in a slab like cube, but
+outperforms anything else for a stick like cube. The odd performance
+of the MATH case for NEMO is because of an awkward interpreter used in
+this case.
 
 \end{document}
