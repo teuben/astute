@@ -1,7 +1,8 @@
 \documentclass{article}
 \title{Benchmarking CASA Image Cube Access}
 \author{Peter Teuben}
-\date{\today}
+%\date{\today}
+\date{September, 2013}
 \begin{document}
 \maketitle
 
@@ -45,7 +46,7 @@ is the slowest possible operation, since the data is stored
 row-wise.
 
 The tests were performed on a 3.6GHz i7-3820 CPU with 64 GB of memory 
-utilizing 1 core.  Disk I/O (using {\tt hdparm -t} was measured at
+utilizing 1 core.  Raw disk I/O (using {\tt hdparm -t}) was measured at
 800 MB/sec. Times reported are the sum of user and system time, averaged
 over 3 runs, except when caching was apparent, only the first instance 
 was reported.
@@ -65,10 +66,10 @@ was reported.
 \hline
 FITS    & 16.6 & 13.5  &  16.0  & 13.7    & 11.5   & 14.1  & 25.2  &  14.7  & 18.4 \\
 STATS   & 17.0 & 11.3  &  10.4  & 17.1    & 11.1   &  9.4  & 17.1  &  11.1  & 10.1 \\
-MATH    & 8.5  &  7.7  &  35.7  &  8.3    & 7.8    & 33.5  &  7.9  &  8.6   & 35.5  \\
-HAN-x   & 8.8  &       &   8.9  &  6.0    &        &  9.0  & 27.2  &        &  9.0 \\
-HAN-y   & 9.8  &       &  17.3  &  8.7    &        & 45.8  & 28.6  &        &  9.8 \\
-HAN-z   & 14.6 &  93.0 & 106.5  & 52.9    & 100.0  & 44.7  &  9.0  &  130.0 & 46.2 \\
+MATH    & 8.5  &  7.7  &  35.7  & 10.8    & 7.8    & 33.5  &  7.9  &  8.6   & 35.5  \\
+HAN-x   & 13.4 &       &   8.9  & 15.3    &        &  9.0  & 32.6  &        &  9.0 \\
+HAN-y   & 15.8 &       &  17.3  & 64.8    &        & 45.8  & 34.7  &        &  9.8 \\
+HAN-z   & 25.3 &  93.0 & 106.5  & 52.9    & 100.0  & 44.7  & 14.4  &  130.0 & 46.2 \\
 \hline 
 \end{tabular}
 \end{center}
@@ -79,7 +80,7 @@ Columns designated are for C=CASA  M=MIRIAD N=NEMO(float).}
 \end{table}
 
 
-The tiled access in CASA performs well for true cubes, independent of
+The tiled access in CASA performs well for true cubes, fairly independent of
 the access direction.  But does poorly in a slab like cube, but
 outperforms anything else for a stick like cube. The odd performance
 of the MATH case for NEMO is because of an awkward interpreter used.
