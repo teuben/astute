@@ -17,16 +17,18 @@ because they are the most common in ALMA data.
 
 CASA uses a tiled storage manager, which in principle
 can be tuned to optimize the access speed for the specific
-cube dimensions.  Current, CASA does not actively
-MIRIAD has a traditional row based access, but rarely
+cube dimensions.  Current, CASA does not actively tune
+the tiling so these tests are done with the standard tiling.
+MIRIAD has a traditional row based access; it rarely
 uses memory to store full planes or cubes. NEMO is completely
 memory based, and stores data either row or column based
 (by default in double precision).
+
 Three datasets of 4GB ($10^9$ pixels)\footnote{4GB also happens to
 be a good test to confirm there are no 32bit code issues left}
 in size were used:
 a 1024x1024x1024 true data ``cube'',
-a 4096x4096x64 ``slab'' and a 128x128x65536 ``stick''.
+a 4096x4096x64 3-D ``slab'' and a 128x128x65536 3-D ``stick''.
 Four operations were considered:  reading from fits,
 a simple rms/mean statistics that visits the whole cube in the
 most efficient way, adding two cubes, and finally
@@ -48,8 +50,8 @@ row-wise.
         & \multicolumn{3}{|c|}  { 1024x1024x1024 }
         &  \multicolumn{3}{|c|} { 4096x4096x64 } 
         &  \multicolumn{3}{|c|} { 128x128x65536 } \\
-%        & CASA  & MIRIAD & NEMO    & CASA  & MIRIAD & NEMO  & CASA & MIRIAD & NEMO \\
-        & C     & M    & N         & C     & M     & N      & C    & M    & N \\
+        & CASA  & MIRIAD & NEMO    & CASA  & MIRIAD & NEMO  & CASA & MIRIAD & NEMO \\
+%        & C     & M    & N         & C     & M     & N      & C    & M    & N \\
 \hline
 FITS    & 16.6 & 13.5  &  17.2  & 13.7    & 11.5   & 17.9  & 25.2  &  14.7  & 20.0 \\
 STATS   & 17.0 & 11.3  &  11.9  & 17.1    & 11.1   & 12.9  & 17.1  &  11.1  & 14.0 \\
@@ -67,8 +69,7 @@ Columns designated are for C=CASA  M=MIRIAD N=NEMO(double) -- need to change NEM
 \end{table}
 
 
-
-Not too surprisingly, the tiled access in CASA does surprisingly well for true
+The tiled access in CASA performs well for true
 cubes, independant of the access direction.
 But does poorly in a slab like cube, but outperforms anything else
 for a stick like cube.
