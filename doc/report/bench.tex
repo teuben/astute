@@ -7,10 +7,18 @@
 
 % \section*{Benchmark}
 
-A modest benchmark was devised to gain some insight in different
-I/O patterns for a few packages accessible to us: CASA,
-MIRIAD and NEMO. CASA uses a tiled storage manager, which in principle
-can be tuned. MIRIAD has a traditional row based access, but rarely
+A modest benchmark was devised to gain some insight in image
+I/O patterns for a few packages easily accessible to us: CASA,
+MIRIAD and NEMO. MIRIAD is the standard analysis package for
+CARMA; NEMO is a stellar dynamics software tookbox which is
+partially maintained by Peter Teuben. For these tests, we
+used versionxx of CASA. These test utilize 3-dimensional cubes
+because they are the most common in ALMA data.
+
+CASA uses a tiled storage manager, which in principle
+can be tuned to optimize the access speed for the specific
+cube dimensions.  Current, CASA does not actively
+MIRIAD has a traditional row based access, but rarely
 uses memory to store full planes or cubes. NEMO is completely
 memory based, and stores data either row or column based
 (by default in double precision).
