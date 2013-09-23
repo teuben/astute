@@ -1,5 +1,5 @@
 \documentclass{article}
-\title{BENCHMARK}
+\title{Benchmarking CASA Image Cube Access}
 \author{Peter Teuben}
 \date{\today}
 \begin{document}
@@ -7,18 +7,21 @@
 
 % \section*{Benchmark}
 
-A modest benchmark was devised to gain some insight in image
+We conducted a modest benchmark to gain some insight in image
 I/O patterns for a few packages easily accessible to us: CASA,
-MIRIAD and NEMO. MIRIAD is the standard analysis package for
+MIRIAD and NEMO. The first order goal is to understand if the
+current CASA data access model is reasonably fast for general
+access.
+MIRIAD is the standard analysis package for
 CARMA; NEMO is a stellar dynamics software tookbox which is
 partially maintained by Peter Teuben. For these tests, we
 used versionxx of CASA. These test utilize 3-dimensional cubes
 because they are the most common in ALMA data.
 
 CASA uses a tiled storage manager, which in principle
-can be tuned to optimize the access speed for the specific
+can be tuned to optimize access speed for the specific
 cube dimensions.  Current, CASA does not actively tune
-the tiling so these tests are done with the standard tiling.
+the tiling so these tests are done with CASA's standard tiling.
 MIRIAD has a traditional row based access; it rarely
 uses memory to store full planes or cubes. NEMO is completely
 memory based, and stores data either row or column based
@@ -39,6 +42,8 @@ not consider in this version of the benchmark.
 It should be added that a true Hanning in MIRIAD
 is the slowest possible operation, since the data is stored
 row-wise.
+
+The tests were performed on.... with XX GB of memory utilizing 1 core?
 
 \begin{table}[h]
 \begin{center}
