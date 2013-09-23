@@ -26,7 +26,8 @@ the tiling so these tests are done with CASA's standard tiling.
 MIRIAD has a traditional row based access; it rarely
 uses memory to store full planes or cubes. NEMO is completely
 memory based, and stores data either row or column based
-(by default in double precision).
+(by default in double precision, but for this test compiled 
+for single precision).
 
 Three datasets of 4GB ($10^9$ pixels)\footnote{4GB also happens to
 be a good test to confirm there are no 32bit code issues left}
@@ -49,8 +50,7 @@ The tests were performed on a 3.6GHz i7-3820 CPU (10MB cache) with 64 GB of memo
 utilizing 1 core.  Raw disk I/O (using {\tt hdparm -t}) was measured at
 800 MB/sec. Times reported are the sum of user and system time, averaged
 over 3 runs, except when caching was apparent, only the first instance 
-was reported. To ensure no caching, a worst case scenario, the command
-{\tt echo 1 $>$ /proc/sys/vm/drop\_caches} was used.
+was reported. 
 
 \begin{table}[h]
 \begin{center}
@@ -79,17 +79,30 @@ HAN-z   & 24.8 & 112.0 & 61.3/106.5 & 72.0  & 102.5  & 24.1/44.7 & 18.4  &  137.
 \end{center}
 \caption{Comparing I/O access in a ``cube'', ``slab'' and ``stick'' like dataset. 
 Times reported
-are the sum of user and system time, in seconds, on a 3.6GHz i7-3820 CPU.
+are the sum of user and system time, in seconds.
 Columns designated are for C=CASA  M=MIRIAD N=NEMO(float).}
 \end{table}
 
 
 The tiled access in CASA performs well for true cubes, fairly independent of
-the access direction.  But does poorly in a slab like cube, but
+the access direction, certainly much better than the traditional methods
+of a memory based array.
+But it does poorly in a slab like cube, but
 outperforms anything else for a stick like cube. The odd performance
 of the MATH case for NEMO is because of an awkward interpreter used.
+
+On a typical Linux workstation disk space is cached to memory. For
+machines where there is at least several times of memory available
+compared to the typical size of a datacube this can adversely affect
+a pipelined benchmark such as given above. We therefore made sure
+for each command had no disk cache left\footnote{the command
+{\tt "echo 1 $>$ /proc/sys/vm/drop\_caches"} was used for this}.
+
 
 This also implies that running a pipeline on a dedicated machine
 with plenty of memory is advantageous.
 
+
 \end{document}
+
+
