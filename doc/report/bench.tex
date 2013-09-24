@@ -22,7 +22,8 @@ because they are the most common in ALMA data.
 CASA uses a tiled storage manager, which in principle
 can be tuned to optimize access speed for the specific
 cube dimensions.  Currently, CASA does not actively tune
-the tiling so these tests are done with CASA's standard tiling.
+the tiling so these tests are done with CASA's standard tiling
+(1/32 of an axis length).
 MIRIAD has a traditional row based access; it rarely
 uses memory to store full planes or cubes. NEMO is completely
 memory based, and stores data either row or column based
