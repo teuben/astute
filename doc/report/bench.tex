@@ -98,14 +98,17 @@ a pipelined benchmark such as the one given here by using the
 disk cache in memory and thus report shorter processing times.
 We therefore made sure
 for each operation had no disk cache left\footnote{the command
-{\tt "echo 1 $>$ /proc/sys/vm/drop\_caches"} was used for this}.
+{\tt "echo 1 $>$ /proc/sys/vm/drop\_caches"}, as root, was used for this}.
 
 
 This also implies that running a pipeline on a dedicated machine
 with plenty of memory is advantageous, as cached data is more likely
-to be reused. The {\it sum-1} line in the table is essentiall
-a sum of the individual processes, {\it sum-2} a sum of 
-these as a single pipeline step.
+to be reused. The {\it sum-1} line in the table is essentially
+a sum of the individual processes, as a worst case
+scenario, {\it sum-2} a sum of 
+these as a single pipeline step, potentially making use of caching
+disk space in memory. As can be seen, in most cases a modest
+gain is achieved.
 
 
 \end{document}
