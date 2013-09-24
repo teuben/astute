@@ -23,3 +23,13 @@ $(T1).pdf: $(T1).tex $(F)
 
 $(T2).pdf: $(T2).tex $(F)
 	pdflatex $(T2).tex                
+
+
+# frozen xmldesign.pdf was taken from the ../admit/ directory
+final-report.pdf:  report.pdf  bench.pdf xmldesign.pdf
+	pdftk report.pdf bench.pdf xmldesign.pdf cat output final-report.pdf
+	@echo A new final-report.pdf was created, 
+	@echo the version sent to NRAO was called Mundy-report.pdf
+
+final:	final-report.pdf
+
