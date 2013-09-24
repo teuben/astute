@@ -8,28 +8,28 @@
 
 % \section*{Benchmark}
 
-We conducted a modest benchmark to gain insight in image
-I/O patterns for a few packages easily accessible to us: CASA,
-MIRIAD and NEMO. The first order goal of this benchmarking is
-to understand if the
-current CASA data access model is reasonably fast for general
-access.
-MIRIAD is the standard analysis package for
-CARMA; NEMO is a stellar dynamics software tookbox which is
-partially maintained by Peter Teuben. For these tests, we
-used version 4.1.0 (r24668) of CASA. These test utilize 3-dimensional cubes
-because they are the most common in ALMA data.
+We conducted a modest benchmark to gain insight in image I/O patterns
+for a few packages easily accessible to us: CASA, MIRIAD, raw FORtran
+and NEMO. The first order goal of this benchmarking is to understand
+if the current CASA data access model is reasonably fast for general
+access.  MIRIAD is the standard analysis package for CARMA, but a
+specialized FORtran program was written which kept a MIRIAD file in
+memory.  NEMO is a stellar dynamics software tookbox which is
+partially maintained by Peter Teuben, this particular version
+of the benchmark skips the actual result for NEMO, in favor of the 
+FORtran benchmark.  For these tests, we used version
+4.1.0 (r24668) of CASA. These test utilize 3-dimensional cubes because
+they are the most common in ALMA data.
 
-CASA uses a tiled storage manager, which in principle
-can be tuned to optimize access speed for the specific
-cube dimensions.  Currently, CASA does not actively tune
-the tiling so these tests are done with CASA's standard tiling
-(1/32 of an axis length).
-MIRIAD has a traditional row based access; it rarely
-uses memory to store full planes or cubes. NEMO is completely
-memory based, and stores data either row or column based
-(by default in double precision, but for this test NEMO was compiled 
-in single precision).
+CASA uses a tiled storage manager, which in principle can be tuned to
+optimize access speed for the specific cube dimensions.  Currently,
+CASA does not actively tune the tiling so these tests are done with
+CASA's standard tiling (1/32 of an axis length).  MIRIAD has a
+traditional row based access; it rarely uses memory to store full
+planes or cubes. NEMO is completely memory based, and stores data
+either row or column based (by default in double precision, but for
+this test NEMO was compiled in single precision). The specialized
+FORtran routine keeps the whole cube in memory.
 
 Three datasets of 4GB ($10^9$ pixels)\footnote{4GB also happens to
 be a good test to confirm there are no 32bit code issues left}
@@ -66,11 +66,12 @@ a pipelined benchmark such as the one given here by using the
 disk cache in memory and thus report shorter processing times.
 We therefore made sure
 for each operation had no disk cache left\footnote{the command
-{\tt "echo 1 $>$ /proc/sys/vm/drop\_caches"}, from root, was used for this}.
+{\tt "echo 1 $>$ /proc/sys/vm/drop\_caches"}, from root, was used for this.}.
+
 
 \begin{table}[h]
 \begin{center}
-\begin{tabular}{|l || r r r || r r r || r r r |}
+\hspace*{-50pt}\begin{tabular}{|l || r r r || r r r || r r r |}
 \hline
         & \multicolumn{3}{|c|}  { Cube } 
         &  \multicolumn{3}{|c|} { Slab }
@@ -78,25 +79,25 @@ for each operation had no disk cache left\footnote{the command
         & \multicolumn{3}{|c|}  { 1024x1024x1024 }
         &  \multicolumn{3}{|c|} { 4096x4096x64 } 
         &  \multicolumn{3}{|c|} { 128x128x65536 } \\
-        & CASA  & MIRIAD & NEMO    & CASA  & MIRIAD & NEMO  & CASA & MIRIAD & NEMO \\
+        & CASA  & MIRIAD & FOR    & CASA  & MIRIAD & FOR  & CASA & MIRIAD & FOR \\
 %        & C     & M    & N         & C     & M     & N      & C    & M    & N \\
 \hline
-FITS    & 16.5 & 12.2  &  9.6/16.0  & 14.7  & 12.4   & 9.6/14.1  & 26.1  &  14.7  & 9.8/18.4 \\
-STATS   & 17.1 & 14.0  &  9.8/10.4  & 17.7  & 13.8   & 7.2/9.4   & 17.9  &  15.2  & 7.3/10.1 \\
-MATH    & 11.0 & 16.7  &  10.4/35.7 & 11.2  & 12.4   & 10.4/33.5 & 11.0  &  9.5   & 10.5/35.5  \\
-HAN-x   & 15.6 &  n/a  &  12.3/8.9  & 12.6  & n/a    & 12.2/9.0  & 40.9  &  n/a   & 12.7/9.0 \\
-HAN-y   & 16.8 &  n/a  &  16.5/17.3 & 29.7  & n/a    & 37.0/45.8 & 51.3  &  n/a   & 13.6/9.8 \\
-HAN-z   & 24.8 & 112.0 & 61.3/106.5 & 72.0  & 102.5  & 24.1/44.7 & 18.4  &  137.0 & 40.8/46.2 \\
+FITS    & 16.5 & 12.2  &  9.6  & 14.7  & 12.4   & 9.6  & 26.1  &  14.7  & 9.8 \\
+STATS   & 17.1 & 14.0  &  9.8  & 17.7  & 13.8   & 7.2  & 17.9  &  15.2  & 7.3 \\
+MATH    & 11.0 & 16.7  &  10.4 & 11.2  & 12.4   & 10.4 & 11.0  &  9.5   & 10.5 \\
+HAN-x   & 15.6 &  n/a  &  12.3 & 12.6  & n/a    & 12.2 & 40.9  &  n/a   & 12.7 \\
+HAN-y   & 16.8 &  n/a  &  16.5 & 29.7  & n/a    & 37.0 & 51.3  &  n/a   & 13.6 \\
+HAN-z   & 24.8 & 112.0 & 61.3  & 72.0  & 102.5  & 24.1 & 18.4  &  137.0 & 40.8 \\
 \hline 
-sum-1     & 118.9 & 133.2 &   116.0/  & 157.9  &  138.2 & 100.0/   & 165.6 &  179.0 &  106.4/ \\
-sum-2     & 109.3 & 124.0 &    95.3/  & 139.9  &  138.2 & 77.5/    & 142.5 &  187.3 &  74.0/ \\
+sum-1     & 118.9 & 133.2 &   116.0  & 157.9  &  138.2 & 100.0   & 165.6 &  179.0 &  106.4 \\
+sum-2     & 109.3 & 124.0 &    95.3  & 139.9  &  138.2 & 77.5    & 142.5 &  187.3 &  74.0 \\
 \hline
-\end{tabular}
+\end{tabular}\hspace{-50pt}
 \end{center}
 \caption{Comparing I/O access in a ``cube'', ``slab'' and ``stick'' like dataset. 
-Times reported
-are the wall clock elapsed time in seconds.  }
+Times reported are the wall clock elapsed time in seconds.  }
 \end{table}
+
 
 The individual tests listed above are: 
 (1) a FITS (BITPIX = -32) read using the native program for each system;
@@ -111,27 +112,23 @@ a sum of the individual processes in the table above that line; {\it sum-2} is  
 time of these processes are run as a single pipeline step, i.e without clearing cache
 between processes.
 
-CASA performed as well as, or better than, MIRIAD
-and NEMO on the majority of tests.
-The tiled access in CASA performs well for true cubes, fairly
-independent of the access direction. 
-The "stick" cube presented the greatest challenge to CASA with
-the current fixed tiling. NEMO's memory based model showed
-advantages in some operations, but not all. MIRIAD show a serious
-flaw in the Hanning-Z test due to its underlying access pattern.
+CASA performed as well as, or better than, MIRIAD and FORtran on the
+majority of tests.  The tiled access in CASA performs well for true
+cubes, fairly independent of the access direction.  The "stick" cube
+presented the greatest challenge to CASA with the current fixed
+tiling. FORtran's memory based model showed advantages in some
+operations, but not all. MIRIAD show a serious flaw in the Hanning-Z
+test due to its underlying access pattern.
 
-Overall, we conclude that CASA is efficient enough at geneneral data 
-access that
-it does not make sense for the purpose of our current study to pursue
-alternative data storage and access models. 
-We actually conducted this
-test near the start and near the end of our study, reaching the
-same conclusion both times. The numbers reported in the table are from
-benchmarking in September 2013.
+Overall, we conclude that CASA is efficient enough at geneneral data
+access that it does not make sense for the purpose of our current
+study to pursue alternative data storage and access models.  We
+actually conducted this test near the start and near the end of our
+study, reaching the same conclusion both times. The numbers reported
+in the table are from benchmarking in September 2013.
 
-The system behavior seen during our benchmarking
-implies that running a pipeline on a dedicated machine
-with plenty of memory can be advantageous, as cached data is more likely
-to be reused. 
+The system behavior seen during our benchmarking implies that running
+a pipeline on a dedicated machine with plenty of memory can be
+advantageous, as cached data is more likely to be reused.
 
 \end{document}
