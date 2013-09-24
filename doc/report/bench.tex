@@ -37,10 +37,11 @@ in size were used:
 a 1024x1024x1024 true data ``cube'',
 a 4096x4096x64 3-D ``slab'' and a 128x128x65536 3-D ``stick''.
 Four operations were considered:  reading from fits
-into the package native format,
+into the native package format,
 a simple rms/mean statistics that visits the whole cube in the
 most efficient way, adding two cubes, and finally
-a Hanning smooth in X, Y and Z.  For MIRIAD
+a Hanning smooth in X, Y and Z to stress access.
+For MIRIAD
 the Hanning smooth test had to be skipped in X and Y, unless
 an additional {\tt reorder} step would be allowed, which we did
 not consider in this version of the benchmark.
@@ -56,7 +57,7 @@ We report wall clock times because that is most relevant to the
 user experience and efficiency. Wall clock time often differs from
 standard measures of cpu usage, even when the system is 100\% active
 on your task because linux operation system can do some disk I/O
-as system time without reporting it directly.
+as system time without reporting it directly as CPU usage.
 
 On a typical Linux workstation, disk space is cached to memory. On
 machines where there is at least several times more memory available
@@ -65,7 +66,7 @@ a pipelined benchmark such as the one given here by using the
 disk cache in memory and thus report shorter processing times.
 We therefore made sure
 for each operation had no disk cache left\footnote{the command
-{\tt "echo 1 $>$ /proc/sys/vm/drop\_caches"} was used for this}.
+{\tt "echo 1 $>$ /proc/sys/vm/drop\_caches"}, from root, was used for this}.
 
 \begin{table}[h]
 \begin{center}
@@ -97,12 +98,14 @@ Times reported
 are the wall clock elapsed time in seconds.  }
 \end{table}
 
-The individual tests listed above are: (1) a FITS read using the native program for each system;
-(2)
-(3)
-(4)
-(5)
-(6)
+The individual tests listed above are: 
+(1) a FITS (BITPIX = -32) read using the native program for each system;
+(2) computing the mean and rms of the cube;
+(3) a mathematical operation, we added two (the same) cubes and wrote
+out the sum;
+(4) Hanning smooth in the X direction;
+(5) Hanning smooth in the Y direction;
+(6) Hanning smooth in the Z direction;
 The {\it sum-1} line in the table is 
 a sum of the individual processes in the table above that line; {\it sum-2} is  the total
 time of these processes are run as a single pipeline step, i.e without clearing cache
@@ -128,7 +131,7 @@ benchmarking in September 2013.
 
 The system behavior seen during our benchmarking
 implies that running a pipeline on a dedicated machine
-with plenty of memory can advantageous, as cached data is more likely
+with plenty of memory can be advantageous, as cached data is more likely
 to be reused. 
 
 \end{document}
