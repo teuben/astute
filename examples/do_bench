@@ -33,8 +33,8 @@ if (0) then
     set pars_fits=(op=xyout)
 
     time imgen out=bench-cube.mir imsize=$cube  $pars_imgen
-    time imgen out=bench-cube.mir imsize=$slab  $pars_imgen
-    time imgen out=bench-cube.mir imsize=$stick $pars_imgen
+    time imgen out=bench-slab.mir imsize=$slab  $pars_imgen
+    time imgen out=bench-stick.mir imsize=$stick $pars_imgen
 
     time fits in=bench-cube.mir  out=bench-cube.fits  $pars_fits
     time fits in=bench-slab.mir  out=bench-slab.fits  $pars_fits
@@ -110,4 +110,15 @@ if ($?MIR) then
   time hanning in=m.1 out=m.1h1
   time hanning in=m.1 out=m.1h2
   time hanning in=m.1 out=m.1h3
+endif
+
+if (0) then
+  echo IMBENCH
+  rm -rf i.*
+  time imbench in=../$fits mode=0 out=i.0 
+  time imbench in=../$fits mode=1
+  time imbench in=../$fits mode=6 out=i.6
+  time imbench in=../$fits mode=2 out=i.2
+  time imbench in=../$fits mode=3 out=i.3
+  time imbench in=../$fits mode=4 out=i.4
 endif
