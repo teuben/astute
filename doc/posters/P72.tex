@@ -1,0 +1,120 @@
+% This is the aspauthor.tex LaTeX file
+% Copyright 2010, Astronomical Society of the Pacific Conference Series
+
+\documentclass[11pt,twoside]{article}
+\usepackage{asp2010}
+
+\resetcounters
+
+\bibliographystyle{asp2010}
+
+\markboth{Friedel et al.}{ADMIT II: Data Mining}
+
+\begin{document}
+
+\title{The ALMA Data Mining Toolkit II: Using ADMIT on Data Mined from the ALMA Archive}
+\author{Douglas N. Friedel$^1$, Leslie Looney$^1$, Lee Mundy$^2$, Marc Pound$^2$, and Peter Teuben$^2$
+\affil{$^1$University of Illinois}
+\affil{$^2$University of Maryland}}
+
+\begin{abstract}
+Following the accompanying ADMIT (the ALMA Data Mining Toolkit) paper by \citet{teuben_adassxxiii}, we explore the power of the ADMIT schema. ADMIT could be used to data mine across multiple ALMA datasets, projects, or sources, adding value to the ALMA archive. ADMIT will be capable of defining a set of sources in a local virtual project. This project could have the ADMIT analyses recomputed in a common fashion, or to a common level, and add new data products. The sources in the virtual project could also be grouped based on similarities, either by the user or due to decisions made by ADMIT, and have their data abstracted for further analysis and visualization inside or outside of ADMIT in a native Python environment. In this paper we describe the design and techniques of this capability. 
+\end{abstract}
+
+\section{Introduction}
+The ALMA Data Mining Toolkit (ADMIT) compute a number of basic and advanced data products, and their descriptors. Example of such data products are cube statistics, line identification tables, line cubes, moment maps, an integrated spectrum, overlap integrals and feature extraction tables. See \citet{teuben_adassxxiii} for details. In this paper we explore the use of ADMIT on data mined products.
+
+\section{ADMIT Products}
+All products from an ADMIT run are stored in an admit.zip file. These products include an XML file with nodes for all data product members. These members include peak spectra, moment maps, p-v diagrams, etc. The nodes that are for images point to PNG and/or FITS format images of the relevant data products (e.g., moment maps). An example pseudo-XML structure follows:
+
+\begin{verbatim}
+<project name="c001" uid="c001">
+    <summary>
+        <atask name="task name" parameters ="params"/>
+    </summary>
+    <source name="Source 1" uid="c001.source_1">
+        <ra>20:15:36.25</ra>
+        <dec>-22:36:16.7</dec>
+        <velocity type="lsr" unit="kms">2.5</velocity>
+        <band number="1" uid="c01.source_1.b1">
+            <stats type="peak" uid="c001.source1.b1.s1">
+                VOTable of peak spectra
+            </stats>
+            <map type="mom0" uid="c001.source_1.b1.m1">
+                <imageURI file="s1.b1.mom0.png"/>
+                <atask name="task" parameters="params"/>
+            </map>
+        </band>
+        <band number="2" uid="c001.source_1.b2">
+                .
+                .
+                .
+    </source>
+    <source name=?Source 1? uid=?c001.source_1?>
+        <ra>20:15:36.25</ra>
+        <dec>-22:36:16.7</dec>
+        <velocity type=?lsr? unit=?kms?>2.5</velocity>
+        <band number=?1? uid=?c001.source1.b1>
+                .
+                .
+                .
+        </band>
+    </source>
+</project>
+\end{verbatim}
+Each of these nodes will have a unique identifier (UID), base on the project name, source, and band. The uniqueness will be not only in a project but across all projects, sources, and bands produced by ALMA.
+
+\section{Virtual Projects}
+A virtual project is a user or ADMIT defined structure that can span multiple projects, sources, bands, and even other virtual projects. The members of the virtual project can be grouped into one or more subgroups that can be processed in similar manners or to a similar depth.
+
+The virtual projects will have their own XML structure, not saved in the admit.zip file(s), but in a separate XML file. This file will have links to the members of the virtual project. The virtual project will contain nodes for dividing up the individual parts so that they can be grouped by the user or ADMIT, for further analysis. A sample virtual project XML structure follows:
+
+\begin{verbatim}
+<project type="virtual" uid=?user_vp_02?>
+    <group name="group1">
+        <common_item=?source?/>
+        <member>
+            <file name="c001.admit" path=?/home/user?/>
+            <uid name="c001.source_1"/>
+        </member>
+        <member>
+            <file name="c003.admit" path=?/home/bob?/>
+            <uid name="c006.source_3"/>
+        </member>
+            .
+            .
+            .
+    </group>
+    <group name=?group2?>
+        <common_item=?molecule?/>
+        <member>
+            <file name="c001.admit" path=?/home/user?/>
+            <uid name="c001.source_1.b2"/>
+        </member>
+            .
+            .
+            .
+    </group>
+</project>
+\end{verbatim}
+
+The UID for each project/source/band will be used by the virtual project so that it can link to all associated data with no ambiguity. The link would include both the absolute file name and path and the UID for each member of the virtual project. These links will behave like the Unix hard link, i.e., they will point to the original data members unless a change is made inside the virtual project and the data reprocessed. At this point the links would be replaced by a local version of the data product, leaving the original intact.
+
+The overall virtual project structure will be similar to that of a traditional project, thus to ADMIT it will appear to be just another project and any operation that ADMIT can do on traditional projects can be done on virtual projects as well.
+
+Figure~\ref{fig:all} (left) shows an example of how a virtual project could be constructed. There are two groups in the virtual project. The first (blue) associates data based on similar characteristics, which
+may be the same astronomical source or different sources that the users wants processed identically. The second (red) associates data of the same molecule (i.e., CO or HCN) from several different sources, again to all be processed in the same way.
+
+%\begin{figure}[!ht]
+\articlefiguretwo{example.eps}{glue1a.eps}{fig:all}{{\it Left:} An example of the structure of a virtual project. There are two groups in the virtual project. The first (blue) associates data based on similar characteristics. The second (red) associates data of the same molecule (i.e., CO or HCN) from several different sources. {\it Right:} A linked data diagram is shown, using the GLUE package, from a feature extraction from a molecular cloud complex (CARMA data of an N$_2$H$^+$ line in N1333). The ADMIT package collects the data within Python, and sends this into GLUE for visualization and analysis. Multiple lines can be simultaneously linked and analyzed.}
+%\end{figure}
+
+\section{What can be Done with Virtual Projects?}
+The purpose of the virtual project is to allow the user to group data together, based on some similarity (source, molecule, distance, etc.), and have the associated members processed in a similar manner (same depth, same noise level, etc.). This will allow for easier comparison and/or combining of the different data. The products of the reprocessing will be exportable for further analysis in outside packages. The data may also be available as numpy arrays for analysis in Python or casapy. Figure~\ref{fig:all} (right) shows a linked data diagram from feature extraction.
+
+\section{How are Virtual Projects Created?}
+The user will be able to use a menu item from the ADMIT GUI to create a virtual project. Once created, the user can add groups to the virtual project and members to the groups, based on their research goals. The creation of the virtual project will create an object in memory that links all the associated members together. The virtual project can be saved in its own admit.zip file for future re-opening and processing. Since the typical virtual project contains links to the members, and not the actual files themselves, or a mixture of links and files, there will be an option for the user to export the virtual project in its entirety to an admit.zip file. In this instance all links would be followed and copies made of their destinations in the output file. This export file would be fully self-contained and portable.
+
+\bibliography{P72}
+
+\end{document}

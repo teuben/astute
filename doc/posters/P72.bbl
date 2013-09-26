@@ -1,0 +1,14 @@
+\begin{thebibliography}{}
+\expandafter\ifx\csname natexlab\endcsname\relax\def\natexlab#1{#1}\fi
+\expandafter\ifx\csname url\endcsname\relax
+  \def\url#1{\texttt{#1}}\fi
+\expandafter\ifx\csname urlprefix\endcsname\relax\def\urlprefix{URL }\fi
+\providecommand{\eprint}[2][]{\url{#2}}
+
+\bibitem[{{Teuben} et~al.(2013){Teuben}, {Pound}, {Mundy}, {Loney}, \&
+  {Friedel}}]{teuben_adassxxiii}
+{Teuben}, P., {Pound}, M., {Mundy}, L., {Loney}, L., \& {Friedel}, D. 2013, in
+  ADASS XXIII, edited by N.~Manset, \& P.~Forshay (San Francisco: ASP), vol.
+  TBD of ASP Conf. Ser., TBD
+
+\end{thebibliography}
