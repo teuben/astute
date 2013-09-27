@@ -1,0 +1,9 @@
+#! /bin/csh -f 
+#
+#  you probably need to run this via sudo or as root
+
+
+echo -n "HIT ENTER TO CONTINUE:"
+set ans=$<
+
+echo 1 > /proc/sys/vm/drop_caches
