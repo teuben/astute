@@ -15,9 +15,21 @@ dendro-core-cb  (the Harvard version; Beaumont)
 or
       got clone https://github.com/astrofrog/astrodendro	
 
+
+      WARNING: these are now old, if you install them, it may conflict with
+      the now formal astrodendro module (see below)
+
 dendro-core-er  (the Canadian version; Rosolowski)
 
       git clone https://github.com/low-sky/dendro-core dendro-core-er
+
+astrodendro
+
+      git clone https://github.com/dendrograms/astrodendro.git
+      cd astrodendro
+      python setup.py install
+      	    add --user when not root?
+
 
 
 XXXX  (Horace' segmenting package in python)
