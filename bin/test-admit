@@ -6,3 +6,10 @@ import adm
 
 if __name__ == "__main__":
     print "Testing ADMIT"
+    a = adm.ADMIT()
+    dlist = a.query_dir()
+    if len(dlist) == 0:
+        print "Warning: no ADMIT directories found here"
+    else:
+        for d in dlist:
+            print d
