@@ -1,0 +1,7 @@
+ADMIT:
+  this only supports CASA 4.2 and up, due to the nature of the python tree structure
+  CASA has adopted   (PYTHONPATH is set to $CASAPATH/lib/python/site-packages during
+  easy_install)
+
+see also its predecessor:  http://carma.astro.umd.edu/wiki/index.php/AStute
+
