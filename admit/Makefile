@@ -32,10 +32,15 @@ dist:
 	scp dist/admit-$(VERSION)-py$(PY).egg $(SITE)
 
 install:
+	@echo Pick one of:
+	@echo " install_local"
+	@echo " install_url"
+
+install_local:
 	easy_install dist/admit-$(VERSION)-py$(PY).egg
 
-wget:
-	@echo $(URL)/admit-$(VERSION)-py$(PY).egg
+install_url:
+	easy_install $(URL)/admit-$(VERSION)-py$(PY).egg
 
 # special install (both lib/ and python/ can be symlinks to the right version)
 PP = $(CASAPATH)/lib/python/site-packages/ 
