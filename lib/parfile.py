@@ -2,8 +2,13 @@
 #
 import os
 
+__version__ = "ParFile 1711"
+
 class ParFile(object):
-    """read a simple parameter file with key=val , one per line"""
+    """
+       read a simple parameter file with key=val , one per line,
+       and create a dictionary
+    """
     def __init__(self,file='tas.def',quote=1):
         self.pars={}
         self.quote = quote
@@ -29,6 +34,8 @@ class ParFile(object):
             idx = kv.find('=')
             if idx<1: continue
             self.pars[kv[0:idx]] = kv[idx+1:]
+    def keys(self):
+        return self.pars.keys()
     def has(self,par):
         return self.pars.has_key(par)
     def get(self,par,alist=False,sep=','):
