@@ -7,6 +7,9 @@ URL  = http://www.astro.umd.edu/~teuben/admit/dist
 VERSION = 0.0.1
 PY = 2.7
 
+# locally at UMD:  /local/ftp/pub/carma/data/admit/
+FTP = ftp.astro.umd.edu:pub/carma/data/admit/
+
 
 help:
 	@echo Reminders/Helpers to build/distribute ADMIT:
@@ -32,7 +35,7 @@ dist:
 	scp dist/admit-$(VERSION)-py$(PY).egg $(SITE)
 
 install:
-	@echo Pick one of:
+	@echo "Pick one of the following (you may need to prepend with 'sudo'):"
 	@echo " install_local"
 	@echo " install_url"
 
@@ -88,3 +91,17 @@ diff:
 	(cd admit; for i in $(FILES); do ls -l $$i ../../lib/$$i; done)
 
 
+
+
+#  quick access to datasets
+
+data:
+	mkdir -p data
+
+bench1:	data data/bench1
+
+data/bench1:
+	(cd data; wget -O - $(FTP)/bench1.tar.gz | tar zxf -)
+
+test1:
+	python tests/test1.py
