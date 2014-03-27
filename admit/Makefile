@@ -98,6 +98,8 @@ diff:
 data:
 	mkdir -p data
 
+# 
+
 bench1:	data data/bench1
 
 data/bench1:
@@ -105,4 +107,13 @@ data/bench1:
 
 test1: bench1
 	python tests/test1.py
+
+# 
+bench2:	data data/bench2
+
+data/bench2:
+	(cd data; wget -O - $(FTP)/bench2.tar.gz | tar zxf -)
+
+test2: bench2
+	python tests/test2.py
 
