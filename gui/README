@@ -1,0 +1,11 @@
+to convert the .ui file to python run:
+
+pyuic4 FirstApp.ui -o FirstApp.py
+
+This generates FirstApp.py which contains the classes and relevant methods.
+
+to run the sample app:
+
+python callFirstApp.py
+
+This python file is hand written and implements the classes and runs the display.
