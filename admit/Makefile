@@ -103,5 +103,6 @@ bench1:	data data/bench1
 data/bench1:
 	(cd data; wget -O - $(FTP)/bench1.tar.gz | tar zxf -)
 
-test1:
+test1: bench1
 	python tests/test1.py
+
