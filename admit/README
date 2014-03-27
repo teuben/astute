@@ -1,7 +1,34 @@
-ADMIT:
+ADMIT within ASTUTE:
   this only supports CASA 4.2 and up, due to the nature of the python tree structure
   CASA has adopted   (PYTHONPATH is set to $CASAPATH/lib/python/site-packages during
   easy_install)
 
+
+A typical install doesn't need ATUTE to be installed, but cvs checked out, viz.
+
+  cvs co astute
+  cd astute/admit
+  make import			 (we don't edit the appropriate files locally yet)
+  make build			 this builds the .egg file
+  make dist			 this puts the .egg on a  website for URL retrieval
+  make install_local		 easy_install from the local file
+  make install_url		 easy_install using our URL
+
+Then use some 
+     
+  cd astute/data
+  ipython
+  > import admit.adm
+  > reload(admit.adm)
+  > a=admit.adm.ADMIT()
+  > a.query_dir()
+
 see also its predecessor:  http://carma.astro.umd.edu/wiki/index.php/AStute
+
+
+  # get benchmark data
+  make bench1
+
+  # do the test
+  make test1
 
