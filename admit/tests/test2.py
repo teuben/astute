@@ -1,6 +1,7 @@
 #
-#    this test is really only meant for bench1
-#    it needs the old-style tas.def from ASTUTE
+#    this test is really only meant for bench2
+#    it needs to initialize the tas.def in new directories
+#    from discovered fits files
 #
 import os
 import admit.adm  as admit
