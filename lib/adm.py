@@ -6,9 +6,9 @@
 #  adm = admit.ADMIT()
 #
 
-import parfile as p
+import parfile       as p
 import admit.parfile as pp
-import sys, os
+import sys, os, errno, fnmatch
 
 try:
     import pyfits
@@ -17,17 +17,17 @@ except:
 
 __version__ = "pre-ADMIT functions: $Id$"
 
-__message__ = "mon 1659"
+__message__ = "wed 1243"
 
 
 class ADMIT(object):
     """
     This is ADMIT
     """
-    def __init__(self):
-        print "ADMIT init (%s)" % __message__
+    def __init__(self,debug=True):
         self.parfile = "tas.def"
-        self.debug   = True
+        self.debug   = debug
+        if self.debug: print "ADMIT::init (%s)" % __message__
     def set_parfile(self,parfile):
         self.parfile = parfile
     def query_dir(self,here=None):
@@ -47,13 +47,31 @@ class ADMIT(object):
                 if f == self.parfile: dlist.append(path)
         if self.debug: print "Queried ",n," directories, found ",len(dlist), " with a parfile"
         return dlist
-    def setdir(self,dirname):
+    def find_files(self, pattern="*.fits"):
+        flist = []
+        for file in os.listdir('.'):
+            if fnmatch.fnmatch(file,pattern):
+                flist.append(file)
+        return flist
+    def setdir(self,dirname, create=True):
         """
         change directory to dirname to work in. Assumed to contain parameter file
+        if the directory doesn't exist yet, create it
         """
+        def mkdir_p(path):
+            #if not os.path.isdir(dirname):
+            #    os.makedirs(dirname)
+            try:
+                os.makedirs(path)
+            except OSError as exc: # Python >2.5
+                if exc.errno == errno.EEXIST and os.path.isdir(path):
+                    pass
+                else: raise
         self.p = dirname
         self.pwd = os.getcwd()
+        if create: mkdir_p(dirname)
         os.chdir(dirname)
+        if self.debug: print "ADMIT::setdir %s" % dirname
     def tesdir(self):
         """
         revert back from previous setdir
