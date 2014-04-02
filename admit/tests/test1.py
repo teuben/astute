@@ -14,6 +14,9 @@ a=admit.ADMIT()
 
 #   could also hardcode this for data/bench1, but now it's searching
 d=a.query_dir()
+if len(d) == 0:
+    print "No datasets found"
+    sys.exit(1)
 a.walkdir(d)
 os.chdir(d[0])
 
