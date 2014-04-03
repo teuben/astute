@@ -3,13 +3,16 @@
 #    it needs the old-style tas.def from ASTUTE
 #
 import os
-import admit.adm  as admit
+import admit.adm     as admit
 import admit.parfile as parfile
 import pyfits
 import numpy    as np
 import numpy.ma as ma
 
 a=admit.ADMIT()
+
+
+print "ADMIT::file ", admit.__file__
 
 
 #   could also hardcode this for data/bench1, but now it's searching
