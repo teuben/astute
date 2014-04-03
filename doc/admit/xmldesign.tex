@@ -992,6 +992,99 @@ All ADMIT tables will be VOTables. THe VOTable XML format is as follows:
 \end{verbatim}
 \normalsize
 
+\newpage
+\section{Access to CASA Image Cubes}
+
+We started our study by looking at approaches for accessing large
+ALMA datasets. Since image cubes, not {\it u,v} data, are the
+focus of this study, we looked at the access speeds for various
+operations to data cubes in a number of different formats including
+the CASA tiled data format. Not too surprisingly, tiled data 
+access works very well for balanced cubes, but can have poor 
+access in some of the directions for slab and stick like cubes.
+This is detailed in the Appendix.
+
+In the course of this work, and from discussions with CASA programmers,
+several points were clear. First, CASA made the decision to not follow
+a memory intensive model. With the expanding capabilities of machines and
+the decrease in memory cost, it is attractive to consider tuning CASA
+to be more memory based, but there is always a limit to the amount of
+data that can be held in memory so any memory based solution is 
+inherently limited. The tiled data storage approach of CASA is
+fairly efficient when the data are being accessed in a sequence which
+follows the tiling. A second advantage of the tile concept is that
+the definition of the tiles can be tuned to the expected access pattern
+to give better performance.
+
+{\it Recommendations: CASA should periodically review the memory model
+for the prototype user machine and tune CASA image storage as possible to optimize
+memory usage. CASA should review the usage patterns of programs to
+optimized the tiling for the most commonly used programs. There may be
+circumstances where it is sufficiently compute efficient to encourage users
+to store a given dataset in multiple tiling formats.}
+
+Given the evolving capability of machines and CASA, it was not clear to us
+that there was clear advantage to another data storage format to increase
+general compute speed at the cost additional disk usage. This conclusion
+might have been different if we had been focused on a specific visualization
+tool or application.
+
+\section*{Appendix: benchmark}
+
+A modest benchmark was devised to get some insight in different
+I/O patterns for a few packages accessible to us: CASA,
+MIRIAD and NEMO. CASA uses a tiled storage manager, which in principle
+can be tuned. MIRIAD has a traditional row based access, but rarely
+uses memory to store full planes or cubes. NEMO is completely
+memory based, but also stores the data row based (and by default
+in double precision).
+Three datasets of around 1GB in size were used:
+a VLA Orion dataset (96 x 96 x 24012, a ``stick''),
+a CARMA dataset (1500 x 1500 x 150, a ``slab''), and a
+NEMO theory dataset (512 x 512 x 512, a true ``cube'').
+Three operations were considered:  reading from fits,
+a simple rms/mean statistics that visits the whole cube in the
+most efficient way, and finally
+a Hanning smooth in X, Y and Z, where possible.  For MIRIAD
+the Hanning smooth test had to be skipped in X and Y, unless
+an additional {\tt reorder} step would be allowed, which we did
+not consider in this version of the benchmark.
+It should be added that a true Hanning in MIRIAD
+is the slowest possible operation, since the data is stored
+row-wise.
+
+
+\begin{table}[h]
+\begin{center}
+\begin{tabular}{|l || r r r || r r r || r r r |}
+\hline
+        & \multicolumn{3}{|c|}  { VLA } 
+        &  \multicolumn{3}{|c|} { CARMA }
+        &  \multicolumn{3}{|c|} { NEMO } \\
+        & \multicolumn{3}{|c|}  { 96x96x24012 } 
+        &  \multicolumn{3}{|c|} { 1500x1500x150 }
+        &  \multicolumn{3}{|c|} {  12x515x512 } \\
+%        & CASA  & MIRIAD & NEMO    & CASA  & MIRIAD & NEMO  & CASA & MIRIAD & NEMO \\
+        & C     & M    & N         & C     & M     & N      & C    & M    & N \\
+\hline
+FITS    &  4.6  & 3.1  &  4.3      &  4.4  & 3.7   & 5.6    & 1.8  & 1.5  & 2.3 \\
+STATS   &  3.5  & 2.6  &  2.5      &  2.7  & 3.4   & 3.8    & ?    & 1.4  & 1.4 \\
+HAN-x   &  7.6  & -    &  2.6      &  2.7  & -     & 4.1    & 1.3  & -    & 1.5 \\
+HAN-y   &  8.1  & -    &  2.8      &  3.1  & -     & 5.2    & 1.5  & -    & 2.5 \\
+HAN-z   &  1.8  & 9.1  & 10.3      &  8.8  & 26.0  & 5.7    & 1.8  & 9.5  & 8.9 \\
+\hline 
+\end{tabular}
+\end{center}
+\caption{Comparing I/O access in a ``stick'', ``slab'' and ``cube'' like dataset. 
+Times reported
+are the sum of user and system time, in seconds.   C=CASA  M=MIRIAD N=NEMO(double)}
+\end{table}
+
+
+Not too surprisingly, the tiled access in CASA does surprisingly well for true
+cubes, independant of the access direction.
+But does poorly in a slab like cube, but outperforms anything else
+for a stick like cube.
 
 \end{document}
 
