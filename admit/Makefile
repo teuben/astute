@@ -4,7 +4,7 @@
 
 SITE = teuben@chara.astro.umd.edu:public_html/admit/dist
 URL  = http://www.astro.umd.edu/~teuben/admit/dist
-VERSION = 0.0.1
+VERSION = 0.0.2
 PY = 2.7
 
 # locally at UMD:  /local/ftp/pub/carma/data/admit/
@@ -17,6 +17,7 @@ help:
 	@echo "CASAPATH = $(CASAPATH)"
 	@echo "VERSION  = $(VERSION)"
 	@echo "PY       = $(PY)"
+	@echo "URL      = $(URL)/admit-$(VERSION)-py$(PY).egg"
 	@echo "targets:"
 	@echo "  build                               build the egg"
 	@echo "  dist                                scp egg to SITE"
@@ -27,6 +28,9 @@ help:
 
 
 .PHONY:  build dist 
+
+clean:
+	@echo No clean yet....
 
 build:
 	python setup.py bdist_egg

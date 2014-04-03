@@ -17,10 +17,10 @@ def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 
-# the required stuff
+# the required stuff (the version= also should be in the Makefile, for proper labeling)
 setup(
     name = "admit",
-    version = "0.0.1",
+    version = "0.0.2",
     author = "Peter Teuben",
     author_email = "teuben@gmail.com",
     description = ("A test precursor for ADMIT."),
