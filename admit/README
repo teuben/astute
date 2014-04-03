@@ -32,3 +32,18 @@ see also its predecessor:  http://carma.astro.umd.edu/wiki/index.php/AStute
   # do the test
   make test1
 
+
+distutils:
+
+1)
+	easy_install
+
+2)	
+	python setup.py install -home=<dir>
+
+	modules  HOME/lib/python
+	scripts	 HOME/bin
+	data	 HOME
+	C-header HOME/include/python/<distname>
+
+3) 	python setup.py install --prefix=/usr/local
