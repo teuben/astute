@@ -4,7 +4,7 @@
 
 SITE = teuben@chara.astro.umd.edu:public_html/admit/dist
 URL  = http://www.astro.umd.edu/~teuben/admit/dist
-VERSION = 0.0.2
+VERSION = 0.0.3
 PY = 2.7
 
 # locally at UMD:  /local/ftp/pub/carma/data/admit/

@@ -20,14 +20,14 @@ def read(fname):
 # the required stuff (the version= also should be in the Makefile, for proper labeling)
 setup(
     name = "admit",
-    version = "0.0.2",
+    version = "0.0.3",
     author = "Peter Teuben",
     author_email = "teuben@gmail.com",
     description = ("A test precursor for ADMIT."),
     license = "BSD",
     keywords = "example documentation tutorial",
     url = "http://carma.astro.umd.edu/wiki/index.php/ADMIT",
-    packages=['admit', 'tests'],
+    packages=['admit', 'tests', 'analysis_scripts'],
     long_description=read('README'),
     classifiers=[
         "Development Status :: 1 - Alpha",
