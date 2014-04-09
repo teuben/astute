@@ -26,7 +26,7 @@ if __name__ == '__main__':
         n = int(sys.argv[1])
     do_par = True
     do_add = True
-    print "Preparing %d directories" % n
+    print "Preparing %d directories under manydata/" % n
     for i in range(n):
         id = '%06d' % i
         a.setdir('manydata/%s' % id)
