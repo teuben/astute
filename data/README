@@ -44,32 +44,56 @@ N253
       A 96 x 96 x 24012 VLA cube (880MB). Spatially small, but rich in many lines.
 
 
-Data from the 2014 python workshop
-==================================
+5) Various data from the 2014 python workshop in Charlottesville
 
-TWHydra - CO, HCO, 100x100x118x1 
+TWHydra - CO(3-2), HCO+, 100x100x118x1   vlsrk=
 	- moderately complex central structure
+	file: TWHydra_CO3_2.fits
+	file: TWHydra_HCOplus.fits
 
 NGC3256 - CO 128x128x50x1 
-	- low complexity central structure
+	- low complexity central structure; vlsr = 2804
+	file: ngc3256_CO.fits    128x128x50 1.138132993449E+11 1.152712018  3791 2033
+	file: ngc3256_CNlo.fits  128x128x26 1.119113729795E+11 1.1317049    3335 1076
+	file: ngc3256_CNhi.fits  128x128x26 1.122395197819E+11 1.1348812    3298 1074
 
-Antennae - South CO32 750 x 750 x 70 x 1 - 
-	 - complex structure distributed throughout spatially
+	status: minmax bug
 
-M100 - CO 600x600x40x1 
+Antennae - South CO32 750 x 750 x 70 x 1
+ 	 - North CO32 500 x 500 x 70 x 1
+	 - complex structure distributed throughout spatially (south)
+	 - north is a bit smaller and simpler, but interesting edge detection
+
+	 file: Antennae_N.CO3_2.fits 
+	 file: Antennae_S.CO3_2.fits 
+
+M100 - CO 600x600x40x1     vlsrk=1571
      - complex structure distributed throughout
+
+     file: M100_CO.fits
+
 
 Sgr A - H30a 256 x 256 x 1 x 261 (.image)  256 x 256 x 261 x1 (.fits) 
       - noisy data moderate complexity
 
+      file: SgrA_H30a.fits
+
 BR1202 - 256 x 256 x 1 x 128 (.image) 
        - transpose last two axes (.fits) noisy, low complexity 
-         (semi point sources near center)
+         (semi point sources near center, very weak though)
+
+	 file: BR1202.line.fits
+	 file: BR1202.cont.fits
 
 IRAS16293 - Band 6: nice deep cube: 220x220x480x1, 
 	  - many strong spectral peaks, two point sources spatially
   	    prepared images have been decimated. full res is available, 
 	    presumably 256x256x1024, but uncalibrated and huge ~13G
+	  - messy log(P/N) curve, challenge for ADMIT
+
+	  File: I16293.fits
+
+???
   band 9 images: 196x196x950 - moderately noisy, moderate complexity distributed 
   spatially and spectrally. there's no full res spw combination, but just one spw 
   might be acceptable, eg. spw1b, also could combine a and b spw's -> 200x200x1900
@@ -82,28 +106,82 @@ Orion - .methanol.cbc.contsub.image.fits - easy small cube 100x100x41x1
       - shows complex structure in one line
 
 HD163296 - 13CO: 432 x 432 x 110 x 1 
-	 - moderate complexity in central structure
-
-AGB spirals - multiple different line cubes  432x432x141(or 121) x1  
+	 - moderate complexity in central structure, 
+	 - nice rotating kepler disk
+    AGB spirals - multiple different line cubes  432x432x141(or 121) x1  
     very pretty data very complex (but ordered spiral) extended structure
+
+	 file: HD163296_13CO.image.fits
+	       HD163296_C18O.image.fits    - bad - ??
+	       HD163296_CO_2_1.image.fits    ???
+
 
 Fomalhaut B - CO cube 300x300x20x1 
 	    - very noisy, emission is not obvious in "product" image
 
+	    file: fom_CO.fits
 
 Brick - multiple line cubes 800 x 800 x 132 x 1 
       - nice looking  very distributed very complex structure (at least in HCN and SO)
 
+      file: G0.25_B3.CONT.fits
+      file: G0.25_B3.H2CS.fits
+      file: G0.25_B3.HCN.fits
+      file: G0.25_B3.HNCO.fits
+      file: G0.25_B3.SO.fits
+
+
 SN87a - The prepped "product" data is just one 2d fits with 256 x 256 x 1 x 1. 
       - Central source with some (low) complexity structure
 
-IN_VEX220.LINE_hannR1.image - 800 x 800 x 1 x 2404 
+
+IN_VEX220.LINE_hannR1.image - 800 x 800 x 1 x 2404 (NGC6334I)
 			    - modestly complex structure. several isolated sources, 
 			    some which are slightly extended, 
 			    with multiple spectral lines
 
+         File:  IN_VEX.fits
+
+R-Sculptoris - 432 x 432 x 141 in CO
+	     - one of the most complex structures, multiple profiles,
+	       basically an expanding ring, so often two, if not more
+	       profiles
+ 
+RScl_cont.fits   - center                              432 x 432 
+RScl_line1.fits  - amazing ring and spiral structure   432 x 432 x 141
+RScl_line2.fits  - single line in center               432 x 432 x 121
+RScl_line3.fits  - single line in center               432 x 432 x 121
+  line1 : 345.79599 GHz CO(3-2) line 
+  line2 : 345.33977 GHz H13CN(4-3) line
+  line3 : 342.88286 GHz CS (7-6) line
+
+CenA	complex, incomplete UV coverate;   1350 x 900 x 35
+	File: CenA.CO2_1.fits
+
+OrionKL 100 x 100 x 41  - cont was subtracted
+
+	File: OrionKL.methanol.fits
 
 
+Antennae_Band7_ReferenceImages_CASA3.4
+BR1202_Band7_ReferenceImages
+Brick
+CenA_Band6_ReferenceImages
+fomalhautb
+HD163296_Band6_ReferenceImages
+IN_VEX220.LINE_hannR1.image
+IRAS16293_Band6_ReferenceImages
+M100_Band3_ReferenceImages
+NGC3256_Band3_ReferenceImages_CASA4
+OrionKL_Band6_ReferenceImages
+rsculptoris
+SgrA_Band6_ReferenceImages
+SN87a
+test.fits
+TWHYA_BAND7_ReferenceImages
+
+
+	
 
 
        4 axis_permute/
@@ -164,5 +242,5 @@ total 6010160
       4 rsculptoris/
       4 SgrA_Band6_ReferenceImages/
       4 SN87a/
-      4 TWHYA_BAND7_ReferenceImages/
+      4 TWHYA_BAND7_ReferenceImages/                     **
       4 viewer.last*
