@@ -1,0 +1,7 @@
+A small 61 x 61 x 27 data cube that was used in the original clumpfind
+paper. The clf.fits file is the enumerated mask, which can be compared
+to other clump assignment methods.
+
+ros13co.fits
+ros13co.clf.fits
+

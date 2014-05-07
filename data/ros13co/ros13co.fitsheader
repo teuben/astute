@@ -1,0 +1,145 @@
+SIMPLE  =                    T  /
+BITPIX  =                  -32  /
+NAXIS   =                    3  /
+NAXIS1  =                   61  /
+NAXIS2  =                   61  /
+NAXIS3  =                   27  /
+EXTEND  =                    T  /
+BSCALE  =    1.00000000000E+00  /
+BZERO   =    0.00000000000E+00  /
+BLANK   =                   -1  /
+CDELT1  =   -2.50000003725E-02  /
+CRPIX1  =    3.10000000000E+01  /
+CRVAL1  =    2.07500000000E+02  /
+CTYPE1  = 'GLON    '  /
+CDELT2  =    2.50000003725E-02  /
+CRPIX2  =    3.10000000000E+01  /
+CRVAL2  =   -1.82298064232E+00  /
+CTYPE2  = 'GLAT    '  /
+CDELT3  =    6.80101454258E+02  /
+CRPIX3  =    0.00000000000E+00  /
+CRVAL3  =    4.04281139374E+03  /
+CTYPE3  = 'VELO    '  /
+CELLSCAL= '1/F     '  /
+BMAJ    =    2.49981470406E-02  /
+BMIN    =    2.49981470406E-02  /
+DATAMAX =    8.61321926117E+00  /
+DATAMIN =   -5.99911868572E-01  /
+BPA     =    0.00000000000E+00  /
+HISTORY COMB TITLE Rosette 13CO V = 3.70276 to 4.38286 km/s
+HISTORY COMB PARAM ir:1.1 ci: rc:
+HISTORY FITS: Miriad Fits: version 1.0 17-Jun-91
+HISTORY FITS: Command line inputs follow:
+HISTORY FITS:   in=Rosette13co.1
+HISTORY FITS:   op=xyin
+HISTORY FITS:   out=rosette1
+HISTORY IMCAT (MIRIAD)
+HISTORY IMCAT: input map = rosette1
+HISTORY IMCAT: input map = rosette2
+HISTORY IMCAT: input map = rosette3
+HISTORY IMCAT: input map = rosette4
+HISTORY IMCAT: input map = rosette5
+HISTORY IMCAT: input map = rosette6
+HISTORY IMCAT: input map = rosette7
+HISTORY IMCAT: input map = rosette8
+HISTORY IMCAT: input map = rosette9
+HISTORY IMCAT: output map = cube0
+HISTORY IMCAT (MIRIAD)
+HISTORY IMCAT: input map = cube0
+HISTORY IMCAT: input map = cube1
+HISTORY IMCAT: input map = cube2
+HISTORY IMCAT: output map = cube
+HISTORY PUTHD: Executed on: 91DEC12:08:51:42.0
+HISTORY PUTHD: Command line inputs follow:
+HISTORY PUTHD:   in=ros13co/crval1
+HISTORY PUTHD:   value=-2.661627109
+HISTORY MATHS: Miriad Maths: version 1.0 2-May-92
+HISTORY MATHS: Executed on: 92DEC07:13:55:27.0
+HISTORY MATHS: Command line inputs follow:
+HISTORY MATHS:   exp=<ros13co.old>*1.63
+HISTORY MATHS:   out=ros13co
+HISTORY MATHS: Bounding region is Blc=(1,1,1),Trc=(61,61,27)
+HISTORY MATHS: *******************************************
+HISTORY MATHS: *** Corrected for beam efficiency = 0.9 ***
+HISTORY MATHS: *****  Temperatures are now Tr(star)  *****
+HISTORY MATHS: *******************************************
+HISTORY PUTHD: Miriad Version 1.0c 11-Feb-93
+HISTORY PUTHD: Executed on: 93JUN16:15:57:18.0
+HISTORY PUTHD: Command line inputs follow:
+HISTORY PUTHD:   in=ros13co/bmin
+HISTORY PUTHD:   value=4.363e-4
+HISTORY PUTHD:   type=real
+HISTORY PUTHD: Miriad Version 1.0c 11-Feb-93
+HISTORY PUTHD: Executed on: 93JUN16:15:57:26.0
+HISTORY PUTHD: Command line inputs follow:
+HISTORY PUTHD:   in=ros13co/bmaj
+HISTORY PUTHD:   value=4.363e-4
+HISTORY PUTHD:   type=real
+HISTORY PUTHD: Miriad Version 1.0c 11-Feb-93
+HISTORY PUTHD: Executed on: 93JUN16:15:57:44.0
+HISTORY PUTHD: Command line inputs follow:
+HISTORY PUTHD:   in=ros13co/bpa
+HISTORY PUTHD:   value=0
+HISTORY PUTHD:   type=real
+HISTORY MINMAX: Miriad MinMax: Version 1.0 12-mar-93
+HISTORY MINMAX: Executed on: 94JAN27:10:33:24.0
+HISTORY MINMAX: Command line inputs follow:
+HISTORY MINMAX:   in=ros13co
+HISTORY MINMAX: Old min/max:       0.000000E+00       0.000000E+00
+HISTORY MATHS: Miriad Maths: version 1.0 21-Sep-93
+HISTORY MATHS: Executed on: 94JAN27:11:25:41.0
+HISTORY MATHS: Command line inputs follow:
+HISTORY MATHS:   exp=ros13co
+HISTORY MATHS:   mask=ros13co.gt.-0.6
+HISTORY MATHS:   out=ros13co.masked
+HISTORY MATHS: Bounding region is Blc=(1,1,1),Trc=(61,61,27)
+HISTORY RENAME: to ros13co
+HISTORY MINMAX: Miriad MinMax: Version 1.0 12-mar-93
+HISTORY MINMAX: Executed on: 94JAN27:11:26:04.0
+HISTORY MINMAX: Command line inputs follow:
+HISTORY MINMAX:   in=ros13co
+HISTORY MINMAX: Old min/max:       0.000000E+00       0.000000E+00
+HISTORY PUTHD: Miriad PutHd: Version 1.0c 21-Jun-93
+HISTORY PUTHD: Executed on: 94MAY18:14:49:05.0
+HISTORY PUTHD: Command line inputs follow:
+HISTORY PUTHD:   in=ros13co/ctype1
+HISTORY PUTHD:   value=GLON
+HISTORY PUTHD: Miriad PutHd: Version 1.0c 21-Jun-93
+HISTORY PUTHD: Executed on: 94MAY18:14:49:15.0
+HISTORY PUTHD: Command line inputs follow:
+HISTORY PUTHD:   in=ros13co/ctype2
+HISTORY PUTHD:   value=GLAT
+HISTORY PUTHD: Miriad PutHd: Version 1.0 13-dec-96
+HISTORY PUTHD: Executed on: 04MAY31:17:28:51.0
+HISTORY PUTHD: Command line inputs follow:
+HISTORY PUTHD:   in=ros13co_deg/crval1
+HISTORY PUTHD:   value=207.5
+HISTORY PUTHD: Miriad PutHd: Version 1.0 13-dec-96
+HISTORY PUTHD: Executed on: 04MAY31:17:29:16.0
+HISTORY PUTHD: Command line inputs follow:
+HISTORY PUTHD:   in=ros13co_deg/crval2
+HISTORY PUTHD:   value=-1.8229806
+HISTORY PUTHD: Miriad PutHd: Version 1.0 13-dec-96
+HISTORY PUTHD: Executed on: 04MAY31:17:30:05.0
+HISTORY PUTHD: Command line inputs follow:
+HISTORY PUTHD:   in=ros13co_deg/cdelt2
+HISTORY PUTHD:   value=-0.025
+HISTORY PUTHD: Miriad PutHd: Version 1.0 13-dec-96
+HISTORY PUTHD: Executed on: 04MAY31:17:30:08.0
+HISTORY PUTHD: Command line inputs follow:
+HISTORY PUTHD:   in=ros13co_deg/cdelt1
+HISTORY PUTHD:   value=-0.025
+HISTORY PUTHD: Miriad PutHd: Version 1.0 13-dec-96
+HISTORY PUTHD: Executed on: 04MAY31:17:30:11.0
+HISTORY PUTHD: Command line inputs follow:
+HISTORY PUTHD:   in=ros13co_deg/cdelt2
+HISTORY PUTHD:   value=0.025
+HISTORY FITS: Miriad fits: Fits: version 1.1 04-Oct-01
+HISTORY FITS: Executed on: 04MAY31:17:30:52.0
+HISTORY FITS: Command line inputs follow:
+HISTORY FITS:    in=ros13co_deg
+HISTORY FITS:    out=ros13co_deg.fits
+HISTORY FITS:    op=xyout
+HISTORY FITS: NOTE: Use options=varwt if loading into Miriad
+ORIGIN  = 'Miriad Fits: version 1.1 04-Oct-01'  /
+END
