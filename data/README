@@ -1,16 +1,43 @@
+New Design (May 2014):
+
+- Only reference material is present, datasets will need to be
+  downloaded (wget/curl/rsync/scp/ln/ln-s) from a nearby archive
+
+- each directory will contain the reference material for one (or more)
+  FITS file, usually a data cube. A human readable README file should 
+  always be present, as well as the FITS header. A representative PNG
+  is sometimes available to guide the user if the data should be the
+  one they want from the archive.
+  File(s) to be obtained are listed in a small text file,  files.lis,
+  for the 'getdata' procedure to get those big data.
 
 
-1) A small  61 x 61 x 27 data cube that was used in the original
-clumpfind paper.  The clf.fits file is the enumerated mask.
+cube432        4 x 3 x 2 sample cube, good for column/row major testing
+ros13co        61 x 61 x 27 dataset, clumpfind benchmark cube
+NGC6334I       800 x 800 x 2404 SMA dataset, lots of lines
 
-ros13co.fits
-ros13co.clf.fits
+RScl
+Antennae
+G0.25_B3
+M100
+ngc3256
+orionall
+OrionKL
+SgrA
+TWHydra
+I16293
+L1551
+CenA
+m33
+hcg57
+iras05358
+n253
+ngc5921
+ngc6503
 
-2) A super small 4 x 3 x 2 data cube that can be used to test
-your reading routine, notably if you're confused about column
-and row major data.
+=========================
+old stuff
 
-cube432.fits
 
 3) A directory tree with the 8 spectral windows of N253. See also
 the corresponding $ASTUTE/def/w_?_? directories where small
