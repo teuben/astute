@@ -1,0 +1,16 @@
+A super small 4 x 3 x 2 data cube that can be used to test
+your reading routine, notably if you're confused about column
+and row major data.
+Essentially, datavalues are BITPIX=-32 (float or REAL*4) value:
+   data = i + 10*j + 100*k     (i=0,1,2,3   j=0,1,2    k=0,1)
+and "hexdump -C" gives the following 96 values:
+
+00001680  00 00 00 00 3f 80 00 00  40 00 00 00 40 40 00 00  |....?...@...@@..|
+00001690  41 20 00 00 41 30 00 00  41 40 00 00 41 50 00 00  |A ..A0..A@..AP..|
+000016a0  41 a0 00 00 41 a8 00 00  41 b0 00 00 41 b8 00 00  |A...A...A...A...|
+000016b0  42 c8 00 00 42 ca 00 00  42 cc 00 00 42 ce 00 00  |B...B...B...B...|
+000016c0  42 dc 00 00 42 de 00 00  42 e0 00 00 42 e2 00 00  |B...B...B...B...|
+000016d0  42 f0 00 00 42 f2 00 00  42 f4 00 00 42 f6 00 00  |B...B...B...B...|
+
+
+files: cube432.fits
