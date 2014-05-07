@@ -1,0 +1,689 @@
+SIMPLE  =                    T /Standard FITS
+BITPIX  =                  -32 /Floating point (32 bit)
+NAXIS   =                    3
+NAXIS1  =                  241
+NAXIS2  =                  226
+NAXIS3  =                 2404
+EXTEND  =                    T
+BSCALE  =   1.000000000000E+00 /PHYSICAL = PIXEL*BSCALE + BZERO
+BZERO   =   0.000000000000E+00
+BMAJ    =   1.937472323577E-04
+BMIN    =   1.233273661799E-04
+BPA     =  -1.750888671875E+02
+BTYPE   = 'Intensity'
+OBJECT  = 'NGC6334I'
+BUNIT   = 'JY/BEAM '           /Brightness (pixel) unit
+EQUINOX =   2.000000000000E+03
+RADESYS = 'FK5     '
+LONPOLE =   1.800000000000E+02
+LATPOLE =  -3.575555555556E+01
+PC01_01 =   1.000000000000E+00
+PC02_01 =   0.000000000000E+00
+PC03_01 =   0.000000000000E+00
+PC01_02 =   0.000000000000E+00
+PC02_02 =   1.000000000000E+00
+PC03_02 =   0.000000000000E+00
+PC01_03 =   0.000000000000E+00
+PC02_03 =   0.000000000000E+00
+PC03_03 =   1.000000000000E+00
+CTYPE1  = 'RA---SIN'
+CRVAL1  =   2.602291666667E+02
+CDELT1  =  -1.944444444444E-05
+CRPIX1  =   1.090000000000E+02
+CUNIT1  = 'deg     '
+CTYPE2  = 'DEC--SIN'
+CRVAL2  =  -3.575555555556E+01
+CDELT2  =   1.944444444444E-05
+CRPIX2  =  -9.900000000000E+01
+CUNIT2  = 'deg     '
+CTYPE3  = 'FREQ    '
+CRVAL3  =   2.188953609305E+11
+CDELT3  =   8.232136250000E+05
+CRPIX3  =   1.000000000000E+00
+CUNIT3  = 'Hz      '
+PV2_1   =   0.000000000000E+00
+PV2_2   =   0.000000000000E+00
+RESTFRQ =   2.189033560000E+11 /Rest Frequency (Hz)
+SPECSYS = 'LSRK    '           /Spectral reference frame
+ALTRVAL =   1.094940518113E+04 /Alternate frequency reference value
+ALTRPIX =   1.000000000000E+00 /Alternate frequency reference pixel
+VELREF  =                  257 /1 LSR, 2 HEL, 3 OBS, +256 Radio
+COMMENT casacore non-standard usage: 4 LSD, 5 GEO, 6 SOU, 7 GAL
+TELESCOP= 'SMA     '
+OBSERVER= 'SMA     '
+DATE-OBS= '2010-02-23T14:09:24.554787'
+TIMESYS = 'UTC     '
+OBSRA   =   2.602291666667E+02
+OBSDEC  =  -3.575555555556E+01
+OBSGEO-X=  -5.462448949404E+06
+OBSGEO-Y=  -2.491969916628E+06
+OBSGEO-Z=   2.164446105421E+06
+DATE    = '2014-04-11T15:09:49.099000' /Date FITS file was written
+ORIGIN  = 'CASA 4.2.0 (release r28322)'
+HISTORY CASA START LOGTABLE
+HISTORY 2014-01-24T20:12:07 INFO SRCCODE='imager::clean()'
+HISTORY 2014-01-24T20:12:07 INFO SRCCODE='imager::clean()'
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] /-------
+HISTORY >-------------------------------------------------------------
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] /Begin "
+HISTORY >HISTORY" information found in FITS tape header by FITLD
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] EXTEND
+HISTORY >  =                    T  /
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] SMALOD:
+HISTORY > Miriad SmaLod: version 2.11 23-Jan-08
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] SMALOD:
+HISTORY > Executed on: 2010-03-15T14:41:23.0
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] SMALOD:
+HISTORY > Command line inputs follow:
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] SMALOD:
+HISTORY >   in=../../thunter/100223_11:41:24/lower24chunks/
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] SMALOD:
+HISTORY >   out=230lower
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] SMALOD:
+HISTORY >   sideband=2
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] SMALOD:
+HISTORY >   rxif=0
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] SMALOD:
+HISTORY > Ended Gracefully
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVFLAG:
+HISTORY > Executed on: 2010-03-15T14:53:51.0
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVFLAG:
+HISTORY > Command line inputs follow:
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVFLAG:
+HISTORY >   vis=230lower_rx0.lsb
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVFLAG:
+HISTORY >   select=ant(5),source(19*,N*),time(20:30,22:00)
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVFLAG:
+HISTORY >   flagval=flag
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVFLAG:
+HISTORY > Overview of flagging on visibility file 230lower_rx0.lsb
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVFLAG:
+HISTORY > Changed flags set to FALSE (data flagged as bad)
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVFLAG:
+HISTORY > Total number of records selected: 624; out of 45507 records
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVFLAG:
+HISTORY > Antennas used: 1,2,4,5,6,7,8
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVFLAG:
+HISTORY > Counts of correlations within selected channels
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVFLAG:
+HISTORY > channel   Originally  Currently
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVFLAG:
+HISTORY > Good:        1701888          0    Changed to bad:    1701888
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVFLAG:
+HISTORY > Bad:          215040    1916928
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVFLAG:
+HISTORY > wide      Originally  Currently
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVFLAG:
+HISTORY > Good:              0          0    Changed to bad:          0
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVFLAG:
+HISTORY > Bad:               0          0
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] SMAFIX:
+HISTORY > Miriad
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] SmaFix:
+HISTORY > version 1.15 07-Mar-07
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] SMAFIX:
+HISTORY > Executed on: 2010-03-15T14:55:24.0
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] SMAFIX:
+HISTORY > Command line inputs follow:
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] SMAFIX:
+HISTORY >   vis=230lower_rx0.lsb
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] SMAFIX:
+HISTORY >   out=230lower_rx0.lsb.tsys
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] SMAFIX:
+HISTORY >   device=/xs
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] SMAFIX:
+HISTORY >   xaxis=time
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] SMAFIX:
+HISTORY >   yaxis=systemp
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] SMAFIX:
+HISTORY >   nxy=3,3
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] SMAFIX:
+HISTORY >   options=tsyscorr
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] SmaCheck
+HISTORY >: version 1.2 10-Jan-2007
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] SMACHECK
+HISTORY >: Executed on: 2010-03-15T14:58:13.0
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] SMACHECK
+HISTORY >: Command line inputs follow:
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] SMACHECK
+HISTORY >:   vis=230lower_rx0.lsb.tsys
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] SMACHECK
+HISTORY >:   var=inttime
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] SMACHECK
+HISTORY >:   flagval=flag
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] SMACHECK
+HISTORY >:   range=10,25
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVFLAG:
+HISTORY > Executed on: 2010-03-15T14:58:34.0
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVFLAG:
+HISTORY > Command line inputs follow:
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVFLAG:
+HISTORY >   vis=230lower_rx0.lsb.tsys
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVFLAG:
+HISTORY >   edge=6
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVFLAG:
+HISTORY >   flagval=flag
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVFLAG:
+HISTORY > Overview of flagging on visibility file 230lower_rx0.lsb.tsys
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVFLAG:
+HISTORY > Changed flags set to FALSE (data flagged as bad)
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVFLAG:
+HISTORY > Total number of records selected: 45507; out of 45507 records
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVFLAG:
+HISTORY > Antennas used: 1,2,4,5,6,7,8
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVFLAG:
+HISTORY > Counts of correlations within selected channels
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVFLAG:
+HISTORY > channel   Originally  Currently
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVFLAG:
+HISTORY > Good:      124895232  113186304    Changed to bad:   11708928
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVFLAG:
+HISTORY > Bad:        14902272   26611200
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVSPLIT:
+HISTORY > Miriad UvSplit: version 1.0 16-Nov-05
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVSPLIT:
+HISTORY > Executed on: 2010-03-15T15:19:05.0
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVSPLIT:
+HISTORY > Command line inputs follow:
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVSPLIT:
+HISTORY >   vis=230lower_rx0.lsb.tsys
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVSPLIT:
+HISTORY >   options=nowindow
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] GPCOPY:
+HISTORY > Miriad GpCopy: version 23-Jan-07
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] GPCOPY:
+HISTORY > Executed on: 2010-03-16T09:35:30.0
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] GPCOPY:
+HISTORY > Command line inputs follow:
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] GPCOPY:
+HISTORY >   vis=3c273.220845.self
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] GPCOPY:
+HISTORY >   out=NGC6334IN.220845
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] GPCOPY:
+HISTORY >   mode=copy
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] GPCOPY:
+HISTORY >   options=nocal
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVCAL: M
+HISTORY >iriad UVCAL: version 19-nov-2009
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVCAL: E
+HISTORY >xecuted on: 2010-03-16T09:35:34.0
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVCAL: C
+HISTORY >ommand line inputs follow:
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVCAL:
+HISTORY >   vis=NGC6334IN.220845
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVCAL:
+HISTORY >   out=NGC6334IN.220845.bp1
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] GPCOPY:
+HISTORY > Miriad GpCopy: version 23-Jan-07
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] GPCOPY:
+HISTORY > Executed on: 2010-03-16T09:35:34.0
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] GPCOPY:
+HISTORY > Command line inputs follow:
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] GPCOPY:
+HISTORY >   vis=3c273.220845.selfbp1
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] GPCOPY:
+HISTORY >   out=NGC6334IN.220845.bp1
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] GPCOPY:
+HISTORY >   mode=copy
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVCAL: M
+HISTORY >iriad UVCAL: version 19-nov-2009
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVCAL: E
+HISTORY >xecuted on: 2010-03-16T09:35:37.0
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVCAL: C
+HISTORY >ommand line inputs follow:
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVCAL:
+HISTORY >   vis=NGC6334IN.220845.bp1
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVCAL:
+HISTORY >   out=NGC6334IN.220845.bp2
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] GPCOPY:
+HISTORY > Miriad GpCopy: version 23-Jan-07
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] GPCOPY:
+HISTORY > Executed on: 2010-03-16T09:35:37.0
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] GPCOPY:
+HISTORY > Command line inputs follow:
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] GPCOPY:
+HISTORY >   vis=1924-292.220845.bp2
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] GPCOPY:
+HISTORY >   out=NGC6334IN.220845.bp2
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] GPCOPY:
+HISTORY >   mode=copy
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] GPCOPY:
+HISTORY > Miriad GpCopy: version 23-Jan-07
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] GPCOPY:
+HISTORY > Executed on: 2010-03-22T17:11:55.0
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] GPCOPY:
+HISTORY > Command line inputs follow:
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] GPCOPY:
+HISTORY >   vis=1733-130.220845.bp2
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] GPCOPY:
+HISTORY >   out=NGC6334IN.220845.bp2
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] GPCOPY:
+HISTORY >   mode=copy
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVCAL: M
+HISTORY >iriad UVCAL: version 19-nov-2009
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVCAL: E
+HISTORY >xecuted on: 2010-03-22T17:12:02.0
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVCAL: C
+HISTORY >ommand line inputs follow:
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVCAL:
+HISTORY >   vis=NGC6334IN.220845.bp2
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVCAL:
+HISTORY >   out=NGC6334IN.220845.bp2ph
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] GPCOPY:
+HISTORY > Miriad GpCopy: version 23-Jan-07
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] GPCOPY:
+HISTORY > Executed on: 2010-03-22T17:12:02.0
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] GPCOPY:
+HISTORY > Command line inputs follow:
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] GPCOPY:
+HISTORY >   vis=1733-130.220845.bp2self
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] GPCOPY:
+HISTORY >   out=NGC6334IN.220845.bp2ph
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] GPCOPY:
+HISTORY >   mode=copy
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVCAL: M
+HISTORY >iriad UVCAL: version 19-nov-2009
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVCAL: E
+HISTORY >xecuted on: 2010-03-22T17:12:06.0
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVCAL: C
+HISTORY >ommand line inputs follow:
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVCAL:
+HISTORY >   vis=NGC6334IN.220845.bp2ph
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVCAL:
+HISTORY >   out=NGC6334IN.220845.bp2pham
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVFLAG:
+HISTORY > Executed on: 2010-03-22T17:12:25.0
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVFLAG:
+HISTORY > Command line inputs follow:
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVFLAG:
+HISTORY >   vis=NGC6334IN.220845.bp2pham
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVFLAG:
+HISTORY >   select=ant(5),time(20:30,22:00)
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVFLAG:
+HISTORY >   flagval=flag
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVFLAG:
+HISTORY > Overview of flagging on visibility file NGC6334IN.220845.bp2pham
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVFLAG:
+HISTORY > Changed flags set to FALSE (data flagged as bad)
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVFLAG:
+HISTORY > Total number of records selected: 372; out of 24612 records
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVFLAG:
+HISTORY > Antennas used: 1,2,4,5,6,7,8
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVFLAG:
+HISTORY > Counts of correlations within selected channels
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVFLAG:
+HISTORY > channel   Originally  Currently
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVFLAG:
+HISTORY > Good:              0          0    Changed to bad:          0
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVFLAG:
+HISTORY > Bad:         1142784    1142784
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVFLAG:
+HISTORY > wide      Originally  Currently
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVFLAG:
+HISTORY > Good:              0          0    Changed to bad:          0
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVFLAG:
+HISTORY > Bad:               0          0
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] GPCOPY:
+HISTORY > Miriad GpCopy: version 23-Jan-07
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] GPCOPY:
+HISTORY > Executed on: 2010-03-22T17:12:31.0
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] GPCOPY:
+HISTORY > Command line inputs follow:
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] GPCOPY:
+HISTORY >   vis=titan.220845.bp2
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] GPCOPY:
+HISTORY >   out=NGC6334IN.220845.bp2pham
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] FITS: Mi
+HISTORY >riad fits: Fits: version 1.1 09-Feb-07
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] FITS: Ex
+HISTORY >ecuted on: 10MAR22:17:14:04.0
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] FITS: Co
+HISTORY >mmand line inputs follow:
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] FITS:
+HISTORY >    in=NGC6334IN.220845.bp2pham
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] FITS:
+HISTORY >    out=NGC6334IN.220845.bp2phamxx.fits
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] FITS:
+HISTORY >    op=uvout
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] FITS:
+HISTORY >    line=velocity,2405,1946,1.12,-1.12
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] FITS:
+HISTORY >    select=window(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,2
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] FITS:
+HISTORY >    stokes=ii
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] FITS: NO
+HISTORY >TE: Use options=varwt if loading into Miriad
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] /End FIT
+HISTORY >S tape header "HISTORY" information
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] FITLD RE
+HISTORY >LEASE= '31DEC10 ' /--------------------------------------------
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] FITLD OU
+HISTORY >TNAME='IN_VEX220   '   OUTCLASS='UVDATA'
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] FITLD OU
+HISTORY >TSEQ=    1   OUTDISK=  6
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] FITLD IN
+HISTORY >FILE='GOV2:NGC6334IN.220845.bp2pham.fits'
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVSRT RE
+HISTORY >LEASE ='31DEC10 '  /********* Start 23-MAR-2010   09:52:04
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVSRT IN
+HISTORY >NAME='IN_VEX220   '   INCLASS='UVDATA'
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVSRT IN
+HISTORY >SEQ=    1   INDISK=  6
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVSRT OU
+HISTORY >TNAME='IN_VEX220   '   OUTCLASS='UVSRT '
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVSRT OU
+HISTORY >TSEQ=    1   OUTDISK=  6
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVSRT  S
+HISTORY >ORT = 'TA' / New sort order
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVLSF RE
+HISTORY >LEASE ='31DEC10 '  /********* Start 23-MAR-2010   09:55:20
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVLSF IN
+HISTORY >NAME='IN_VEX220   '   INCLASS='UVSRT '
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVLSF IN
+HISTORY >SEQ=    1   INDISK=  6
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVLSF OU
+HISTORY >TNAME='IN_VEX220   '   OUTCLASS='UVLSF '
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVLSF OU
+HISTORY >TSEQ=    1   OUTDISK=  6
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVLSF SO
+HISTORY >URCES = ''    /All sources selected
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVLSF QU
+HISTORY >AL     =   -1 CALCODE =
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVLSF /T
+HISTORY >IMERANG = beginning to end
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVLSF ST
+HISTORY >OKES = 'I   ' / Stokes type
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVLSF BI
+HISTORY >F =   1, EIF =   1/ IF range
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVLSF BC
+HISTORY >HAN =   1, ECHAN =2405/ Chan range
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVLSF SU
+HISTORY >BARRAY =   1
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVLSF /
+HISTORY > no flagging applied
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVLSF /
+HISTORY > no continuum calibration applied
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVLSF /
+HISTORY > Weights not calibrated
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVLSF BC
+HISTORY >HAN =   1, ECHAN =2405 / Output channel selection
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVLSF CH
+HISTORY >ANSEL( 1)=   30,   90, 1     / channels fit IF =  1
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVLSF CH
+HISTORY >ANSEL( 2)=  120,  160, 1     / channels fit IF =  1
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVLSF CH
+HISTORY >ANSEL( 3)=  200,  300, 1     / channels fit IF =  1
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVLSF CH
+HISTORY >ANSEL( 4)=  420,  570, 1     / channels fit IF =  1
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVLSF CH
+HISTORY >ANSEL( 5)=  660,  720, 1     / channels fit IF =  1
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVLSF CH
+HISTORY >ANSEL( 6)=  810,  920, 1     / channels fit IF =  1
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVLSF CH
+HISTORY >ANSEL( 7)= 1150, 1210, 1     / channels fit IF =  1
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVLSF CH
+HISTORY >ANSEL( 8)= 1630, 1750, 1     / channels fit IF =  1
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVLSF CH
+HISTORY >ANSEL( 9)= 1950, 1980, 1     / channels fit IF =  1
+HISTORY Tue Feb 23 00:00:00 2010  HISTORY MSFitsInput::fillObsTables [] UVLSF OR
+HISTORY >DER =  1          / order of polynomial fit
+HISTORY Tue Jul 24 21:00:05 2012  HISTORY importuvfits [] taskname=importuvfits
+HISTORY Tue Jul 24 21:00:05 2012  HISTORY importuvfits [] version: 3.4.0 3.4.0 r
+HISTORY >ev. 19988 Sat 2012/06/09 04:50:50 UTC
+HISTORY Tue Jul 24 21:00:05 2012  HISTORY importuvfits [] fitsfile    = "IN_VEX2
+HISTORY >20.UVLINE"
+HISTORY Tue Jul 24 21:00:05 2012  HISTORY importuvfits [] vis         = "IN_VEX2
+HISTORY >20.UVLINE.ms"
+HISTORY Tue Jul 24 21:00:05 2012  HISTORY importuvfits [] antnamescheme = "old"
+HISTORY Tue Jul 24 21:19:45 2012  HISTORY imager::data selection [mode=none ncha
+HISTORY >n=[-1] start=[0] step=[1] mstart='Radialvelocity: 0' mstep='Radialveloc
+HISTORY >ty: 0' spectralwindowids=[] fieldids=[] msselect=]
+HISTORY Tue Jul 24 21:19:45 2012  HISTORY imager::defineimage() [Defining image
+HISTORY > properties:nx=900 ny=900 cellx='0.07arcsec' celly='0.07arcsec' stokes=
+HISTORY >' mode=MFS nchan=-1 start=0 step=1 spwids=[-1] fieldid=-1 facets=1 fram
+HISTORY >=1 distance='0',  phaseCenter='17:20:54.95,  324.14.48.00, ' mStart='Ra
+HISTORY >ialvelocity: 0' qStep='0 '' mFreqStart='Frequency: 0]
+HISTORY Tue Jul 24 21:19:46 2012  HISTORY imager::weight() [] Weighting MS: Imag
+HISTORY >ing weights will be changed
+HISTORY Tue Jul 24 21:19:46 2012  HISTORY imager::weight() [] Briggs weighting:
+HISTORY > sidelobes will be suppressed over full image
+HISTORY Tue Jul 24 21:19:51 2012  HISTORY imager::clean() [] Using multifield Cl
+HISTORY >ark clean
+HISTORY Tue Jul 24 21:19:51 2012  HISTORY imager::clean() [] Clean gain = 0.1, N
+HISTORY >iter = 0, Threshold = 0.3 mJy
+HISTORY Tue Jul 24 21:19:51 2012  HISTORY imager::clean() [] Continuing deconvol
+HISTORY >ution
+HISTORY Tue Jul 24 21:20:50 2012  HISTORY imager::clean() [] Threshhold not reac
+HISTORY >hed yet.
+HISTORY Tue Jul 24 21:20:50 2012  HISTORY imager::clean() [] Fitted beam used in
+HISTORY > restoration: 0.692414 by 0.371174 (arcsec) at pa 3.20929 (deg)
+HISTORY Tue Jul 24 21:21:47 2012  HISTORY imager::data selection [mode=none ncha
+HISTORY >n=[-1] start=[0] step=[1] mstart='Radialvelocity: 0' mstep='Radialveloc
+HISTORY >ty: 0' spectralwindowids=[] fieldids=[] msselect=]
+HISTORY Tue Jul 24 21:21:47 2012  HISTORY imager::defineimage() [Defining image
+HISTORY > properties:nx=900 ny=900 cellx='0.07arcsec' celly='0.07arcsec' stokes=
+HISTORY >' mode=CHANNEL nchan=2404 start=1 step=1 spwids=[-1] fieldid=-1 facets=
+HISTORY > frame=1 distance='0',  phaseCenter='17:20:54.95,  324.14.48.00, ' mSta
+HISTORY >t='Radialvelocity: 0' qStep='0 '' mFreqStart='Frequency: 0]
+HISTORY Tue Jul 24 21:40:09 2012  HISTORY imager::weight() [] Weighting MS: Imag
+HISTORY >ing weights will be changed
+HISTORY Tue Jul 24 21:40:09 2012  HISTORY imager::weight() [] Briggs weighting:
+HISTORY > sidelobes will be suppressed over full image
+HISTORY Tue Jul 24 21:43:45 2012  HISTORY imager::clean() [] Using multifield Cl
+HISTORY >ark clean
+HISTORY Tue Jul 24 21:43:45 2012  HISTORY imager::clean() [] Clean gain = 0.1, N
+HISTORY >iter = 0, Threshold = 0.3 mJy
+HISTORY Tue Jul 24 21:43:45 2012  HISTORY imager::clean() [] Continuing deconvol
+HISTORY >ution
+HISTORY Tue Jul 24 22:53:57 2012  HISTORY imager::clean() [] Threshhold not reac
+HISTORY >hed yet.
+HISTORY Tue Jul 24 22:53:57 2012  HISTORY imager::clean() [] Fitted beam used in
+HISTORY > restoration: 0.691055 by 0.361534 (arcsec) at pa 4.20486 (deg)
+HISTORY Wed Jul 25 13:40:01 2012  HISTORY imager::clean() [] Clean gain = 0.1, N
+HISTORY >iter = 200, Threshold = 0.3 mJy
+HISTORY Wed Jul 25 13:40:01 2012  HISTORY imager::clean() [] Starting deconvolut
+HISTORY >ion
+HISTORY Wed Jul 25 15:40:19 2012  HISTORY imager::clean() [] Threshhold not reac
+HISTORY >hed yet.
+HISTORY Wed Jul 25 15:40:19 2012  HISTORY imager::clean() [] Beam used in restor
+HISTORY >ation: 0.691055 by 0.361534 (arcsec) at pa 4.20486 (deg)
+HISTORY Thu Aug 30 19:58:08 2012  HISTORY ms::split() [fieldids= spwids=* step=[
+HISTORY >1] which='DATA'] IN_VEX220.UVLINE.ms.tile split from /net/shadowfax/exp
+HISTORY >rt/data_1/data_2/vext_inorth/casa_imaging/IN_VEX220.UVLINE.ms
+HISTORY Thu Aug 30 20:00:22 2012  HISTORY hanningsmooth [] taskname = hanningsmo
+HISTORY >oth
+HISTORY Thu Aug 30 20:00:22 2012  HISTORY hanningsmooth [] vis         = "IN_VEX
+HISTORY >220.UVLINE.ms.tile"
+HISTORY Thu Aug 30 20:00:22 2012  HISTORY hanningsmooth [] datacolumn  = "all"
+HISTORY Thu Aug 30 20:00:22 2012  HISTORY hanningsmooth [] outputvis   = "IN_VEX
+HISTORY >220.UVLINE_hann.ms.tile"
+HISTORY Thu Jan 23 16:33:48 2014  HISTORY imager::data selection [mode=none ncha
+HISTORY >n=[-1] start=[0] step=[1] mstart='Radialvelocity: 0' mstep='Radialveloc
+HISTORY >ty: 0' spectralwindowids=[] fieldids=[] msselect=]
+HISTORY Thu Jan 23 16:33:48 2014  HISTORY imager::defineimage() [Defining image
+HISTORY > properties:nx=500 ny=500 cellx='0.07arcsec' celly='0.07arcsec' stokes=
+HISTORY >' mode=CHANNEL nchan=40 start=1264 step=1 spwids=[-1] fieldid=-1 facets
+HISTORY >1 frame=1 distance='0',  phaseCenter='17:20:54.95,  324.14.48.00, ' mSt
+HISTORY >rt='Radialvelocity: 0' qStep='0 '' mFreqStart='Frequency: 0]
+HISTORY Thu Jan 23 16:33:51 2014  HISTORY imager::weight() [] Weighting MS: Imag
+HISTORY >ing weights will be changed
+HISTORY Thu Jan 23 16:33:51 2014  HISTORY imager::weight() [] Briggs weighting:
+HISTORY > sidelobes will be suppressed over full image
+HISTORY Thu Jan 23 16:38:29 2014  HISTORY imager::data selection [mode=none ncha
+HISTORY >n=[-1] start=[0] step=[1] mstart='Radialvelocity: 0' mstep='Radialveloc
+HISTORY >ty: 0' spectralwindowids=[] fieldids=[] msselect=]
+HISTORY Thu Jan 23 16:38:29 2014  HISTORY imager::defineimage() [Defining image
+HISTORY > properties:nx=500 ny=500 cellx='0.07arcsec' celly='0.07arcsec' stokes=
+HISTORY >' mode=CHANNEL nchan=40 start=1264 step=1 spwids=[-1] fieldid=-1 facets
+HISTORY >1 frame=1 distance='0',  phaseCenter='17:20:54.95,  324.14.48.00, ' mSt
+HISTORY >rt='Radialvelocity: 0' qStep='0 '' mFreqStart='Frequency: 0]
+HISTORY Thu Jan 23 16:38:32 2014  HISTORY imager::weight() [] Weighting MS: Imag
+HISTORY >ing weights will be changed
+HISTORY Thu Jan 23 16:38:32 2014  HISTORY imager::weight() [] Briggs weighting:
+HISTORY > sidelobes will be suppressed over full image
+HISTORY Thu Jan 23 16:38:37 2014  HISTORY imager::clean() [] Using multifield Cl
+HISTORY >ark clean
+HISTORY Thu Jan 23 16:38:37 2014  HISTORY imager::clean() [] Clean gain = 0.1, N
+HISTORY >iter = 0, Threshold = 0.3 mJy
+HISTORY Thu Jan 23 16:38:37 2014  HISTORY imager::clean() [] Continuing deconvol
+HISTORY >ution
+HISTORY Thu Jan 23 16:38:53 2014  HISTORY imager::clean() [] Threshhold not reac
+HISTORY >hed yet.
+HISTORY Thu Jan 23 16:38:53 2014  HISTORY imager::clean() [] Fitted beam used in
+HISTORY > restoration: 0.697081 by 0.385413 (arcsec) at pa -176.625 (deg)
+HISTORY Thu Jan 23 16:39:02 2014  HISTORY imager::iClean() [] Restoring Image(s)
+HISTORY > with the clean-beam
+HISTORY Thu Jan 23 16:39:25 2014  HISTORY imager::data selection [mode=none ncha
+HISTORY >n=[-1] start=[0] step=[1] mstart='Radialvelocity: 0' mstep='Radialveloc
+HISTORY >ty: 0' spectralwindowids=[] fieldids=[] msselect=]
+HISTORY Thu Jan 23 16:39:25 2014  HISTORY imager::defineimage() [Defining image
+HISTORY > properties:nx=500 ny=500 cellx='0.07arcsec' celly='0.07arcsec' stokes=
+HISTORY >' mode=CHANNEL nchan=40 start=1264 step=1 spwids=[-1] fieldid=-1 facets
+HISTORY >1 frame=1 distance='0',  phaseCenter='17:20:54.95,  324.14.48.00, ' mSt
+HISTORY >rt='Radialvelocity: 0' qStep='0 '' mFreqStart='Frequency: 0]
+HISTORY Thu Jan 23 16:39:26 2014  HISTORY imager::weight() [] Weighting MS: Imag
+HISTORY >ing weights will be changed
+HISTORY Thu Jan 23 16:39:26 2014  HISTORY imager::weight() [] Briggs weighting:
+HISTORY > sidelobes will be suppressed over full image
+HISTORY Thu Jan 23 16:40:40 2014  HISTORY imager::clean() [] Clean gain = 0.1, N
+HISTORY >iter = 100, Threshold = 0.3 mJy
+HISTORY Thu Jan 23 16:40:40 2014  HISTORY imager::clean() [] Continuing deconvol
+HISTORY >ution
+HISTORY Thu Jan 23 16:40:50 2014  HISTORY imager::clean() [] Threshhold not reac
+HISTORY >hed yet.
+HISTORY Thu Jan 23 16:40:56 2014  HISTORY imager::iClean() [] Restoring Image(s)
+HISTORY > with the clean-beam
+HISTORY Thu Jan 23 18:14:35 2014  HISTORY imager::data selection [mode=none ncha
+HISTORY >n=[-1] start=[0] step=[1] mstart='Radialvelocity: 0' mstep='Radialveloc
+HISTORY >ty: 0' spectralwindowids=[] fieldids=[] msselect=]
+HISTORY Thu Jan 23 18:14:35 2014  HISTORY imager::defineimage() [Defining image
+HISTORY > properties:nx=1400 ny=1400 cellx='0.07arcsec' celly='0.07arcsec' stoke
+HISTORY >=I' mode=CHANNEL nchan=460 start=1855 step=1 spwids=[-1] fieldid=-1 fac
+HISTORY >ts=1 frame=1 distance='0',  phaseCenter='17:20:54.95,  324.14.48.00, '
+HISTORY >Start='Radialvelocity: 0' qStep='0 '' mFreqStart='Frequency: 0]
+HISTORY Thu Jan 23 18:16:34 2014  HISTORY imager::weight() [] Weighting MS: Imag
+HISTORY >ing weights will be changed
+HISTORY Thu Jan 23 18:16:34 2014  HISTORY imager::weight() [] Briggs weighting:
+HISTORY > sidelobes will be suppressed over full image
+HISTORY Thu Jan 23 20:08:23 2014  HISTORY imager::data selection [mode=none ncha
+HISTORY >n=[-1] start=[0] step=[1] mstart='Radialvelocity: 0' mstep='Radialveloc
+HISTORY >ty: 0' spectralwindowids=[] fieldids=[] msselect=]
+HISTORY Thu Jan 23 20:08:23 2014  HISTORY imager::defineimage() [Defining image
+HISTORY > properties:nx=1200 ny=1200 cellx='0.07arcsec' celly='0.07arcsec' stoke
+HISTORY >=I' mode=CHANNEL nchan=460 start=1855 step=1 spwids=[-1] fieldid=-1 fac
+HISTORY >ts=1 frame=1 distance='0',  phaseCenter='17:20:54.95,  324.14.48.00, '
+HISTORY >Start='Radialvelocity: 0' qStep='0 '' mFreqStart='Frequency: 0]
+HISTORY Thu Jan 23 20:09:49 2014  HISTORY imager::weight() [] Weighting MS: Imag
+HISTORY >ing weights will be changed
+HISTORY Thu Jan 23 20:09:49 2014  HISTORY imager::weight() [] Briggs weighting:
+HISTORY > sidelobes will be suppressed over full image
+HISTORY Thu Jan 23 20:11:17 2014  HISTORY imager::clean() [] Using multifield Cl
+HISTORY >ark clean
+HISTORY Thu Jan 23 20:11:17 2014  HISTORY imager::clean() [] Clean gain = 0.1, N
+HISTORY >iter = 200, Threshold = 0.3 mJy
+HISTORY Thu Jan 23 20:11:17 2014  HISTORY imager::clean() [] Starting deconvolut
+HISTORY >ion
+HISTORY Thu Jan 23 20:29:25 2014  HISTORY imager::clean() [] Threshhold not reac
+HISTORY >hed yet.
+HISTORY Thu Jan 23 20:29:25 2014  HISTORY imager::clean() [] Fitted beam used in
+HISTORY > restoration: 0.664282 by 0.358456 (arcsec) at pa 3.82785 (deg)
+HISTORY Thu Jan 23 20:29:39 2014  HISTORY imager::iClean() [] Restoring Image(s)
+HISTORY > with the clean-beam
+HISTORY Thu Jan 23 20:45:47 2014  HISTORY imager::data selection [mode=none ncha
+HISTORY >n=[-1] start=[0] step=[1] mstart='Radialvelocity: 0' mstep='Radialveloc
+HISTORY >ty: 0' spectralwindowids=[] fieldids=[] msselect=]
+HISTORY Thu Jan 23 20:45:47 2014  HISTORY imager::defineimage() [Defining image
+HISTORY > properties:nx=1200 ny=1200 cellx='0.07arcsec' celly='0.07arcsec' stoke
+HISTORY >=I' mode=CHANNEL nchan=460 start=1855 step=1 spwids=[-1] fieldid=-1 fac
+HISTORY >ts=1 frame=1 distance='0',  phaseCenter='17:20:54.95,  324.14.48.00, '
+HISTORY >Start='Radialvelocity: 0' qStep='0 '' mFreqStart='Frequency: 0]
+HISTORY Thu Jan 23 20:47:05 2014  HISTORY imager::weight() [] Weighting MS: Imag
+HISTORY >ing weights will be changed
+HISTORY Thu Jan 23 20:47:05 2014  HISTORY imager::weight() [] Briggs weighting:
+HISTORY > sidelobes will be suppressed over full image
+HISTORY Thu Jan 23 20:49:14 2014  HISTORY imager::clean() [] Using multifield Cl
+HISTORY >ark clean
+HISTORY Thu Jan 23 20:49:14 2014  HISTORY imager::clean() [] Clean gain = 0.1, N
+HISTORY >iter = 200, Threshold = 0.3 mJy
+HISTORY Thu Jan 23 20:49:14 2014  HISTORY imager::clean() [] Starting deconvolut
+HISTORY >ion
+HISTORY Thu Jan 23 21:12:43 2014  HISTORY imager::clean() [] Threshhold not reac
+HISTORY >hed yet.
+HISTORY Thu Jan 23 21:12:43 2014  HISTORY imager::clean() [] Fitted beam used in
+HISTORY > restoration: 0.69749 by 0.442672 (arcsec) at pa -175.052 (deg)
+HISTORY Thu Jan 23 21:13:01 2014  HISTORY imager::iClean() [] Restoring Image(s)
+HISTORY > with the clean-beam
+HISTORY Fri Jan 24 16:59:36 2014  HISTORY imager::data selection [mode=none ncha
+HISTORY >n=[-1] start=[0] step=[1] mstart='Radialvelocity: 0' mstep='Radialveloc
+HISTORY >ty: 0' spectralwindowids=[] fieldids=[] msselect=]
+HISTORY Fri Jan 24 16:59:36 2014  HISTORY imager::defineimage() [Defining image
+HISTORY > properties:nx=800 ny=800 cellx='0.07arcsec' celly='0.07arcsec' stokes=
+HISTORY >' mode=CHANNEL nchan=10 start=1855 step=1 spwids=[-1] fieldid=-1 facets
+HISTORY >1 frame=1 distance='0',  phaseCenter='17:20:55.00,  324.14.40.00, ' mSt
+HISTORY >rt='Radialvelocity: 0' qStep='0 '' mFreqStart='Frequency: 0]
+HISTORY Fri Jan 24 16:59:38 2014  HISTORY imager::weight() [] Weighting MS: Imag
+HISTORY >ing weights will be changed
+HISTORY Fri Jan 24 16:59:38 2014  HISTORY imager::weight() [] Briggs weighting:
+HISTORY > sidelobes will be suppressed over full image
+HISTORY Fri Jan 24 16:59:43 2014  HISTORY imager::clean() [] Using multifield Cl
+HISTORY >ark clean
+HISTORY Fri Jan 24 16:59:43 2014  HISTORY imager::clean() [] Clean gain = 0.1, N
+HISTORY >iter = 200, Threshold = 0.3 mJy
+HISTORY Fri Jan 24 16:59:43 2014  HISTORY imager::clean() [] Starting deconvolut
+HISTORY >ion
+HISTORY Fri Jan 24 17:00:07 2014  HISTORY imager::clean() [] Threshhold not reac
+HISTORY >hed yet.
+HISTORY Fri Jan 24 17:00:07 2014  HISTORY imager::clean() [] Fitted beam used in
+HISTORY > restoration: 0.699626 by 0.445556 (arcsec) at pa -175.057 (deg)
+HISTORY Fri Jan 24 17:00:07 2014  HISTORY imager::iClean() [] Restoring Image(s)
+HISTORY > with the clean-beam
+HISTORY Fri Jan 24 17:05:43 2014  HISTORY imager::data selection [mode=none ncha
+HISTORY >n=[-1] start=[0] step=[1] mstart='Radialvelocity: 0' mstep='Radialveloc
+HISTORY >ty: 0' spectralwindowids=[] fieldids=[] msselect=]
+HISTORY Fri Jan 24 17:05:43 2014  HISTORY imager::defineimage() [Defining image
+HISTORY > properties:nx=800 ny=800 cellx='0.07arcsec' celly='0.07arcsec' stokes=
+HISTORY >' mode=CHANNEL nchan=460 start=1855 step=1 spwids=[-1] fieldid=-1 facet
+HISTORY >=1 frame=1 distance='0',  phaseCenter='17:20:55.00,  324.14.40.00, ' mS
+HISTORY >art='Radialvelocity: 0' qStep='0 '' mFreqStart='Frequency: 0]
+HISTORY Fri Jan 24 17:06:17 2014  HISTORY imager::weight() [] Weighting MS: Imag
+HISTORY >ing weights will be changed
+HISTORY Fri Jan 24 17:06:17 2014  HISTORY imager::weight() [] Briggs weighting:
+HISTORY > sidelobes will be suppressed over full image
+HISTORY Fri Jan 24 17:06:33 2014  HISTORY imager::clean() [] Using multifield Cl
+HISTORY >ark clean
+HISTORY Fri Jan 24 17:06:33 2014  HISTORY imager::clean() [] Clean gain = 0.1, N
+HISTORY >iter = 2000, Threshold = 60 mJy
+HISTORY Fri Jan 24 17:06:33 2014  HISTORY imager::clean() [] Starting deconvolut
+HISTORY >ion
+HISTORY Fri Jan 24 17:22:27 2014  HISTORY imager::clean() [] Successfully deconv
+HISTORY >olved image
+HISTORY Fri Jan 24 17:22:27 2014  HISTORY imager::clean() [] Fitted beam used in
+HISTORY > restoration: 0.69778 by 0.444271 (arcsec) at pa -175.083 (deg)
+HISTORY Fri Jan 24 17:22:33 2014  HISTORY imager::iClean() [] Restoring Image(s)
+HISTORY > with the clean-beam
+HISTORY Fri Jan 24 17:46:44 2014  HISTORY imager::data selection [mode=none ncha
+HISTORY >n=[-1] start=[0] step=[1] mstart='Radialvelocity: 0' mstep='Radialveloc
+HISTORY >ty: 0' spectralwindowids=[] fieldids=[] msselect=]
+HISTORY Fri Jan 24 17:46:44 2014  HISTORY imager::defineimage() [Defining image
+HISTORY > properties:nx=800 ny=800 cellx='0.07arcsec' celly='0.07arcsec' stokes=
+HISTORY >' mode=CHANNEL nchan=2404 start=1 step=1 spwids=[-1] fieldid=-1 facets=
+HISTORY > frame=1 distance='0',  phaseCenter='17:20:55.00,  324.14.40.00, ' mSta
+HISTORY >t='Radialvelocity: 0' qStep='0 '' mFreqStart='Frequency: 0]
+HISTORY Fri Jan 24 17:50:42 2014  HISTORY imager::weight() [] Weighting MS: Imag
+HISTORY >ing weights will be changed
+HISTORY Fri Jan 24 17:50:42 2014  HISTORY imager::weight() [] Briggs weighting:
+HISTORY > sidelobes will be suppressed over full image
+HISTORY Fri Jan 24 17:52:44 2014  HISTORY imager::clean() [] Using multifield Cl
+HISTORY >ark clean
+HISTORY Fri Jan 24 17:52:44 2014  HISTORY imager::clean() [] Clean gain = 0.1, N
+HISTORY >iter = 1000, Threshold = 60 mJy
+HISTORY Fri Jan 24 17:52:44 2014  HISTORY imager::clean() [] Starting deconvolut
+HISTORY >ion
+HISTORY Fri Jan 24 20:02:28 2014  HISTORY imager::clean() [] Successfully deconv
+HISTORY >olved image
+HISTORY Fri Jan 24 20:02:28 2014  HISTORY imager::clean() [] Fitted beam used in
+HISTORY > restoration: 0.69749 by 0.443979 (arcsec) at pa -175.089 (deg)
+HISTORY Fri Jan 24 20:10:01 2014  HISTORY imager::iClean() [] Restoring Image(s)
+HISTORY > with the clean-beam
+HISTORY CASA END LOGTABLE
+END
