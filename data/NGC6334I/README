@@ -1,17 +1,34 @@
 NGC6334I.fits
 
     - 800 x 800 x 2404 x 1 
+    - 6.0 GB
     - modestly complex structure. several isolated sources, 
       some which are slightly extended, 
       with multiple spectral lines
+    - noise about 30 mJy/beam
+    - peak value 688 mJy/beam
 
 NGC6334Isub.fits
 
     - smaller 241 x 226 x 2404
+    - 511 MB
+    - still contains most of the essential structure,
+      most of the blobs are in the north-west region of the map
+    - last 10 channels are no good (2395..2404)
 
 
 
 Original filename:  IN_VEX220.LINE_hannR1.image 
     - this image may have been 800 x 800 x 1 x 2404 
       which also shows the complexity of degenerate axes
+    - SMA data (C.Brogan?)
 
+
+sample benchmark:
+
+$MIRBIN/fits in=NGC6334I.fits out=junk.mir op=xyin
+   peter's laptop:  22.181u 9.422s 2:36.45 20.1%	0+0k 12025568+12407832io 25pf+0w
+$MIRBIN/histo in=junk.mir
+                    26.545u 5.181s 2:03.57 25.6%	0+0k 23671840+8io 20pf+0w
+$MIRBIN/moment in=junk.mir out=junk.mir/mom0 mom=0
+                    14.348u 2.527s 0:58.41 28.8%	0+0k 11541096+5264io 13pf+0w
