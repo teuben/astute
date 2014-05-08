@@ -12,5 +12,11 @@ and "hexdump -C" gives the following 96 values:
 000016c0  42 dc 00 00 42 de 00 00  42 e0 00 00 42 e2 00 00  |B...B...B...B...|
 000016d0  42 f0 00 00 42 f2 00 00  42 f4 00 00 42 f6 00 00  |B...B...B...B...|
 
+The datamin at (0,0,0) is 0, the datamax at (4,3,2) is 123.0
+
+Create in NEMO as follows:
+
+ccdmath out=- fie='%x+10*%y+100*%z' size=4,3,2 cdelt=-0.01,0.01,1000 | ccdfits - cube432.fits radecvel=true
+
 
 files: cube432.fits
