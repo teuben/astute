@@ -1,6 +1,13 @@
 A small 61 x 61 x 27 data cube that was used in the original clumpfind
 paper. The clf.fits file is the enumerated mask, which can be compared
 to other clump assignment methods.
+Rosette 13CO V = 3.70276 to 4.38286 km/s
+
+Note the fits file contains 39533/100467 (39.35%) bad pixels (NaN).
+
+Note this file is a GLON-GLAT-VELO cube, not the usual RA-DEC-VEL.
+
+The ros13co.mom0.png display an integrated view in LB and BV
 
 ros13co.fits
 ros13co.clf.fits
