@@ -19,10 +19,10 @@ NGC6334Isub.fits
 
 
 Original filename:  IN_VEX220.LINE_hannR1.image 
-    - this image may have been 800 x 800 x 1 x 2404 
+    - SMA data
+    - this image may have been 800 x 800 x 1 x 2404 in CASA
       which also shows the complexity of degenerate axes
-    - SMA data (C.Brogan?)
-
+    - Hunter et al. 2014 arxiv/1405.0496
 
 sample benchmark:
 
