@@ -1,0 +1,55 @@
+#! /bin/csh -f
+#
+#   example low level running of admit on a single fits file
+#
+#
+
+unset fits       # required
+unset to         # optional
+
+#                parse arguments
+foreach arg ($*)
+  set $arg
+end
+#                                 various sanity checks
+if ($?fits == 0) then
+  echo Need fits=
+  exit 1
+endif
+
+if (! -e $fits) then
+  echo File fits=$fits does not exist
+  exit 1
+endif
+
+set dir=$fits:t
+set adir=${dir:r}.admit
+
+if (-d $adir) then
+  echo Directory $adir already exists
+  exit 1
+endif
+
+
+#                                 work can start
+
+mkdir $adir
+cd $adir
+
+#                                 always use a local reference to run against
+#                                 decide if absolute or relative symlink
+set check1=`echo $fits | cut -c1`
+if ($check1 == '/') then
+   ln -s $fits
+else
+   ln -s ../$fits
+endif
+
+#                                 store
+pipeset -c project=$dir:r fits=$dir
+#
+#
+echo 'ADMIT> ' $dir:r
+if ($?to) then
+  echo 'ADMIT>' '*** ignoring' to=$to
+endif
