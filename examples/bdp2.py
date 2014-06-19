@@ -1,5 +1,8 @@
 #
 # simple dependency/graph theory of BDP's
+# this shows a way to build a dependency tree of BDP's
+# @todo the parameter dependence (set via an ADMIT-Task) is not set
+# 
 #
 
 class bdp(object):
