@@ -3,19 +3,30 @@
 
 set fits=$1
 set dir=$2
+set n=$3
 
-if ($#argv != 2) then
-  echo usage: $0 fits-file working-directory
+if ($#argv != 3) then
+  echo usage: $0 fits-file working-directory n
   exit 1
 endif
 
 # here are the commands if the benchmark cube don't exist
-if (0) then
-  set cube=1024,1024,1024
-  set slab=4096,4096,64 
-  set stick=128,128,65536 
+if ($n > 0) then
+  set n1=$n
+  set n2=`expr $n1 \* 4`
+  set n3=`expr $n1 / 16`
+  set n4=`expr $n1 / 8`
+  set n5=`expr $n1 \* 64`
+  set cube=$n1,$n1,$n1
+  set slab=$n2,$n2,$n3
+  set stick=$n4,$n4,$n5
+
+  echo cube  : $cube
+  echo slab  : $slab
+  echo stick : $stick
 
   if ($?NEMO) then
+    echo NEMO $NEMO  n=$n
     set pars_ccdgen=(object=noise spar=1 seed=123)
     set pars_ccdfits=(radecvel=true)
 
@@ -29,6 +40,7 @@ if (0) then
   endif
 
   if ($?MIR) then
+    echo MIRIAD $MIR  n=$n
     set pars_imgen=(object=noise spar=1)
     set pars_fits=(op=xyout)
 
@@ -40,6 +52,9 @@ if (0) then
     time fits in=bench-slab.mir  out=bench-slab.fits  $pars_fits
     time fits in=bench-stick.mir out=bench-stick.fits $pars_fits
   endif
+
+  exit 0
+
 endif
 
 mkdir -p $dir
