@@ -4,21 +4,25 @@
 
 
 class Project(object):
+    """Project just has a name and sources"""
     def __init__(self,name):
         self.name = name
         self.source = {}
 
 class Source(object):
+    """Source has bands, lines and possibly a lot more"""
     def __init__(self,name):
         self.name = name
         self.band = {}
         self.line = {}
 
 class Band(object):
+    """Band has a cube, and some stats and linelist """
     def __init__(self,name):
         self.name = name
 
 class Line(object):
+    """Line has a cube, and possibly a lot more"""
     def __init__(self,name,freq,p=1.0):
         self.name = name
         self.freq = freq
@@ -32,8 +36,8 @@ b1 = Band('1')
 b2 = Band('2')
 b3 = Band('3')
 b4 = Band('4')
-l1 = Line('co',115.27)
-l2 = Line('hcn',88.21)
+l1 = Line('co',115.271204)
+l2 = Line('hcn',88.6318473)
 
 p1.source[s1.name] = s1  # deeper
 p1.source[s2.name] = s2
