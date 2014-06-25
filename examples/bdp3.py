@@ -15,6 +15,7 @@ class BDP(object):
         self.deps    = []
         self.derv    = []
         self.task    = None
+        print "BDP(%s) " % name
     def show(self):
         return self.name
     def update(self,new_state):
@@ -42,8 +43,8 @@ class BDP(object):
         print "BDP::%s running" % self.name
         if self.task == None:
             print " Warning: no task set ???"
+            # raise ?
         else:
-            # ah, but what about return BDP ???
             self.task.run()
         self.updated = True
         return True
@@ -56,21 +57,25 @@ class AT(object):
     name    = 'generic'
     version = '1.0'
     keys    = ['alpha', 'beta', 'gamma']
-    def __init__(self,bdp_in=[],bdp_out=[],name='none'):
+    def __init__(self,name='none',bdp_in=[],bdp_out=[]):
         print "AT(%s)" % name
         self.name    = name
         self.bdp_in  = bdp_in
         self.bdp_out = bdp_out
+        for b2 in bdp_out:
+            b2.task = self
+            for b1 in bdp_in:
+                b2.depends_on(b1)
     def show(self):
         return self.name
     def run(self):
         print "run(%s)" % self.name
-        b = BDP('bdp::' + self.name)
-        for i in self.bdp_in:
-            b.depends_on(i)
-        b.task = self
-        self.bdp_out.append(b)
-        return b
+        for b2 in self.bdp_out:
+            b2.updated = True
+    def set(self,keyval):
+        for b2 in self.bdp_out:
+            if b2.updated:
+                b2.update(False)
     def rerun(self):
         print "rerun(%s)" % self.name
     def report(self):
@@ -81,32 +86,36 @@ bdps = []
 
 #  b0 + b1 -> [a2] -> b2 -> [a3] -> b3
 #  also , this doesn't establish filenames
-a0 = AT(name='foobar0.fits')     
-b0 = a0.run()       ; bdps.append(b0)
 
-a1 = AT(name='foobar1.fits')
-b1 = a1.run()                    ; bdps.append(b1)
+b0 = BDP('foobar0.fits')          ; bdps.append(b0)
+b1 = BDP('foobar1.fits')          ; bdps.append(b1)
+a0 = AT('ingest',[],[b0])      
+a1 = AT('ingest',[],[b1])      
+a0.run()
+a1.run()
 
-a2 = AT([b0,b1], [], name='a2')
-b2 = a2.run()                    ; bdps.append(b2)
-a3 = AT([b2], [], name='a3')
-b3 = a3.run()                    ; bdps.append(b3)
+
+b2 = BDP('foobar2.cim')           ; bdps.append(b2)
+a2 = AT('combine',[b0,b1],[b2])
+a2.run() 
+print a2.show()
+
+b3 = BDP('foobar3.cim')           ; bdps.append(b3)
+a3 = AT('flow3',[b2],[b3])
+a3.run()
+print a3.show()
+
 
 for b in bdps:
     print "b-SHOW: ",b.show()
-
 for a in [a2,a3]:
     print "a-SHOW: ",a.show()
 
-
+print "### these should now be up to date"
 for b in bdps:
-    print "B:",b.show()
-    print "A:",b.task.show()
-    # b.task.rerun()
     b.run()
-
+print "### a1.set()"
+a1.set('alpha=1.0')
+print "### these should now be creating new b2 and down"
 for b in bdps:
-    print "B2:",b.show()
-    print "A2:",b.task.show()
-    # b.task.rerun()
     b.run()
