@@ -1,0 +1,44 @@
+BDP Summary depends on SPWcube
+BDP CubeStats depends on SPWcube
+BDP LineList depends on CubeStats
+BDP LineCube depends on LineList
+BDP LineCubeStats depends on LineCube
+BDP CubeMom0 depends on CubeStats
+BDP PosVelMap depends on CubeMom0
+BDP XCorrList depends on PosVelMap
+BDP LineList depends on XCorrList
+BDP LC_1 depends on LineCube
+BDP LC_1_m0 depends on LC_1
+UPDATE: SPWcube
+UPDATE: Summary
+UPDATE: CubeStats
+UPDATE: LineList
+UPDATE: LineCube
+UPDATE: LineCubeStats
+UPDATE: LC_1
+UPDATE: LC_1_m0
+UPDATE: CubeMom0
+UPDATE: PosVelMap
+UPDATE: XCorrList
+UPDATE: LineList
+UPDATE: LineCube
+UPDATE: LineCubeStats
+UPDATE: LC_1
+UPDATE: LC_1_m0
+UPDATE: XCorrList
+UPDATE: LineList
+UPDATE: LineCube
+UPDATE: LineCubeStats
+UPDATE: LC_1
+UPDATE: LC_1_m0
+BDP::SPWcube was up to date
+BDP::Summary was up to date
+BDP::CubeStats was up to date
+BDP::LineList running
+BDP::LineCube running
+BDP::LineCubeStats running
+BDP::CubeMom0 was up to date
+BDP::PosVelMap was up to date
+BDP::XCorrList running
+BDP::LC_1 running
+BDP::LC_1_m0 running
