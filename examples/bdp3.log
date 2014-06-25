@@ -1,0 +1,40 @@
+BDP(foobar0.fits) 
+BDP(foobar1.fits) 
+AT(ingest)
+AT(ingest)
+run(ingest)
+run(ingest)
+BDP(foobar2.cim) 
+AT(combine)
+BDP foobar2.cim depends on foobar0.fits
+BDP foobar2.cim depends on foobar1.fits
+run(combine)
+combine
+BDP(foobar3.cim) 
+AT(flow3)
+BDP foobar3.cim depends on foobar2.cim
+run(flow3)
+flow3
+b-SHOW:  foobar0.fits
+b-SHOW:  foobar1.fits
+b-SHOW:  foobar2.cim
+b-SHOW:  foobar3.cim
+a-SHOW:  combine
+a-SHOW:  flow3
+### these should now be up to date
+BDP::foobar0.fits was up to date
+BDP::foobar1.fits was up to date
+BDP::foobar2.cim was up to date
+BDP::foobar3.cim was up to date
+### a1.set()
+UPDATE: foobar1.fits
+UPDATE: foobar2.cim
+UPDATE: foobar3.cim
+### these should now be creating new b2 and down
+BDP::foobar0.fits was up to date
+BDP::foobar1.fits running
+run(ingest)
+BDP::foobar2.cim running
+run(combine)
+BDP::foobar3.cim running
+run(flow3)
