@@ -1,0 +1,65 @@
+BDP(fits) 
+BDP(SPWcube) 
+AT.init(ingest)
+BDP SPWcube depends on fits
+AT.run(ingest)
+BDP(Summary) 
+AT.init(Summary)
+BDP Summary depends on SPWcube
+AT.run(Summary)
+BDP(CubeStats) 
+AT.init(CubeStats)
+BDP CubeStats depends on SPWcube
+AT.run(CubeStats)
+BDP(LineList) 
+AT.init(LineList)
+BDP LineList depends on CubeStats
+AT.run(LineList)
+BDP(LineCube) 
+AT.init(LineCube)
+BDP LineCube depends on SPWcube
+BDP LineCube depends on LineList
+AT.run(LineCube)
+BDP(Mom0) 
+AT.init(Mom0)
+BDP Mom0 depends on LineCube
+AT.run(Mom0)
+BDP(Mom0PNG) 
+AT.init(Mom0PNG)
+BDP Mom0PNG depends on Mom0
+AT.run(Mom0PNG)
+BDP(fits) 
+AT.init(export)
+BDP fits depends on Mom0
+AT.run(export)
+===============   Running pipeline =============
+BDP::fits running
+ Warning: no task set ???
+BDP::SPWcube was up to date
+BDP::Summary was up to date
+BDP::CubeStats was up to date
+BDP::LineList was up to date
+BDP::LineCube was up to date
+BDP::Mom0 was up to date
+BDP::Mom0PNG was up to date
+BDP::fits was up to date
+UPDATE: LineList
+UPDATE: LineCube
+UPDATE: Mom0
+UPDATE: Mom0PNG
+UPDATE: fits
+===============   Running pipeline =============
+BDP::fits was up to date
+BDP::SPWcube was up to date
+BDP::Summary was up to date
+BDP::CubeStats was up to date
+BDP::LineList running
+AT.run(LineList)
+BDP::LineCube running
+AT.run(LineCube)
+BDP::Mom0 running
+AT.run(Mom0)
+BDP::Mom0PNG running
+AT.run(Mom0PNG)
+BDP::fits running
+AT.run(export)
