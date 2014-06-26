@@ -1,19 +1,19 @@
 #
 # admit tinkertoy, just for a single fits file in the GENERIC telescope model.
-# this is the one that mirrors more like bdp4.py with arbitrary bdp in/out
+# this is the one that mirrors more like bdp4.py with arbitrary # bdp in/out
 #
 
 
 #  a's   are ADMIT Tasks
 #  b's   are BDP's
-#  p's   are Parameters
+#  p's   are Parameters (barely used)
 
 
 # from ADMIT import *
 
 b0 = BDP('fits','foobar.fits')
 b1 = BDP('SPWcube','foobar.cim')       # b1 is the input SPWcube where it all starts from
-a1 = AT_Ingest([b0],[b1])
+a1 = AT_Ingest([b0],[b1])              # like:  AT("Ingest",[b0],[b1])  
 a1.run()
 
 b2 = BDP('Summary','foobar.summary')
