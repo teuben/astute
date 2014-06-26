@@ -214,6 +214,10 @@ def try2():
     a7 = AT('Mom0PNG',[b6],[b7])
     a7.run()
 
+    b8 = BDP('fits','foobar.CO.mom0.fits')        ; bdps.append(b8)
+    a8 = AT('export',[b6],[b8]);
+    a8.run()
+
     #
     pipeline(bdps)
     a4.set('clip=2')
