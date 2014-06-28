@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 #
 # simple dependency/graph theory of BDP's
 # this shows a way to build a dependency tree of BDP's
@@ -6,7 +7,17 @@
 #    BDP's are always needed as input/output for an AT, they will
 #    then be contained within an AT
 #    
+#  bench:
+#    1 1000    0.04      1000   1   0.07"
+#    1 10000   0.35"     10000  1   0.88
+#    1 100000  4.5"      100000 1  10.4
 #
+#    100 100   0.35
+#   1000 100   4.3
+#    100 1000  4.6
+#   1000 1000  45"    (6GB memory!)
+
+import sys
 
 
 _debug = False
@@ -21,15 +32,15 @@ class ADMIT(object):
 
 class BDP(object):
     def __init__(self, name='none', filename='foobar'):
-        self.name    = name
-        self.updated = False
-        self.deps    = []
-        self.derv    = []
-        self.task    = None
+        self.name     = name
+        self.filename = filename
+        self.updated  = False
+        self.deps     = []
+        self.derv     = []
+        self.task     = None
         if _debug: print "BDP(%s) " % name
     def show(self):
         return self.name
-
     def update(self,new_state):
         if _debug: print "UPDATE: %s" % self.name
         self.updated = new_state
@@ -52,9 +63,9 @@ class BDP(object):
         if _debug: print "BDP::set %s" % keyval
     def run(self):
         if self.updated: 
-            if _debug: print "BDP::%s was up to date" % self.name
+            if _debug: print "BDP::%s (%s) was up to date" % (self.name,self.filename)
             return False
-        if _debug: print "BDP::%s running" % self.name
+        if _debug: print "BDP::%s (%s) running" % (self.name,self.filename)
         if self.task == None:
             if _debug: print " Warning: no task set ???"
             # raise ?
@@ -258,8 +269,7 @@ def try2(nlines=1):
 #  1000   100   2.5
 #   100  1000   3.7
 
-def try3(np=nprojects,nl=nlines,debug=False):
-    _debug = debug
+def try3(np=nprojects,nl=nlines):
     print "Nprojects: %d  Nlines: %d" % (np,nl)
     projects = range(np)
     for i in range(np):
@@ -274,6 +284,11 @@ def try3(np=nprojects,nl=nlines,debug=False):
         for b in projects[i].bdps:
             b.run()
 
-#try1()
-#try2()
-try3(1,10,True)
+if __name__ == "__main__":
+    if len(sys.argv) == 1:
+        try3()
+    elif len(sys.argv) > 2:
+        np = int(sys.argv[1])
+        nl = int(sys.argv[2])
+        if len(sys.argv) > 3: _debug = True
+        try3(np,nl)
