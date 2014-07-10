@@ -1,8 +1,10 @@
 #! /usr/bin/env python
 #
 #  add fixes for  b1 -> [a1] -> b1
-
+#
+#
 import sys
+import copy
 
 _debug = False
 _debug = True
@@ -14,6 +16,43 @@ class ADMIT(object):
     def __init__(self, name='none'):
         self.name    = name
         self.bdps    = []
+    def __len__(self):
+        return len(self.bdps)
+    def __eq__(self, other):
+        return isinstance(other, ADMIT) and vars(self) == vars(other)
+    def add(self, b):
+        """Add a BDP to the stack of BDP's this ADMIT pipeline contains"""
+        b1 = copy.deepcopy(b)
+        self.bdps.append(b1)
+    def set(self,a=None, b=1, c=[]):
+        """set a global ADMIT parameter
+           The idea is that these are obtained through introspection
+        """
+        print "ADMIT: set" 
+        if a != None:  print 'a: ',a
+    def get(self,key):
+        """get a global ADMIT parameter"""
+        print "ADMIT: get=%s" % key
+    def print_methods(self):
+        """ print all the methods of this object and their doc string"""
+        print '\n* Methods *'
+        for names in dir(self):
+            attr = getattr(self,names)
+            if callable(attr):
+                print names,':',attr.__doc__
+    def print_attributes(self):
+        """ print all the attributes of this object and their value """
+        print '* Attributes *'
+        for names in dir(self):
+            attr = getattr(self,names)
+            if not callable(attr):
+                print names,':',attr
+    def print_all(self):
+        """ calls all the methods of this object """
+        for names in dir(self):
+            attr = getattr(self,names)
+            if callable(attr) and names != 'print_all' and names != '__init__':
+                attr() # calling the method
 
 class BDP(object):
     def __init__(self, name='none', filename='foobar'):
@@ -148,6 +187,10 @@ class AT_flow(AT):
     def __init__(self,bdp_in=[],bdp_out=[]):
         if _debug: print "AT_flow.init"
         AT.__init__(self,self.name,bdp_in,bdp_out)
+        set_keys=self.set.im_func.func_code.co_varnames
+        set_vals=self.set.im_func.func_defaults
+        print 'keys:',set_keys
+        print 'vals:',set_vals
     # note the deliberate bug to not implement the .run() here
     def run(self):
         if _debug: print "AT_flow.run"
@@ -155,6 +198,12 @@ class AT_flow(AT):
             return False
         # specialized work can commence here
         print "  work_flow: %d -> %d" % (len(self.bdp_in),len(self.bdp_out))
+    def set(self,a=None, b=1, c=[], d='d'):
+        """AT.set() is the way parameters are passed"""
+        print "AT.set"
+    def get(self,key):
+        """AT.get() retrieved current values"""
+        print "AT.get"
 
 class AT_flow2(AT):
     name = 'FLOW2'
@@ -172,9 +221,12 @@ class AT_flow2(AT):
         print "  work_flow2: %d -> %d" % (len(self.bdp_in),len(self.bdp_out))
 
 
-
+# running a series of BDP's is not right if BDP's can have different state
+# but this is one way to run the pipeline.
+# it is also assumed the BDPs are sorted in the right order, so no BDP
+# depends on a BDP later in the list
 def pipeline(bdps):
-    if _debug: print "===============   Running pipeline ============="
+    if _debug: print "===============   Running BDP based pipeline ============="
     for b in bdps:
         b.run()
 
@@ -187,7 +239,6 @@ def try1(do_show=True, do_dep=True):
     a1 = AT_ingest([],[b1])      
     a0.run()
     a1.run()
-
 
 
     b2 = BDP('foobar2.cim')           ; bdps.append(b2)
@@ -217,23 +268,30 @@ def try1(do_show=True, do_dep=True):
 def try1a(do_show=True, do_dep=True):
     _debug = True
     print "TRY1a"
-    bdps = []
-    b0 = BDP('foobar0.fits')          ; bdps.append(b0)
+    a = ADMIT("TRY1a")
+    b0 = BDP('foobar0.fits')          ; a.add(b0)
     a1 = AT_ingest([],[b0])      
     a1.run()
 
-    b1 = BDP('foobar1.cim')           ; bdps.append(b1)
+    b1 = BDP('foobar1.cim')           ; a.add(b1)
     a2 = AT_flow([b0],[b1])
     a2.run()
 
     a3 = AT_flow2([b1],[b1])   
     a3.run()
+
     #
-    a1.set('junk')
-    pipeline(bdps)
+    if True:
+        print "all b.show:"
+        for b in a.bdps:
+            print " ",b.show()
 
-
-
+    #
+    if False:
+        a.print_methods()
+        a.print_attributes()
+        # a.print_all()
+    return a
 
 def try2(nlines=1):
     bdps = []
@@ -323,4 +381,10 @@ if __name__ == "__main__3":
         try3(np,nl)
 
 if __name__ == "__main__":
-    try1a()
+    a=try1a()
+    print "NOW TESTING"
+    a.set('aaa=1')
+    if True:
+        af = AT_flow()
+        af.set()
+
