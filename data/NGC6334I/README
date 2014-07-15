@@ -28,7 +28,11 @@ sample benchmark:
 
 $MIRBIN/fits in=NGC6334I.fits out=junk.mir op=xyin
    peter's laptop:  22.181u 9.422s 2:36.45 20.1%	0+0k 12025568+12407832io 25pf+0w
+   dante raid0:     13.137u 5.011s 0:26.25 69.1%	0+0k 1073528+12407832io 4pf+0w
 $MIRBIN/histo in=junk.mir
                     26.545u 5.181s 2:03.57 25.6%	0+0k 23671840+8io 20pf+0w
+		    15.678u 1.738s 0:17.47 99.5%	0+0k 192+8io 2pf+0w
 $MIRBIN/moment in=junk.mir out=junk.mir/mom0 mom=0
                     14.348u 2.527s 0:58.41 28.8%	0+0k 11541096+5264io 13pf+0w
+		     9.270u 0.767s 0:10.07 99.6%	0+0k 72+5256io 1pf+0w
+
