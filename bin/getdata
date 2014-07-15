@@ -12,6 +12,10 @@
 #   from astute
 import astute, alines, parfile
 import sys, os
+import numpy  as np   
+
+from astropy.table import Table
+
 
 #    report
 print "@ASTUTE: getdata"
@@ -32,10 +36,24 @@ print "ARGV: ",sys.argv
 os.system('ln -s %s %s' % (a_fits,f_fits))
 
 #    do work
-if True
+if False:
     print "casa::importfits ",f_fits
     importfits(a_fits, f_im, overwrite=True)
+
+#    do a CubeStats type thing
+if True:
     print "casa::imstat"
-    s = imstat(f_im,axes=[0,1],logfile='imstat.tab',append=False)
+    s = imstat(f_im,axes=[0,1],logfile='imstat.logfile',append=False)
+    if True:
+        # strange we need to do it this way.. imstat::s doesn't have them, the logfile does
+	h = imhead(f_im,mode='list')
+	n = h['shape'][2]
+	p = h['crpix3']
+	d = h['cdelt3']
+	v = h['crval3']
+	ch = np.arange(n) + 1
+	fr = (ch-p-1)*d + v
+    t = Table([ ch, fr, s['rms'], s['sigma']], names=('#channel','frequency','rms','sigma'))
+    t.write('imstat.astropy.tab',format='ascii')
 
 
