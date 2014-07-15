@@ -25,12 +25,17 @@ a_fits = a.resolve(p.get('fits'))
 f_fits = 'im.fits'
 f_im   = 'im'
 
+#    debug
+print "ARGV: ",sys.argv
+
 #    we like to keep/fake the fits file locally
 os.system('ln -s %s %s' % (a_fits,f_fits))
 
 #    do work
-print "casa::importfits ",f_fits
-importfits(a_fits, f_im, overwrite=True)
-print "casa::imstat"
-s = imstat(f_im,axes=[0,1],logfile='imstat.tab',append=False)
+if True
+    print "casa::importfits ",f_fits
+    importfits(a_fits, f_im, overwrite=True)
+    print "casa::imstat"
+    s = imstat(f_im,axes=[0,1],logfile='imstat.tab',append=False)
+
 
