@@ -1,9 +1,13 @@
 #! /bin/csh -f 
 #
 #  you probably need to run this via sudo or as root
+#  on some systemps this might be known as drop_caches
 
 
 echo -n "HIT ENTER TO CONTINUE:"
 set ans=$<
 
+sync
+sync
+#   /sbin/sysctl vm.drop_caches=3
 echo 1 > /proc/sys/vm/drop_caches
