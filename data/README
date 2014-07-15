@@ -1,16 +1,24 @@
 New Design (May 2014):
 
-- Only reference material is present, datasets will need to be
-  downloaded (wget/curl/rsync/scp/ln/ln-s) from a nearby archive
+- Only reference material is initially present here, for bigger datasets
+  these will need to be downloaded (wget/curl/rsync/scp/ln/ln-s) from 
+  a nearby archive (special procedures are given)
 
 - each directory will contain the reference material for one (or more)
-  FITS file, usually a data cube. A human readable README file should 
-  always be present, as well as the FITS header. A representative PNG
-  is sometimes available to guide the user if the data should be the
-  one they want from the archive.
+  FITS file(s), usually a data cube. A human readable README file should 
+  always be present, as well as the FITS header (the .fitshead file). 
+  A representative PNG is sometimes available to guide the user if the
+  data looks like the one they want from the archive.
   File(s) to be obtained are listed in a small text file,  files.lis,
   for the 'getdata' procedure to get those big data.
 
+- repos:
+
+  ftp.astro.umd.edu:/local/ftp/pub/carma/data/admit/
+  ftp://ftp.astro.umd.edu/pub/carma/data/admit/
+
+- The following directories (a list is maintained in data.lis?) contain
+  sample data:
 
 cube432        4 x 3 x 2 sample cube, good for column/row major testing
 ros13co        61 x 61 x 27 dataset, clumpfind benchmark cube
@@ -275,3 +283,5 @@ total 6010160
       4 SN87a/
       4 TWHYA_BAND7_ReferenceImages/                     **
       4 viewer.last*
+
+===
