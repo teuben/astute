@@ -31,6 +31,7 @@ S. Corder, 2010-11-07
 if 1 :
     import os
     import shutil
+    import distutils.spawn # used in class linfit to determine if dvipng is present
     import sys
     import re
     from types import NoneType
@@ -56,6 +57,7 @@ if 1 :
     import time as timeUtilities
     import datetime
     import tmUtils as tmu
+    import compUtils  # used in class SQLD
     import pytz  # used in computeUTForElevation
     from scipy.special import erf, erfc  # used in class Atmcal
     from scipy import ndimage
@@ -99,6 +101,7 @@ if 1 :
         from plotuv_cli import plotuv_cli as plotuv
         from immath_cli import immath_cli as immath # used by complexToSquare()
         from imregrid_cli import imregrid_cli as imregrid # used by complexToSquare()
+        from exportfits_cli import exportfits_cli as exportfits # used by makeSimulatedImage()
         from casa import image as casaimage
         try:
             from predictcomp_cli import predictcomp_cli as predictcomp
@@ -202,6 +205,7 @@ bandDefinitions = {
     10 : [787e9 , 950e9]
     }
 
+casaRevisionWithAlmaspws = '26688'
 
 def version():
     """
@@ -440,11 +444,11 @@ def movingStD(a, w):
    """
    Moving standard deviation of array a calculated with window size w
    """
-   res=[a[i:i+w].std() for i in range(len(a)-w)]
+   res=[std(a[i:i+w]) for i in range(len(a)-w)]
    return res
 
 
-def mov_rms(t,d, removeoutlier=True):
+def movStd(t,d, w,removeoutlier=True):
     trms=[]
     drms=[]
 
@@ -452,10 +456,11 @@ def mov_rms(t,d, removeoutlier=True):
     #    d = remove_outlier(d, sigma_th=10)
     
     s=size(d)
-    w=5
     #print s, pl.ceil(s/w)
     
     for i in range(s/w):
+
+        
         x=arange(w-1)
         y=d[w*i:w*(i+1)-1]
         polycoeffs=polyfit(x, y, 2)
@@ -470,7 +475,7 @@ def mov_rms(t,d, removeoutlier=True):
         trms.append(t[w*(i+1)])
         drms.append(std(y))
 
-    return {'trms': trms, 'rms': drms}
+    return trms, drms
 
 
 def gauss_kern(size):
@@ -591,13 +596,18 @@ def getChannelAverageData(inputms):
     return [chanAverTime, chanAverAmp, chanAverPhase]
 
 def getDataColumnName(inputms):
-    tb.open(inputms)
-    colnames = tb.colnames()
+    """
+    Gets the name of the data column of a measurement set: either 'DATA'
+    or 'FLOAT_DATA'
+    """
+    mytb = createCasaTool(tbtool)
+    mytb.open(inputms)
+    colnames = mytb.colnames()
     if 'FLOAT_DATA' in colnames:
         data_query= 'FLOAT_DATA'
     else:
         data_query = 'DATA'
-    tb.close()
+    mytb.close()
     return(data_query)
 
 def getSpectralData(inputms, dd, scanum=[]):
@@ -4133,6 +4143,99 @@ def repairSidebandRatio(asdm, scan, showplot=False):
         print "Now you can start casapy-telcal and run the following on each sideband_ratio scan:"
         print "tc_sidebandratio('%s', dataorigin='avercross', calresult='%s', showplot=False, scans='')" % (asdm,asdm)
         print "(Note: At present, the scans parameter of tc_sidebandratio only accepts one scan number.)"
+
+def getAtmcalStateIDsFromASDM(asdm):
+    """
+    Reads the State.xml file of an ASDM and returns a dictionary of the form:
+    {'AMBIENT_LOAD': 'State_1', 'HOT_LOAD': 'State_2', 'NONE': 'State_0'}
+    -Todd Hunter
+    """
+    if (os.path.exists(asdm) == False):
+        print "Could not find ASDM."
+        return
+    f = open(asdm + '/State.xml', 'r')
+    lines = f.readlines()
+    f.close()
+    mydict = {}
+    for line in lines:
+        if (line.find('<stateId>') >= 0):
+            stateId = line.split('<stateId>')[1].split('</stateId>')[0]
+        if (line.find('<calDeviceName>') >= 0):
+            mydict[line.split('<calDeviceName>')[1].split('</calDeviceName>')[0]] = stateId
+    return(mydict)
+            
+def repairAtmcalStateIDs(asdm, dryrun=False):
+    """
+    Replaces <stateId> entries in the Main.xml file of an ASDM for all the
+    AtmCal scans, so that offline casapy-telcal can then be run in order
+    to regenerate the SysCal.xml file.  It forces all appearances of
+    "State_0" to be "State_X" such that X = the stateId from the State.xml table
+    corresponding to load for the subscan number (1=NONE, 2=AMBIENT, 3=HOT for
+    a 3-subscan AtmCal, and 1=NONE, 2=NONE, 3=AMBIENT, 4=HOT for a 4-subscan Atmcal.
+    asdm: the name of the ASDM
+    dryrun: if True, then simply print the scans that would be changed, do not change them
+    -Todd Hunter
+    """
+    if (os.path.exists(asdm) == False):
+        print "Could not find ASDM."
+        return
+    calscans, nsubscans = getScanNumbersFromASDM(asdm,'CALIBRATE_ATMOSPHERE')
+    AtmcalStateIds = getAtmcalStateIDsFromASDM(asdm)
+    print "AtmcalStateIds = ", AtmcalStateIDs
+    f = open(asdm + '/Main.xml', 'r')
+    if (not dryrun):
+        o = open(asdm + '/Main.xml.new', 'w')
+    lines = f.readlines()
+    f.close()
+    scan = 0
+    subscan = 0
+    changed = 0
+    scansToFix = []
+    print "Read %d lines from Main.xml" % (len(lines))
+    for line in lines:
+        originalLine = line[:]
+        if (line.find('<scanNumber>') >= 0):
+            scan = int(line.split('>')[1].split('<')[0])
+        elif (line.find('<subscanNumber>') >= 0):
+            subscan = int(line.split('>')[1].split('<')[0])
+        elif (line.find('<stateId>') >= 0):
+            if (scan in calscans):
+                if (nsubscans[calscans.index(scan)] == 3):
+                    if (subscan == 1):
+                        for state in range(3):
+                            line = line.replace('State_%d'%state,AtmcalStateIds['NONE'])
+                    elif (subscan == 2):  
+                        for state in range(3):
+                            line = line.replace('State_%d'%state,AtmcalStateIds['AMBIENT_LOAD'])
+                    elif (subscan == 3):
+                        for state in range(3):
+                            line = line.replace('State_%d'%state,AtmcalStateIds['HOT_LOAD'])
+                else:
+                    if (subscan == 1 or subscan == 2):  
+                        for state in range(4):
+                            line = line.replace('State_%d'%state,AtmcalStateIds['NONE'])
+                    elif (subscan == 3):  
+                        for state in range(4):
+                            line = line.replace('State_%d'%state,AtmcalStateIds['AMBIENT_LOAD'])
+                    elif (subscan == 4):
+                        for state in range(4):
+                            line = line.replace('State_%d'%state,AtmcalStateIds['HOT_LOAD'])
+        if (line != originalLine):
+            changed += 1
+            scansToFix.append(scan)
+        if not dryrun:
+            o.write(line)
+        
+    if dryrun:
+        if (len(scansToFix) > 0):
+            print "Scans that need fixing: ", np.unique(scansToFix)
+        else:
+            print "No scans need fixing."
+    else:
+        print "Changed %d lines" % (changed)
+        o.close()
+        os.rename(asdm + '/Main.xml', asdm + '/Main.xml.old') 
+        os.rename(asdm + '/Main.xml.new', asdm + '/Main.xml') 
         
 def repairSysCal(asdm, sidebandgainoption='observed', showplot=False, 
                  sidebandgain=-1, water='', tsysmode='ALPHA', verbose=True):
@@ -4187,7 +4290,7 @@ def repairSysCal(asdm, sidebandgainoption='observed', showplot=False,
 #    execfile(os.getenv('CASA_TELCAL')) # still fails upon tc_atmosphere
     try:
         from tc_atmosphere_cli import tc_atmosphere_cli as tc_atmosphere
-        print "Running tc_atmosphere('%s', dataorigin='specauto', calresult='%s', showplot=%s, sidebandgainoption='%s', sidebandgain=%d, water='%s', tsysmode='%s',verbose=%s)" % (asdm,asdm, showplot, sidebandgainoption, sidebandgain, water, tsysmode, verbose)
+        print "Running tc_atmosphere('%s', dataorigin='specauto', calresult='%s', showplot=%s, sidebandgainoption='%s', sidebandgain=%f, water='%s', tsysmode='%s',verbose=%s)" % (asdm,asdm, showplot, sidebandgainoption, sidebandgain, water, tsysmode, verbose)
         tc_atmosphere(asdm, dataorigin='specauto', calresult=asdm, 
                       showplot=showplot, sidebandgainoption=sidebandgainoption,
                       sidebandgain=sidebandgain, water=water,tsysmode=tsysmode,
@@ -4198,7 +4301,7 @@ def repairSysCal(asdm, sidebandgainoption='observed', showplot=False,
     except:
         print "Now you can start casapy-telcal and run:"
         print "execfile(os.getenv('CASA_TELCAL'))"
-        print "tc_atmosphere('%s', dataorigin='specauto', calresult='%s', showplot=False, sidebandgainoption='%s', sidebandgain=%d, water='%s', tsysmode='%s', verbose=%s)" % (asdm,asdm,sidebandgainoption,sidebandgain,water,tsysmode,verbose)
+        print "tc_atmosphere('%s', dataorigin='specauto', calresult='%s', showplot=False, sidebandgainoption='%s', sidebandgain=%f, water='%s', tsysmode='%s', verbose=%s)" % (asdm,asdm,sidebandgainoption,sidebandgain,water,tsysmode,verbose)
 
 def importandlist(asdmlist, suffix='.listobs', outpath='./', asis='*'):
     """
@@ -4232,6 +4335,554 @@ def listobslist(vislist, suffix='.listobs', outpath='./'):
             print "Running listobs('%s', listfile='%s')" % (vis, outpath+vis+suffix)
             listobs(vis,listfile=outpath+vis+suffix)
 
+class CrossScan:
+    def __init__(self, vis, intent='CALIBRATE_POINTING#ON_SOURCE'):
+        self.vis = vis
+        self.myms = createCasaTool(mstool)
+        self.myms.open(self.vis)
+        self.mymsmd = createCasaTool(msmdtool)
+        self.mymsmd.open(self.vis)
+        self.scans = self.mymsmd.scansforintent(intent)
+        self.spws = self.mymsmd.spwsforintent(intent)
+        try:
+            self.sqldspws = np.intersect1d(self.mymsmd.almaspws(sqld=True), self.spws)
+        except:
+            self.sqldspws = np.intersect1d(self.mymsmd.chanavgspws(), self.spws)
+        self.mymsmd.close()
+        print "Scans for %s = %s" % (intent, self.scans)
+        print "Spws for %s = %s" % (intent, self.spws)
+        print "SQLDs for %s = %s" % (intent, self.sqldspws)
+        self.datadescids = {}
+        for spw in self.spws:
+            self.datadescids[spw]=spw  # assume this is true for now, use msmd in casa 4.3
+
+    def onMinusOffOverOff(self, antenna, spw, scan, subscan, pol=0, verbose=False):
+        includeDate = False
+        result = computeDurationOfScan(scan, vis=self.vis, returnSubscanTimes=True, 
+                                       verbose=verbose,includeDate=includeDate)
+        self.timestamps = {}
+        self.timestamps[scan] = result[2]
+        print "Found %d subscans" % (len(self.timestamps[scan]))
+        self.myms.selectinit(datadescid=self.datadescids[spw])
+        self.myms.select({'time':self.timestamps[scan][subscan],
+                          'antenna1':antenna, 'antenna2':antenna})
+        data0 = self.myms.getdata(['amplitude'])['amplitude']  # keyed by pol: 0, 1
+        pb.clf()
+        print "shape(self.timestamps[scan][subscan]=%s, shape(data0[pol])=%s" % (np.shape(self.timestamps[scan][subscan]), np.shape(data0[pol]))
+        pb.plot(self.timestamps[scan][subscan], data0[pol])
+        pb.draw()
+
+def sqldspws(vis):
+    """
+    Return the SQLD spws for version of casa prior to 26688 which do 
+    not have msmd.almaspws().  - Todd Hunter
+    """
+    mytb = createCasaTool(tbtool)
+    mytb.open(vis+'/SPECTRAL_WINDOW')
+    names = mytb.getcol('NAME')
+    mytb.close()
+    sqld = []
+    for i,name in enumerate(names):
+        if (name.find('#SQLD')>0):
+            sqld.append(i)
+    return(sqld)
+
+class SQLD():
+    def __init__(self, vis, copy_ms=False, gettmcdb=False, outpath='./', verbose=False, dbm=True):
+        """
+        vis: the measurement set to operate with
+        copy_ms: if set to True, it will first copy vis.ms into vis.sqld in the pwd
+                 and then operate on that dataset instead of vis.ms
+        gettmcdb: if True, then also get the BB detector values from the TMC DB
+        outpath: the path to write the TMC DB data (default = './')
+        dbm: if True, convert TMC DB values to dBm;  if False, convert to mW
+        """
+        if not os.path.exists(vis):
+            print "Could not find measurement set."
+            return
+        if not os.path.exists(vis+'/table.dat'):
+            print "This does not appear to be a measurement set."
+            return
+        if copy_ms:
+            basename = vis.rstrip('.ms')
+            newname = os.path.basename(basename)
+            if (os.path.exists(newname+'.sqld')):
+                print "Removing existing .sqld directory"
+                shutil.rmtree(newname+'.sqld')
+            cmd = 'rsync -au %s/ %s.sqld' % (vis, newname)
+            print "Running: %s" % (cmd)
+            os.system(cmd)
+            vis = newname + '.sqld'
+            print "Setting vis=%s" % (vis)
+        mymsmd = createCasaTool(msmdtool)
+        mymsmd.open(vis)
+        self.vis = vis
+
+        if (casadef.subversion_revision < casaRevisionWithAlmaspws):
+            self.sqldspws = sqldspws(self.vis)
+        else:
+            self.sqldspws = mymsmd.almaspws(sqld=True)
+        if (casadef.subversion_revision >= '27137'):
+            self.antennaNames = mymsmd.antennanames() 
+        else:
+            self.antennaNames = getAntennaNames(self.vis)
+        self.intents = mymsmd.intents()
+        if ('CALIBRATE_ATMOSPHERE#ON_SOURCE' not in self.intents):
+            self.atmcalscans = []
+        else:
+            self.atmcalscans = mymsmd.scansforintent('CALIBRATE_ATMOSPHERE#ON_SOURCE')
+        if ('OBSERVE_TARGET#ON_SOURCE' not in self.intents):
+            self.observeTargetScans = []
+        else:
+            self.observeTargetScans = mymsmd.scansforintent('OBSERVE_TARGET#ON_SOURCE')
+        if (len(self.sqldspws) == 0):
+            print "There are no SQLD spws in this dataset."
+            if (not gettmcdb):
+                gettmcdb = True
+                print "Setting gettmcdb to True"
+        self.datadescIDs = {}
+        self.basebands = {}
+        self.pols = [0,1]  # call findNumberOfPolarizations
+        self.date = getObservationStartDate(self.vis).split()[0]  # YYYY-MM-DD
+        self.yyyymmdd = self.date
+        if (self.yyyymmdd < '2013-05-29' and gettmcdb):
+            gettmcdb = False
+            print "These data are too old to have BB detector values stored in the TMCDB."
+        self.yyyymmdd2 = getObservationStopDate(self.vis).split()[0]
+        if (self.yyyymmdd != self.yyyymmdd2):
+            print "WARNING: This dataset spans two UT days, which is not yet fully supported."
+        self.IFProc = {}
+        self.startTime = np.min(mymsmd.timesforscan(mymsmd.scannumbers()[0]))
+        self.endTime =   np.max(mymsmd.timesforscan(mymsmd.scannumbers()[-1]))
+        self.scanTimes = {}
+        self.intents = {}
+        for scan in mymsmd.scannumbers():
+            self.scanTimes[scan] = [np.min(mymsmd.timesforscan(scan)),
+                                    np.mean(mymsmd.timesforscan(scan)),
+                                    np.max(mymsmd.timesforscan(scan))]
+            self.intents[scan] = mymsmd.intentsforscan(scan)
+        for spw in self.sqldspws:
+            try:
+                self.datadescIDs[spw] = mymsmd.datadescids(spw)
+            except:
+                self.datadescIDs[spw] = spw
+            self.basebands[spw] = mymsmd.baseband(spw)
+        self.sqldData = {}
+        self.sqldDataDBm = {}
+        self.sqldDataUTC = {}
+        self.dbm = dbm
+        if (gettmcdb):
+            print "Retrieving the periodic measurements from TMCDB."
+            self.getTMCDBData(outpath=outpath, verbose=verbose)
+        mymsmd.close()
+
+    def plotTMCDB(self, antenna='', pol='', basebands='', wholeDay=False, 
+                  labelscans=True, labelintents=True, plotfile=True, yrange=[0,5],
+                  verbose=False, markdbm=[+2.4,+3.8], timeBuffer=40):
+        """
+        antenna: integer, string, or list of antenna IDs or names
+        pol: 0, 1 or [0,1] (default)
+        basebands: string or list of basebands numbers to plot (1..4)
+        wholeDay: if True, plot the whole day of data, not just during the dataset
+        labelscans: if True, demarcate and label the scan numbers
+        labelintents: if True, label ATM, POI, SID, OBS intent scans
+        plotfile: path and name of png to produce, or True for automatic
+        yrange: the y-axis plotrange: [y0,y1]
+        markdbm: draw a horizontal line at the specified level(s), set to None for none
+        timeBuffer: value in seconds to widen the beginning and end of the dataset
+        """
+        if (pol==''):
+            polList = [0,1]
+        antennaList = parseAntenna(self.vis, antenna)
+        pb.clf()
+        pb.hold(True)
+        if (basebands == ''):
+            basebands = self.sqldDataDBm[self.antennaNames[antennaList[0]]][polList[0]].keys()
+        else:
+            basebands = parseBasebandArgument(basebands)
+        linestyles = ['.-','.--']
+        for baseband in basebands:
+            if (len(basebands) == 1):
+                desc = pb.subplot(1,1,1)
+                nplots = 1
+                nrows = 1
+                column = 1
+                row = 1
+            else:
+                desc = pb.subplot(2,2,baseband)
+                nplots = 4
+                nrows = 2
+                if (baseband % 2 == 1):
+                    column = 1
+                else:
+                    column = 2
+                if (baseband < 3):
+                    row = 1
+                else:
+                    row = 2
+            pb.title('Baseband %d' % (baseband))
+            for antennaID in antennaList:
+                antenna = self.antennaNames[antennaID]
+                if (verbose): print "Working on antenna %s baseband %d" % (antenna, baseband)
+                for pol in polList:
+                    if (wholeDay):
+                        timeStamps = pb.date2num(mjdSecondsListToDateTime(list(self.sqldDataUTC[antenna][pol])))
+                        day = mjdsecToUT(self.sqldDataUTC[antenna][pol][0]).split()[0]
+                        pb.plot_date(timeStamps, self.sqldDataDBm[antenna][pol][baseband], linestyles[pol], color=overlayColors[antennaID])
+                        setXaxisTimeTicks(desc, np.min(self.sqldDataUTC[antenna][pol]),
+                                          np.max(self.sqldDataUTC[antenna][pol]))
+                    else:
+                        idx1 = np.where(self.sqldDataUTC[antenna][pol] >= self.startTime-timeBuffer)[0]
+                        idx2 = np.where(self.sqldDataUTC[antenna][pol] <= self.endTime+timeBuffer)[0]
+                        idx = np.intersect1d(idx1,idx2)
+                        timeStamps = pb.date2num(mjdSecondsListToDateTime(list(np.array(self.sqldDataUTC[antenna][pol])[idx])))
+                        day = mjdsecToUT(self.sqldDataUTC[antenna][pol][idx[0]]).split()[0]
+                        pb.plot_date(timeStamps, self.sqldDataDBm[antenna][pol][baseband][idx], 
+                                     linestyles[pol], color=overlayColors[antennaID])
+                        setXaxisTimeTicks(desc, self.startTime, self.endTime, verbose=False)
+                if (nplots==1 or baseband==2):
+                    pb.text(1.02,1.04-antennaID*0.025*nrows, antenna, size=9,
+                            transform=desc.transAxes,color=overlayColors[antennaID])
+                    pb.text(0.5, 1.08, os.path.basename(self.vis))
+            if (column == 1):
+                if (self.dbm):
+                    pb.ylabel('Power (dBm)')
+                else:
+                    pb.ylabel('Power (mW)')
+                if (row == 2):
+                    pb.xlabel(os.path.basename(self.vis))
+            if (yrange != [0,0]):
+                pb.ylim(yrange)
+            if (labelscans):
+                y0 = pb.ylim()[1]-(pb.ylim()[1]-pb.ylim()[0])*0.04*nrows
+                for scan in self.scanTimes.keys():
+                    myTimes = pb.date2num(mjdSecondsListToDateTime([self.scanTimes[scan][0],self.scanTimes[scan][0]]))
+                    pb.plot(myTimes, pb.ylim(), ':', color='k')
+                    if (scan == self.scanTimes.keys()[-1]):
+                        myTimes = pb.date2num(mjdSecondsListToDateTime([self.scanTimes[scan][2],self.scanTimes[scan][2]]))
+                        pb.plot(myTimes, pb.ylim(), ':', color='k')
+
+                    pb.text(mjdSecondsListToDateTime([self.scanTimes[scan][1]])[0], y0, str(scan), size=8)
+                pb.xlim(pb.date2num(mjdSecondsListToDateTime([self.startTime-timeBuffer, self.endTime+timeBuffer])))
+            if (yrange != [0,0]):
+                pb.ylim(yrange)
+            if (labelintents):
+                for scan in self.scanTimes.keys():
+                    for intent in ['ATM','SIDEBAND','POINTING','OBSERVE','AMPLI','FLUX','BANDPASS']:
+                        y0 = pb.ylim()[1]-(pb.ylim()[1]-pb.ylim()[0])*0.11*nrows
+                        if (','.join(self.intents[scan]).find(intent) > 0):
+                            pb.text(mjdSecondsListToDateTime([self.scanTimes[scan][1]])[0], y0, intent[:5], size=7, rotation='vertical', ha='left', va='bottom')
+                            break  # be sure only one intent is written per scan
+            if (self.dbm):
+                if (markdbm != None and markdbm != []):
+                    if (type(markdbm) != list):
+                        markdbm = [markdbm]
+                    for mrk in markdbm:
+                        pb.plot(pb.xlim(), [mrk,mrk], 'k:')
+            else:
+                if (markdbm != None and markdbm != []):
+                    if (type(markdbm) != list):
+                        markdbm = [markdbm]
+                    for mrk in markdbm:
+                        pb.plot(pb.xlim(), [10**(mrk*0.1),10**(mrk*0.1)], 'k:')
+            if (nrows == 2):
+                pb.setp(desc.get_xticklabels(), fontsize=8)
+                pb.setp(desc.get_yticklabels(), fontsize=8)
+            if (yrange != [0,0]):
+                pb.ylim(yrange)
+        pb.xlabel('Time (UT on %s)'%(day))        
+        yFormat = matplotlib.ticker.ScalarFormatter(useOffset=False)
+        desc.yaxis.set_major_formatter(yFormat)
+        pb.draw()
+        if (plotfile != ''):
+            if (plotfile == True):
+                if (self.dbm):
+                    plotfile = self.vis.replace('.sqld','') + '.sqld.dBm.png'
+                else:
+                    plotfile = self.vis.replace('.sqld','') + '.sqld.mW.png'
+            dirname = os.path.dirname(plotfile)
+            if (dirname == ''):
+                dirname = './'
+            if (os.access(dirname,os.W_OK) == False):
+                plotfile = '/tmp/' + os.path.basename(plotfile)
+            pb.savefig(plotfile)
+            print "Plot left in: ", plotfile
+
+    def convertTMCDBtoPower(self, calibration='auto', verbose=False):
+        """
+        convert self.sqldData from voltage to dBm
+        into self.sqldDataDBm.  The structure of sqldDataDBm is:
+        [antenna][pol][baseband: 'A','B','C','D'][list of voltages vs. time]
+        """
+        query = False
+        basebands = [0, 'A','B','C','D']
+        if (self.IFProc == {}):  # contains the calibration coefficients
+            query = True
+        else:
+            for antenna in self.antennaNames:
+                if (antenna not in self.IFProc.keys()):
+                    query = True
+        if (query):
+            for i,antenna in enumerate(self.antennaNames):
+                if (antenna not in self.IFProc.keys()):
+                    if (antenna not in self.sqldDataDBm.keys()):
+                        self.sqldDataDBm[antenna] = {}
+                        self.sqldDataUTC[antenna] = {}
+                    self.IFProc[antenna] = self.readSQLDCalibration(antenna, calibration)
+                    if (verbose):
+                        print "Antenna %2d = %s: " % (i,antenna), self.IFProc[antenna]
+                    for pol in self.pols:
+                        self.sqldDataUTC[antenna][pol] = self.sqldData[antenna][pol][0]
+                        self.sqldDataDBm[antenna][pol] = {}
+                        for channel, baseband in enumerate(np.unique(self.basebands.values())):  # need unique in case multiple groups of 4 SQLD spws
+                            basebandLetter = basebands[baseband]
+                            inputPowerAtZeroVoltage = self.IFProc[antenna][pol][basebandLetter]['icept']
+                            # Scale by the gain slope, then add the offset
+#                            print "shape(sqldData) = ", np.shape(self.sqldData[antenna][pol][1])
+#                            print "len(shape(sqldData)) = ", len(np.shape(self.sqldData[antenna][pol][1]))
+                            if (len(np.shape(self.sqldData[antenna][pol][1])) < 2):
+                                print "There is a problem with the TMCDB data for %s pol %d (probably missing)" % (antenna,pol)
+                                break
+                            else:
+                                voltages = np.transpose(np.array(self.sqldData[antenna][pol][1]))
+                                self.sqldDataDBm[antenna][pol][baseband] = voltages[channel]*self.IFProc[antenna][pol][basebandLetter]['slope']+self.IFProc[antenna][pol][basebandLetter]['icept']
+                                if (self.dbm):
+                                    self.sqldDataDBm[antenna][pol][baseband] = 10*np.log10(self.sqldDataDBm[antenna][pol][baseband])
+        return
+        
+    def getTMCDBData(self, outpath='./', verbose=False):
+        monitorPoint = 'DATA_MONITOR_2'  # BB SQLDs  (_1=SB SQLDs)
+        self.sqldData = {}
+        for antenna in self.antennaNames:
+            self.sqldData[antenna] = {}
+            for pol in self.pols:  
+                # need to get file for second date if necessary
+                localfile = tmu.retrieve_daily_tmc_data_file_name_only(antenna,'IFProc'+str(pol), monitorPoint, self.yyyymmdd, outpath=outpath)
+                if (os.path.exists(localfile)):
+                    tmcfile_ifproc = localfile
+                else:
+                    try:
+                        mydict=tmu.get_tmc_data(antenna,'IFProc'+str(pol),monitorPoint, self.yyyymmdd, self.yyyymmdd, outpath=outpath)
+                        tmcfile_ifproc = mydict['files'][0]
+                        self.tmcfile_ifproc = tmcfile_ifproc
+                    except:
+                        print "Failed to retrieve data for antenna %s" % (antenna)
+                        continue
+                self.sqldData[antenna][pol] = self.readIFProcBBSQLDs(tmcfile_ifproc, pol)
+        self.convertTMCDBtoPower(verbose=verbose)
+        return
+
+    def readIFProcBBSQLDs(self, tmcfile, pol=0):
+        """
+        Returns 2 lists: dateTimeStamp in MJD second, and SQLD readings
+        """
+        loc = tmcfile.find('IFProc')+6
+        if (loc > 0):
+            tmcfile = tmcfile[:loc] + str(pol) + tmcfile[loc+1:]
+            print "Using existing file = ", tmcfile
+        if (os.path.exists(tmcfile) == False):
+            print "Could not open IF Proc TMC database file"
+            return
+        tmclines = open(tmcfile,'r').readlines()
+        dateTimeStamp = []
+        voltages = []
+        for line in tmclines:
+            tokens = line.split()
+            if (len(tokens) == 0):
+                print "len(tokens) = %d" % (len(tokens))
+            dateTimeStamp.append(dateStringToMJDSec(tokens[0],verbose=False))
+            voltages.append([float(x) for x in tokens[1:]])
+        return(dateTimeStamp, voltages)
+
+    def convertSQLDtodBm(self, antenna='', calibration='auto', spw='',
+                         zeroLevel=-20, verbose=False):
+        """
+        Converts the amplitude data in the SQLD spws of an ALMA measurement set
+        from counts to dBm.
+        Inputs:
+        * vis: the measurement set
+        Optional inputs:
+        * calibration: a text file that contains the slope and intercept values
+                 for each of the IF channels (A,B,C,D for each sideband)
+        * antenna: the list of antenna names or IDs to convert
+        * spw: the list of spws to convert (default is all SQLD spws)
+        * zeroLevel: what value (in dBm) to assign to data points with 0 counts
+        Theory:
+        a) convert from counts to mV using (counts/65536)*2.5
+        b) apply the slope and intercept to convert to mW
+        d) convert from mW to dBm by 10*log10(mW)
+        -Todd Hunter
+        """
+        if (len(self.sqldspws) == 0):
+            print "There are no SQLD spws in this dataset!"
+            return
+        antennaList = parseAntenna(self.vis, antenna)
+        query = False
+        if (self.IFProc == {}):
+            query = True
+        else:
+            for antenna in antennaList:
+                if (antenna not in self.IFProc.keys()):
+                    query = True
+        if (query):
+            for antenna in antennaList:
+                if (antenna not in self.IFProc.keys()):
+                    self.IFProc[antenna] = self.readSQLDCalibration(self.antennaNames[antenna], calibration)
+                    print "Antenna %2d = %s: " % (antenna,self.antennaNames[antenna]), self.IFProc[antenna]
+        basebands = [0, 'A','B','C','D']
+        channel = 0
+        if (spw == ''):
+            spws = self.sqldspws
+        else:
+            spws = [int(x) for x in spw.split(',')]
+        dataColumnName = getDataColumnName(self.vis)
+        myt = createCasaTool(tbtool)
+        myt.open(self.vis, nomodify=False)
+        history = []
+        for spw in spws:
+            for antenna in antennaList:
+                ddid = self.datadescIDs[spw]
+                print "Working on spw %d (DD=%d), antenna %d (%s)" % (spw, ddid, antenna, self.antennaNames[antenna])
+                mytb = myt.query('DATA_DESC_ID==%d and ANTENNA1==%d and ANTENNA2==%d' % (ddid,antenna,antenna))
+                complexData = mytb.getcol(dataColumnName)
+                baseband = basebands[self.basebands[spw]]
+                for pol in range(len(complexData)):
+                    if (verbose):
+                        print "min/max of spw=%d, pol=%d is %f/%f" % (spw,pol,np.min(np.real(complexData[pol][channel])), np.max(np.real(complexData[pol][channel])))
+                        print "complexData[pol][channel] = ", str(complexData[pol][channel])
+                    inputPowerAtZeroVoltage = self.IFProc[antenna][pol][baseband]['icept']
+                    # Scale by the gain slope, then add the offset
+                    arg = (complexData[pol][channel]*2.5/65536.)*self.IFProc[antenna][pol][baseband]['slope']+self.IFProc[antenna][pol][baseband]['icept']
+                    if verbose:
+                        print "    inputPowerAtZeroVoltage level = %f mW" % (inputPowerAtZeroVoltage)
+                        if (len(np.where(np.real(arg)<=inputPowerAtZeroVoltage)[0]) > 0):
+                            print "Replacing %d/%d zero values in pol 0 with -20dBm" % (len(np.where(np.real(arg)<=inputPowerAtZeroVoltage)[0]),len(arg))
+                    if (self.dbm):
+                        if (dataColumnName == 'DATA'):
+                            arg[np.where(np.real(arg) <= inputPowerAtZeroVoltage)[0]] = np.complex(10**(zeroLevel*0.1),0)  # i.e. convert -20 to 1e-2
+                        else: # FLOAT_DATA
+                            arg[np.where(np.real(arg) <= inputPowerAtZeroVoltage)[0]] = 10**(zeroLevel*0.1)
+                        complexData[pol][channel] = 10*np.log10(arg)
+                    else:
+                        complexData[pol][channel] = arg
+                        
+                    if (verbose):
+                        print "    after scaling, min/max is %f/%f" % (np.nanmin(np.real(complexData[pol][channel])), 
+                                                                       np.nanmax(np.real(complexData[pol][channel])))
+                mytb.putcol(dataColumnName,complexData)
+                mytb.close()
+                history.append('Scaled antenna %2d SQLD spw %2d data into dBm' % (antenna,spw))
+        myt.close()
+        myms = createCasaTool(mstool)
+        myms.open(self.vis, nomodify=False)
+        for h in history:
+            myms.writehistory(h)
+        myms.listhistory()
+        myms.close()
+
+    def plotms(self, antenna='*&&&', scan='', spw='', coloraxis='spw',
+               correlation='XX', iteraxis='antenna', avgtime='1s',
+               plotrange=[0,0,0,0], intent='OBSERVE_TARGET',
+               plotfile='', buildpdf=False, overwrite=True):
+        """
+        Runs plotms on a measurement set with useful parameters
+        scan: if '', then plot all scans with specified intent(s)
+        spw: if '', then find all SQLD spws
+        intent: a list of intents, as a comma-delimited string
+        buildpdf: if True, build a PDF of all antennas, one per page
+                  if False, use iteraxis='antenna'
+        """
+        if (scan == '' and intent != ''):
+            targetscans = []
+            if (intent.find('OBSERVE_TARGET')>=0):
+                scan = ','.join([str(i) for i in self.observeTargetScans])
+                targetscans = scan
+            if (intent.find('CALIBRATE_ATMOSPHERE')>=0):
+                scan = ','.join(targetscans+[str(i) for i in self.atmcalscans])
+                    
+        if (spw == ''):
+            spw = ','.join([str(i) for i in self.sqldspws])
+        if (buildpdf == False):
+            showgui = True
+            if (antenna.find('&&&') < 0):
+                antenna += '&&&'
+            print "Running plotms('%s', antenna='%s', coloraxis='%s', yaxis='real', xaxis='time', correlation='%s', ylabel='Power', spw='%s', scan='%s', iteraxis='%s', avgtime='%s', plotrange=%s, plotfile='%s', overwrite=%s, showgui=%s)" % (self.vis,antenna,coloraxis,correlation,spw,scan,iteraxis,avgtime,str(plotrange),plotfile,str(overwrite),showgui)
+            plotms(self.vis, antenna=antenna, coloraxis=coloraxis, yaxis='real',
+                   xaxis='time',correlation=correlation,ylabel='Power',
+                   spw=spw, scan=scan, iteraxis=iteraxis, avgtime=avgtime, showgui=showgui,
+                   plotrange=plotrange, plotfile=plotfile, overwrite=overwrite)
+        else:
+            plotfiles = []
+            showgui = False
+            for antname in self.antennaNames:
+                plotfile = self.vis + '.' + antname + '.png'
+                ant = antname + '&&&'
+                mytitle = os.path.basename(self.vis) + ' ' + antname + ' ' + correlation + ' Power vs. time'
+                print "Running plotms('%s', antenna='%s', coloraxis='%s', yaxis='real', xaxis='time', correlation='%s', ylabel='Power (dBm)', spw='%s', scan='%s', avgtime='%s', plotrange=%s, plotfile='%s', showgui=%s, overwrite=%s, title='%s')" % (self.vis,ant,coloraxis,correlation,spw,scan,avgtime,str(plotrange),plotfile,showgui,str(overwrite),mytitle)
+                plotms(self.vis, antenna=ant, coloraxis=coloraxis, yaxis='real',
+                       xaxis='time',correlation=correlation,ylabel='Power (dBm)',
+                       spw=spw, scan=scan, avgtime=avgtime, title=mytitle,
+                       plotrange=plotrange, plotfile=plotfile, showgui=showgui,
+                       overwrite=overwrite)
+                plotfiles.append(plotfile)
+            pdfname = self.vis + '.pdf'
+            buildPdfFromPngs(plotfiles, pdfname=pdfname)
+            
+    def readSQLDCalibration(self, antenna, calibration='auto',overwrite=False,verbose=False):
+        """
+        Reads the gains (slope and intercept) of the SQLDs from a
+        container log text file.
+        calibration: if 'auto', then retrieve the files from the computing web server
+                     if '', then use the default values for DA64 on April 1, 2014
+                     if a filename, then search for values in it
+        overwrite: if False (default), then check if the files have already
+                   been retrieved in the current working directory
+                   if True, then re-retrieve them
+        -Todd Hunter
+        """
+        if (calibration == 'auto'):
+            cal = open(compUtils.retrieve_abm_container_data_files(antenna, self.date, overwrite, verbose=False), 'r')
+            lines = cal.readlines()
+            cal.close()
+        else:
+            if not os.path.exists(calibration):
+                print "Could not find calibration table. Using defaults."
+                calibration = ''
+            if (calibration==''):
+                lines = ['2014-03-31T22:40:08.142   IFProc0:\n',
+                     '<DET ch="A" slope="1.645000" icept="-0.140000"/>\n',
+                     '<DET ch="B" slope="1.585000" icept="-0.122000"/>\n',
+                     '<DET ch="C" slope="1.515000" icept="-0.099200"/>\n',
+                     '<DET ch="D" slope="1.490000" icept="-0.122000"/> \n',
+                     '2014-03-31T22:40:33.310   IFProc1:\n',
+                     '<DET ch="USB" slope="0.004900" icept="-0.000440"/>\n',
+                     '<DET ch="LSB" slope="0.005900" icept="-0.000585"/>\n',
+                     '<DET ch="A" slope="1.595000" icept="-0.140000"/>\n',
+                     '<DET ch="B" slope="1.555000" icept="-0.113000"/>\n',
+                     '<DET ch="C" slope="1.460000" icept="-0.115000"/>\n',
+                     '<DET ch="D" slope="1.560000" icept="-0.118000"/>\n']
+            else:
+                cal = open(calibration,"r")
+                lines = cal.readlines()
+                cal.close()
+        processor = -1
+        IFProc = {}
+        for line in lines:
+            if (line.find('IFProc0') >= 0):
+                processor = 0
+            if (line.find('IFProc1') >= 0):
+                processor = 1
+            if (processor >= 0):
+                if (line.find('DET ch=') >= 0 and line.find('SB') < 0):
+                    a,b,c,d = line.split()
+                    if (processor not in IFProc.keys()):
+                        IFProc[processor] = {}
+                    if (b[4] not in IFProc[processor].keys()):
+                        IFProc[processor][b[4]] = {}
+                    IFProc[processor][b[4]]['slope'] = float(c.split('"')[1])
+                    IFProc[processor][b[4]]['icept'] = float(d.split('"')[1])
+        return(IFProc)
+    
 class Atmcal:
     """
     This class examines the CAL_ATMOSPHERE scans in a measurement set and
@@ -4245,7 +4896,7 @@ class Atmcal:
     """
     def __init__(self,vis,verbose=False,showSummary=False,readAttenuatorSettings=False,
                  decimalDigits=2, includeDate=False, restoreBackup=False, outpath='./',
-                 includeSQLD=False):
+                 includeSQLD=False, maxscans=0):
         self.vis = vis
         self.visBasename = os.path.basename(vis)
         # Remove the following line once everything works well in fixSyscalTable.
@@ -4270,11 +4921,11 @@ class Atmcal:
         if (verbose): print "Reading the STATE table"
         self.readStateTable()
         if (verbose): print "Finding the cal scans"
-        self.findCalScans(includeDate,includeSQLD)
+        self.findCalScans(includeDate,includeSQLD,maxscans)
         if (verbose): print "Distinguishing the load data"
         self.distinguishLoadData(verbose)
         if (verbose): print "Finding scans in the SYSCAL table"
-        self.findSyscalScans()
+        self.findSyscalScans(maxscans)
         if (showSummary): self.printCalScans(decimalDigits, includeDate)
         self.initializeAttenuatorDictionaries()
         if (readAttenuatorSettings):
@@ -4561,7 +5212,7 @@ class Atmcal:
                 myscan = scan
         return myscan
     
-    def findSyscalScans(self):
+    def findSyscalScans(self, maxscans=0):
         mytb = createCasaTool(tbtool)
         mytb.open(self.vis+'/SYSCAL')
         times = mytb.getcol('TIME')
@@ -4583,6 +5234,8 @@ class Atmcal:
         print "scans = %s" % (str(scans))
         print "times = %s" % (str(timestamps))
         self.syscalScans = scans
+        if (maxscans > 0):
+            self.syscalScans = scans[:maxscans]
         missingScans = np.setdiff1d(self.scans, scans)
         if (len(missingScans) > 0):
             print "There are %d atmcal scans missing from the SYSCAL table: %s" % (len(missingScans),str(missingScans))
@@ -4690,7 +5343,7 @@ class Atmcal:
                 self.target[i] = 'sky'
                 self.targetInverse['sky'] = i
 
-    def findCalScans(self, includeDate, includeSQLD=False):
+    def findCalScans(self, includeDate, includeSQLD=False, maxscans=0):
         self.loadTemperatures = getLoadTemperatures(self.vis)
         mymsmd = createCasaTool(msmdtool)
         mymsmd.open(self.vis)
@@ -4735,6 +5388,8 @@ class Atmcal:
         self.spwsforscan = {}
         self.spwsforscan_nonchanavg = {}
         self.spwsforallscans_nonchanavg = spwsForScan(mymsmd)
+        if (maxscans > 0):
+            self.scans = self.scans[:maxscans]
         for scan in self.scans:
             t = mymsmd.timesforscan(scan)
             result = computeDurationOfScan(scan, t, vis=self.vis, returnSubscanTimes=True, verbose=self.verbose,includeDate=includeDate)
@@ -5208,7 +5863,7 @@ class Atmcal:
                      tmcfile_ifswitch=None, tmcfile_ifproc=None, xlim=None,
                      y_autoscale=True, dataFraction=[0.0,1.0], logPower=False,
                      median=False, printSlopes=False, debug=False,
-                     ylimitsForRatio=[0.9,1.1]):
+                     ylimitsForRatio=[0.9,1.1], fontsize=12, overlay=False):
         """
         Plot the atm cal subscans for a specified spw/pol/antenna combination,
         and the specified subscans.
@@ -5224,7 +5879,11 @@ class Atmcal:
                      False will set y-axis range to [min(all_targets),max(all_targets)]
         dataFraction: use this range of the each integration
         logPower: if True, show the power spectra in log units instead of linear
+        overlay: if True, show all on the same panel
+        target: 'hot', 'sky', amb' or lists:  ['hot','sky','amb']
+        fontsize: for tick labels, axis labels and target labels
         """
+        loadNames = {'amb': 'ambient load', 'hot': 'hot load', 'sky': 'sky'}
         spw = int(spw)
         antenna = int(antenna)
         if (self.unrecognizedSpw(spw)): return
@@ -5242,7 +5901,11 @@ class Atmcal:
             nx = 1
             if (normalize==False or normalize==''):
                 normalize = 'raw'
-        pb.subplot(nx,len(target),1)
+        if (not overlay):
+            adesc = pb.subplot(nx,len(target),1)
+        else:
+            adesc = pb.subplot(1,1,1)
+            pb.hold(True)
         if (y_autoscale):
             wspace=0.15
         else:
@@ -5252,7 +5915,10 @@ class Atmcal:
         data0min = 1e38
         for t in range(len(target)):
             mytarget = target[t]
-            adesc = pb.subplot(nx,len(target),t+1)
+            if (not overlay):
+                adesc = pb.subplot(nx,len(target),t+1)
+            adesc.xaxis.grid(True,which='major')
+            adesc.yaxis.grid(True,which='major')
             if (mytarget not in self.targetInverse):
                 print "The %s subscan is not in this dataset (valid targets = %s)." % (mytarget,str(self.targetInverse))
                 return
@@ -5262,6 +5928,11 @@ class Atmcal:
                                                              antenna,dataFraction,median)
             myms = createCasaTool(mstool)
             myms.open(self.vis)
+            if (overlay):
+                pb.text(0.1,0.9-t*0.1,loadNames[mytarget],size=fontsize,
+                        transform=adesc.transAxes,color=overlayColors[t])
+            else:
+                pb.text(0.1,0.9,loadNames[mytarget],size=fontsize,transform=adesc.transAxes)
             slopes = []
             for i in range(len(self.scans)):
                 scan = self.scans[i]
@@ -5289,13 +5960,19 @@ class Atmcal:
                     yaxisData = 10*np.log10(data0mean)
                 else:
                     yaxisData = data0mean
+                if (overlay):
+                    colorIndex = t # i*len(target)+t
+                else:
+                    colorIndex = i
                 pb.plot(range(len(data0mean)), yaxisData, ls=ls,
-                        color=overlayColors[i],
-                        markerfacecolor=overlayColors[i], lw=2.0)
-                resizeFonts(adesc,9)
+                        color=overlayColors[colorIndex],
+                        markerfacecolor=overlayColors[colorIndex], lw=2.0)
+                resizeFonts(adesc,fontsize)
                 pb.xlim([-2, len(data0mean)+1])
                 data0max = np.max([data0max,np.max(data0mean)])
                 data0min = np.min([data0min,np.min(data0mean)])
+                if (overlay):
+                    if (data0min > 0): data0min = 0
                 slope,intercept = linfit().linfit(range(len(data0mean[edge:-edge])),
                                                   data0mean[edge:-edge],
                                                   data0mean[edge:-edge]*0.0001)
@@ -5308,25 +5985,25 @@ class Atmcal:
             pb.title(titleString,size=13-len(target))
             if (normalize == 'meanvalue' or normalize=='meanspectrum'):
                 pb.ylim(ylimitsForRatio)
-                if (t != 0):
+                if (t != 0 and not overlay):
                     adesc.set_yticklabels([])
             if (t==0):
                 obsdateString = mjdsecToUT(getObservationStart(self.vis))
                 pb.text(0.1,1+0.05*nx,self.vis + '  ' + obsdateString + ' %.3fGHz'%(self.meanfreq[spw]*1e-9),transform=adesc.transAxes)
                 if (normalize == 'meanvalue'):
-                    pb.ylabel('Normalized amplitude')
+                    pb.ylabel('Normalized amplitude', size=fontsize)
                 elif (normalize == 'meanspectrum'):
                     if (plotSlopes):
-                        pb.ylabel('Normalized_Amp / Mean_of_all_scans')
+                        pb.ylabel('Normalized_Amp / Mean_of_all_scans', size=fontsize)
                     else:
-                        pb.ylabel('Normalized_Amplitude / Mean_of_all_scans')
+                        pb.ylabel('Normalized_Amplitude / Mean_of_all_scans', size=fontsize)
                 else:  # raw
                     if (logPower):
-                        pb.ylabel('Relative Amplitude (dB)')
+                        pb.ylabel('Relative Amplitude (dB)', size=fontsize)
                     else:
-                        pb.ylabel('Amplitude')
+                        pb.ylabel('Amplitude', size=fontsize)
 
-            pb.xlabel('Channel')
+            pb.xlabel('Channel', size=fontsize)
             if (t==len(target)-1):
                 font0 = FontProperties()
                 font = font0.copy()
@@ -5427,16 +6104,19 @@ class Atmcal:
                     adesc.set_yticklabels([])
                 pb.ylim([-maxSlope, maxSlope])
             # endif plotSlopes
+            resizeFonts(adesc,fontsize)
             myms.close()
+        #end 'for' t in range(len(target)):
         # set the ylimits for the amp. vs channel plots
         for t in range(len(target)):
-            adesc = pb.subplot(nx,len(target),t+1)
+            if (not overlay):
+                adesc = pb.subplot(nx,len(target),t+1)
             if (y_autoscale == False):
                 if (logPower==False):
                     pb.ylim([data0min,data0max])
                 else:
                     pb.ylim([np.min(10*np.log10(data0min)),np.max(10*np.log10(data0max))])
-                if (t > 0):
+                if (t > 0 and not overlay):
                     adesc.set_yticklabels([])
         pb.draw()
         if (plotfile != None):
@@ -6376,7 +7056,7 @@ def checkSamplers(vis, state_id=None, ac=None, spws=None, threshold1=1.25, thres
     mymsmd = createCasaTool(msmdtool)
     mymsmd.open(vis)
     if (spws == None):
-        if (casadef.casa_version < '4.2.0'):
+        if (casadef.subversion_revision < casaRevisionWithAlmaspws):
             index1 = mymsmd.tdmspws()
             index2 = mymsmd.chanavgspws()
             index1 = np.setdiff1d(index1,index2)
@@ -6946,13 +7626,13 @@ def interpretLOs(ms, parentms='', showWVR=False,
     gap = 0
     maxSpw = np.max(spws)
     for i in range(len(spws)):
-        if (spws[i] > i):
+        if (spws[i] > 0):
             if (verbose): print "Found gap at i=%d" % (i)
             gap = spws[i] - i
             break
     if (verbose): print "gap = ", gap
     for i in range(len(spws)):
-        if (spws[i] > i):
+        if (spws[i] > 0):
             if (verbose):
                 print "Renaming spw%d to spw%d" % (spws[i],spws[i]-gap)
             spws[i] -= gap
@@ -7011,13 +7691,20 @@ def interpretLOs(ms, parentms='', showWVR=False,
 
     # Loop over all rows in the ASDM_RECEIVER table, unless we've split, in 
     # which case this will loop over the N spws in the table.
+    if (casadef.casa_version >= '4.1.0'):
+        mymsmd = createCasaTool(msmdtool)
+        mymsmd.open(ms)
     for i in range(len(index)):
         if (verbose): 
             print "index[%d]=%d" % (i,index[i])
             print "spws[%d] = %d" % (index[i], spws[index[i]])
         myspw = spws[index[i]]
-        freqs = getFrequencies(ms,myspw) * (1e-9)
-        meanFreqGHz = np.mean(freqs)
+        if (casadef.casa_version >= '4.1.0'):
+            freqs = mymsmd.chanfreqs(myspw)
+            meanFreqGHz = mymsmd.meanfreq(myspw) * (1e-9)
+        else:
+            freqs = getFrequencies(ms,myspw) * (1e-9)
+            meanFreqGHz = np.mean(freqs)
         if (bands[index[i]].split('_')[-1].isdigit()):
             rxband = bands[index[i]].split('_')[-1]
         elif (showWVR):
@@ -7073,6 +7760,8 @@ def interpretLOs(ms, parentms='', showWVR=False,
                     if (yigLeakage > 0):
                         line = line + ' at %.6f' % (yigLeakage*1e-9)
         if (show): print line
+    if (casadef.casa_version >= '4.1.0'):
+        mymsmd.done()
     if (alsoReturnLO2):
         return(lo1s, lo2s)
     else:
@@ -8038,11 +8727,26 @@ def plotPointingResults(vis='', figfile=False, source='',buildpdf=False,
     return(pointingPlots, badAntennas)  
 # end of plotPointingResults
     
+def getScanNumbersFromASDM(asdm, intent='CALIBRATE_ATMOSPHERE'):
+    """
+    Returns a list of scan numbers in an ASDM that have the
+    specified intent, and a list of the number of subscans in each of these scans.
+    -Todd Hunter
+    """
+    mydict = readscans(asdm)[0]
+    scans = []
+    subscans = []
+    for scan in mydict.keys():
+        if (intent == '' or mydict[scan]['intent'].find(intent)>=0):
+            scans.append(scan)
+            subscans.append(mydict[scan]['nsubs'])
+    return(scans, subscans)
+
 def readscans(asdm):
     """
     This function was ported from a version originally written by Steve Myers
     for EVLA.  It works for both ALMA and EVLA data.  It returns a dictionary
-    containing: startTime, endTime, timerange, sourcename, intent, nsubscans, 
+    containing: startTime, endTime, timerange, sourcename, intent, nsubs, 
     duration.
     Todd Hunter
     """
@@ -8127,7 +8831,8 @@ def plotPointingResultsFromASDM(asdm='', figfile=False, buildpdf=False,
     """
     if (buildpdf and figfile==False):
         figfile=True
-    asdmNoPath = asdm.split('/')[-1]
+    asdm = asdm.rstrip('/')
+    asdmNoPath = os.path.basename(asdm)
     source = ''
     result = readCalPointing(asdm)
     if (result == None):
@@ -8287,8 +8992,7 @@ def plotPointingResultsFromASDM(asdm='', figfile=False, buildpdf=False,
                 plotfiles.append(myfigfile)
                 print "Figure left in %s" % myfigfile
             elif (figfile != False):
-                myfigfile = figfiledir + figfile + '.scan%02d' % (uniquePointingScans[i])
-                figctr += 1
+                myfigfile = figfiledir + figfile.replace('.png','') + '.scan%02d.png' % (uniquePointingScans[i])
                 pb.savefig(myfigfile, density=144)
                 plotfiles.append(myfigfile)
                 print "Figure left in %s" % myfigfile
@@ -8495,6 +9199,126 @@ def readSysCal(asdm):
 
     print '  Found ',rowlist.length,' Tsys rows in SysCal.xml'
     print "%d duplicates found" % (duplicates)
+    return (scandict)
+
+def replaceTsysFromSQLD(caltable, sqld, asdm, spws, verbose=False):
+    """
+    This is a utility to replace the Tsys spectrum for one combination
+    of antenna+spw+pol+scan with the median value from the square law 
+    detector Tsys located in the SysCal.xml table.
+    Typically, the SysCal.xml table was produced manually by running 
+    casapy-telcal offline.
+
+    caltable: the name of the gencal-produced Tsys cal table to correct
+    sqld: the path to the SysCal.xml file to get the SQLD Tsys values from
+    asdm: the path to the original ASDM (with SpectralWindow.xml and Scan.xml) 
+    spws: a list of spws to replace (in order of baseband number).  The number of
+          spws specified must match the number of SQLDs in the SysCal.xml file.
+    - Todd Hunter
+    """
+    tsys = getTsysFromSysCal(sqld, asdm)
+    values = 0
+    if (type(spws) == str):
+        spws = spws.split(',')
+    changeFactor = []
+    for antenna in tsys.keys():
+        for spw in tsys[antenna].keys():
+            baseband = tsys[antenna][spw]['baseband']-1 # 1..4  converted here to 0..3
+            for scan in tsys[antenna][spw]['scans'].keys():
+                for pol in tsys[antenna][spw]['scans'][scan].keys():
+                    if (pol == 0): polarization = 'X'
+                    if (pol == 1): polarization = 'Y'
+                    if (verbose):
+                        print "Calling replaceTsysScan('%s', antenna=%d, spw=%d, pol='%s', fromscan=%d, toscan=%d, newvalue=%f)" % (caltable, antenna, int(spws[baseband]), polarization, scan, scan, np.median(tsys[antenna][spw]['scans'][scan][pol]))
+                    replaced, change = replaceTsysScan(caltable, antenna, int(spws[baseband]), polarization, scan, scan, tsys[antenna][spw]['scans'][scan][pol],verbose=verbose)
+                    values += replaced
+                    if (replaced > 0):
+                        changeFactor.append(change)
+    print "Replaced %d values with a median change of a factor of %f" % (values,np.median(changeFactor))
+    
+def getTsysFromSysCal(sqld, asdm):
+    """
+    This function reads the Tsys values from a SysCal.xml table 
+    associated with an ASDM into a dictionary keyed by antenna ID, 
+    spw, scan, and pol (0 or 1).  
+    sqld: the path to the SysCal.xml table (or its parent directory)
+    asdm: the path to the original ASDM (containing Scan.xml and SpectralWindow.xml)
+      The reason you need to specify both is because the primary usage is
+      to read values from a SysCal.xml file produced by offline casapy-telcal.
+    -- Todd Hunter
+    """
+    if (os.path.exists(sqld) == False):
+        print "getTsysFromSysCal(): Could not find file = ", sqld
+        return
+    if (sqld.split('/')[-1] != 'SysCal.xml'):
+        sqld += '/SysCal.xml'
+    if (os.path.exists(asdm) == False):
+        print "getTsysFromSysCal(): Could not find ASDM = ", asdm
+        return
+    scanlist = readscans(asdm)[0]
+    wvrSpws = []
+    xmlscans = minidom.parse(asdm+'/SpectralWindow.xml')
+    rowlist = xmlscans.getElementsByTagName("row")
+    baseband = {}
+    for rownode in rowlist:
+        name = rownode.getElementsByTagName("name")
+        name = str(name[0].childNodes[0].nodeValue)
+        spwID = rownode.getElementsByTagName("spectralWindowId")
+        spw = int(str(spwID[0].childNodes[0].nodeValue).split('_')[1])
+        basebandName = rownode.getElementsByTagName("basebandName")
+        basebandName = str(basebandName[0].childNodes[0].nodeValue).split('_')  # e.g. "BB_1"
+        if (len(basebandName) < 2):
+            baseband[spw] = -1  # NOBB
+        else:
+            baseband[spw] = int(basebandName[1])
+        if (name.find('WVR') >= 0):
+            wvrSpws.append(spw)
+    xmlscans = minidom.parse(sqld)
+    rowlist = xmlscans.getElementsByTagName("row")
+    scandict = {}
+    fid = 0
+    duplicates = 0
+    scandict = {}
+    for rownode in rowlist:
+        antennaID = rownode.getElementsByTagName("antennaId")
+        antenna = int(str(antennaID[0].childNodes[0].nodeValue).split('_')[1])
+        if (antenna not in scandict.keys()):
+            scandict[antenna] = {}
+        spwID = rownode.getElementsByTagName("spectralWindowId")
+        asdmspw = int(str(spwID[0].childNodes[0].nodeValue).split('_')[1])
+        subtract = len(np.where(asdmspw > np.array(wvrSpws))[0])-1 
+        spw = asdmspw-subtract # translate this to actual spw number, as only 1 WVR spw is real
+        if (spw not in scandict[antenna].keys()):
+            scandict[antenna][spw] = {}
+            scandict[antenna][spw]['baseband'] = baseband[asdmspw]
+            scandict[antenna][spw]['scans'] = {}
+        timeData = rownode.getElementsByTagName("timeInterval")
+        timeStamp = int(str(timeData[0].childNodes[0].nodeValue).split()[0])
+        timeInterval = int(str(timeData[0].childNodes[0].nodeValue).split()[1])
+        timeCenter = timeStamp-timeInterval/2
+        timeCenterMJD = timeCenter*1e-9/86400.
+        scan = -1
+        for s in scanlist.keys():
+            if (scanlist[s]['endmjd'] >= timeCenterMJD and scanlist[s]['startmjd'] <= timeCenterMJD):
+                scan = s
+        if (scan not in scandict[antenna][spw]['scans'].keys()):
+            scandict[antenna][spw]['scans'][scan] = {}
+        tsysSpectrum = rownode.getElementsByTagName("tsysSpectrum")
+        values = tsysSpectrum[0].childNodes[0].nodeValue.split()
+        npol = int(values[1])  # or is it [0] ?
+        nchan = int(values[2])
+        for pol in range(npol):
+            tsys = []
+            for i in range(pol*nchan, nchan*(pol+1)):
+                tsys.append(float(values[3+i]))
+            scandict[antenna][spw]['scans'][scan][pol] = tsys
+        # start and end times in mjd ns
+#        rowstart = rownode.getElementsByTagName("startValidTime")
+#        start = int(rowstart[0].childNodes[0].nodeValue)
+#        startmjd = float(start)*1.0E-9/86400.0
+#        scandict[fid]['start'] = starttime
+        fid += 1
+    print '  Found ',rowlist.length,' Tsys rows in SysCal.xml'
     return (scandict)
 
 def getNonWvrSpws(mymsmd):
@@ -9211,14 +10035,19 @@ def readTcal(asdm, antenna, spw, meantime=None, spectrum='tcal', verbose=False):
     
 def readStationFromASDM(sdmfile, station=None):
     """
-    This function uses the ASDM bindings from casapy-telcal  and reads the Station position from the
+    This function uses the ASDM bindings from casapy-telcal and reads the Station position from the
     Station.xml file ( in the ASDM) and returns a dictionary of station positions if no station is
-    specified.  If a station is specified, then it returns the name and location as a simple list.
+    specified.  The dictionary format is:  {0: {'name':'J503',position:[x,y,z]}, 1:  etc.}.  If a
+    station is specified, then it returns the name and location as a simple list: ['J503',[x,y,z]].  
     - dbarkats
     """
     if (asdmLibraryAvailable == False):
         print "The ASDM bindings library is not available on this machine. Using minidom code instead."
-        return(au_noASDMLibrary.readStationFromASDM_minidom(sdmfile,station))
+        mydict = au_noASDMLibrary.readStationFromASDM_minidom(sdmfile)
+        if (station==None):
+            return(mydict)
+        else:
+            return(mydict[station]['name'],mydict[station]['position'])
     a = ASDM()
     a.setFromFile(sdmfile,True)
     stationTable = a.stationTable().get()  
@@ -9237,7 +10066,7 @@ def readStationFromASDM(sdmfile, station=None):
 def readAntennaPositionFromASDM(sdmfile, station=None):
     """
     this function uses the ASDM bindings from casapy-telcal  and reads the Antenna position from the
-    Antenna.xml file ( in the ASDM)  and returns a dictionary of Antenna positions
+    Antenna.xml file (in the ASDM)  and returns a dictionary of Antenna positions
 
     - dbarkats
     """
@@ -9258,6 +10087,17 @@ def readAntennaPositionFromASDM(sdmfile, station=None):
         
     return antPos
 
+def getBaselineLengthsFromASDM(asdm, refAnt):
+    bl = {}
+    antList = readAntennasFromASDM(asdm)
+    antPos = readAntennaPositionFromASDM(asdm)
+    padPos = readStationFromASDM(asdm)
+    refAntPos = padPos[antPos[refAnt]['id']]['position']
+    for ant in antList:
+        bl[ant]= computeBaselineLength(padPos[antPos[ant]['id']]['position'], refAntPos)
+        #print ant, int(bl[ant]*100)/100.
+    return bl
+    
 def printSwVersionFromASDM(asdm):
     """
     Reads and prints the contents of the ASDM's Annotation.xml table.
@@ -9567,20 +10407,57 @@ def readWeatherFromASDM(sdmfile, station=16):
 #    dateOfCreation = b.split('>')[1].split('<')[0]
 #    return dateOfCreation[0:22]
 
-def readAntennasFromASDM(sdmfile):
+def readStationsFromASDM(sdmfile):
     """
-    Reads the list of antennas from the ASDM..
+    Similar to readStationFromASDM, but returns different format dictionary
+    {'J503': [x,y,z], 'N605': etc.}
+    -Todd Hunter
+    """
+    if (asdmLibraryAvailable == False):
+        mydict = au_noASDMLibrary.readStationsFromASDM_minidom(sdmfile)
+    else:
+        mydict = readStationFromASDM(sdmfile)
+        newdict = {}
+        for station in mydict.keys():
+            name = mydict[station]['name']
+            position = mydict[station]['position']
+            newdict[name] = position
+        mydict = newdict
+    return(mydict)
+
+def readAntennasFromASDM(sdmfile, stations=False, diameters=False, printOnly=False):
+    """
+    Reads the list of antenna names from the ASDM.
+    stations: if True, also return the stations in a second integer list
+    diameters: if True, also return the dish diameters in a second (or third) integer list
     - D Barkats
     """
-    
     xmlscans = minidom.parse(sdmfile+'/Antenna.xml')
     antList = []
+    stationList = []
+    dishDiameterList = []
     rowlist = xmlscans.getElementsByTagName("row")
     for rownode in rowlist:
         row = rownode.getElementsByTagName("name")
         tokens = row[0].childNodes[0].nodeValue.split()
         antList.append(str(tokens[0]))
-    return antList
+        if (stations):
+            row = rownode.getElementsByTagName("stationId")
+            tokens = row[0].childNodes[0].nodeValue.split()
+            stationList.append(int(str(tokens[0]).split('_')[1]))
+        if (diameters):
+            row = rownode.getElementsByTagName("dishDiameter")
+            tokens = row[0].childNodes[0].nodeValue.split()
+            dishDiameterList.append(float(str(tokens[0])))
+    print '%s'%', '.join(map(str, antList))
+    if (stations and diameters):
+        return antList, stationList, dishDiameterList
+    elif (stations):
+        return antList, stationList
+    elif (diameters):
+        return antList, dishDiameterList
+    else:
+        return antList
 
 def getWeather(vis, scan='', antenna='0',verbose=False, vm=0, mymsmd=''):
     """
@@ -10234,6 +11111,7 @@ def computeRcluster(P, skyCoordinates=False):
 def minimum_spanning_tree(X, copy_X=True):
     """
     Compute the minimum spanning tree of a graph.
+    peekaboo-vision.blogspot.com/2012/02/simplistic-minimum-spanning-tree-in.html
     Inputs:
     X are edge weights of fully connected graph
     -Todd Hunter
@@ -12067,8 +12945,8 @@ def getBaselineStats(msFile='', length=None, percentile=None, field='',
 
 def angularScaleBaseline(angularScale, frequency):
     """
-    Return the baseline length corresponding to the specified angular scale at
-    the specified frequency.  See also findNull().
+    Return the baseline length (in meters) corresponding to the specified
+    angular scale at the specified frequency.  See also findNull().
     angularScale: arcsec
     frequency: GHz
     -- Todd Hunter
@@ -12225,7 +13103,9 @@ def getBaselineLengths(msFile='', sort=True, length=None, rigorous=False,
         stations = mytb.getcol('STATION')
         mytb.close()
     else:
-        stations, positions, names, nAntennas = readPadConfigurationFile(config)
+        returnValue = readPadConfigurationFile(config)
+        if (returnValue == None): return
+        stations, positions, names, nAntennas = returnValue
         
     # Now figure out where it ranks in the array
     l = {}
@@ -12846,7 +13726,7 @@ def estimateALMAOpacity(pwv,reffreq,airmass=1.0,h0=2.0,verbose=True):
        print "%5.1f GHz tau at zenith = %.3f (dry=%.3f, wet=%.3f)" % (reffreq,dry+wet, dry, wet)
    TebbSky = TebbSkyZenith*(1-np.exp(-airmass*(wet+dry)))/(1-np.exp(-wet-dry))
    hvkT = h*reffreq*1e9/(k*TebbSky)
-   J = hvkT / (np.exp(hvkT) - 1)
+   J = hvkT / (np.expm1(hvkT))
    TebbSky_Planck = TebbSky*J
    return(airmass*(dry+wet), TebbSky_Planck, TebbSky)
     
@@ -12995,6 +13875,9 @@ def readPWVFromMS(vis):
         antenna = mytb.getcol('antennaName')
         pwv = mytb.getcol('water')
         mytb.close()
+        if (len(pwv) < 1):
+            print "The ASDM_CALWVR table is empty, switching to ASDM_CALATMOSPHERE"
+            time, antenna, pwv = readPWVFromASDM_CALATMOSPHERE(vis)
     elif (os.path.exists("%s/ASDM_CALATMOSPHERE" % vis)):
         time, antenna, pwv = readPWVFromASDM_CALATMOSPHERE(vis)
     else:
@@ -13007,6 +13890,18 @@ def readPWVFromASDM_CALATMOSPHERE(vis):
     Reads the PWV via the water column of the ASDM_CALATMOSPHERE table.
     - Todd Hunter
     """
+    if (not os.path.exists(vis+'/ASDM_CALATMOSPHERE')):
+        if (vis.find('.ms') < 0):
+            vis += '.ms'
+            if (not os.path.exists(vis)):
+                print "Could not find measurement set"
+                return
+            elif (not os.path.exists(vis+'/ASDM_CALATMOSPHERE')):
+                print "Could not find ASDM_CALATMOSPHERE in the measurement set"
+                return
+        else:
+            print "Could not find measurement set"
+            return
     mytb = createCasaTool(tbtool)
     mytb.open("%s/ASDM_CALATMOSPHERE" % vis)
     pwvtime = mytb.getcol('startValidTime')  # mjdsec
@@ -13072,6 +13967,7 @@ def plotPWV(ms, figfile='', plotrange=[0,0,0,0], clip=True,verbose=False):
       return
   try:
       [watertime,water,antennaName] = readPWVFromMS(ms)
+#      print "Found %d measurements" % (len(water))
   except:
       print "Could not open %s/ASDM_CALWVR nor ASDM_CALATMOSPHERE.  Did you importasdm(asis='*')?" % (ms)
       print "You could also try: plotPWVFromASDM(your_asdm)"
@@ -13138,7 +14034,7 @@ def plotPWV(ms, figfile='', plotrange=[0,0,0,0], clip=True,verbose=False):
   yrange = ylim[1]-ylim[0]
   for a in range(len(uniqueAntennas)):
       pb.text(xlim[1]+0.01*xrange, ylim[1]-0.024*yrange*(a-2), 
-              antennaName[a], color=overlayColors[a], size=8)
+              uniqueAntennas[a], color=overlayColors[a], size=8)
   pb.xlabel('Universal Time (%s)' % (plotbp3.utdatestring(watertime[0])))
   pb.ylabel('PWV (mm)')
   adesc.xaxis.grid(True,which='major')
@@ -13550,7 +14446,7 @@ def plotSBGain(vis, pol='', figfile='', verbose=False,antenna='',
           spws = mymsmd.spwsforscan(scan)
           spwsforbaseband = {}
           for bb in range(1,5):
-              if (casadef.casa_version >= '4.2.0'):
+              if (casadef.subversion_revision >= casaRevisionWithAlmaspws):
                   tdmspws = mymsmd.almaspws(tdm=True)
               else:
                   tdmspws = mymsmd.tdmspws()
@@ -13793,7 +14689,7 @@ def RescaleXAxisTimeTicks(xlim, adesc):
         adesc.xaxis.set_major_locator(matplotlib.dates.MinuteLocator(byminute=range(0,60,10)))
         adesc.xaxis.set_minor_locator(matplotlib.dates.MinuteLocator(byminute=range(0,60,2)))
                 
-def setXaxisTimeTicks(adesc, t0, t1):
+def setXaxisTimeTicks(adesc, t0, t1, verbose=False):
     """
     Sets sensible major and minor tick intervals for a plot_date plot
     based on the start and end times.
@@ -13803,17 +14699,28 @@ def setXaxisTimeTicks(adesc, t0, t1):
    -Todd Hunter
     """
     timeRange = t1-t0
-#    print "timeRange = %f sec" % (timeRange)
-    if (timeRange > 2000):
+    if (verbose):
+        print "timeRange = %f sec" % (timeRange)
+    if (timeRange > 20000):
+        adesc.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%H'))
+        adesc.xaxis.set_major_locator(matplotlib.dates.MinuteLocator(byminute=range(0,int(60*np.floor((t1-t0)/3600)),60)))
+        adesc.xaxis.set_minor_locator(matplotlib.dates.MinuteLocator(byminute=range(0,60,15)))
+        adesc.fmt_xdata = matplotlib.dates.DateFormatter('%H')
+    elif (timeRange > 2000):
         adesc.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%H:%M'))
         adesc.xaxis.set_major_locator(matplotlib.dates.MinuteLocator(byminute=range(0,60,15)))
         adesc.xaxis.set_minor_locator(matplotlib.dates.MinuteLocator(byminute=range(0,60,5)))
         adesc.fmt_xdata = matplotlib.dates.DateFormatter('%H:%M')
+    elif (timeRange > 600):
+        adesc.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%H:%M'))
+        adesc.xaxis.set_major_locator(matplotlib.dates.MinuteLocator(byminute=range(0,60,5)))
+        adesc.xaxis.set_minor_locator(matplotlib.dates.SecondLocator(bysecond=range(0,60,30)))
+        adesc.fmt_xdata = matplotlib.dates.DateFormatter('%H:%M')
     elif (timeRange > 200):
-        adesc.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%H:%M:%S'))
+        adesc.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%H:%M'))
         adesc.xaxis.set_major_locator(matplotlib.dates.MinuteLocator(byminute=range(0,60,3)))
         adesc.xaxis.set_minor_locator(matplotlib.dates.SecondLocator(bysecond=range(0,60,10)))
-        adesc.fmt_xdata = matplotlib.dates.DateFormatter('%H:%M:%S')
+        adesc.fmt_xdata = matplotlib.dates.DateFormatter('%H:%M')
     elif (timeRange > 40):
         adesc.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%H:%M:%S'))
         adesc.xaxis.set_major_locator(matplotlib.dates.SecondLocator(bysecond=range(0,60,20)))
@@ -14104,7 +15011,11 @@ def plotSunDuringTrack(ms='', asdm='', plotfile='', figfiledir='', elvstime=Fals
         pb.savefig(plotfile)
         print "Wrote plot = ", plotfile
     pb.draw()
-    return(plotfile)
+    print "Mean elevation = %f deg" % (np.mean(elevation))
+    if (plotfile == ''):
+        return(np.mean(elevation))
+    else:
+        return(plotfile)
     
 def plotweather(vis='', figfile='', station=[], asdm=''):
     """
@@ -14540,12 +15451,14 @@ def degfile2radec(filename):
     outfile.close()
     print "Output file = ", outname
     
-def deg2radec(ra=0,dec=0, prec=5, verbose=True):
+def deg2radec(ra=0,dec=0, prec=5, verbose=True, hmsdms=False):
     """
     Convert a position in RA/Dec from degrees to sexagesimal string.
+    default format is HH:MM:SS.SSS, +DD:MM:SS.SSS
+    hmsdms: if True, then format is HHhMMmSS.SSSs, +DDdMMmSS.SSSs
     -Todd Hunter
     """
-    return(rad2radec(ra*pi/180., dec*pi/180., None, prec, verbose))
+    return(rad2radec(ra*pi/180., dec*pi/180., None, prec, verbose, hmsdms=hmsdms))
 
 def radec2deg(radecstring):
     """
@@ -14701,6 +15614,8 @@ def fluxscaleParseLog(logfile, field=None):
     """
     Extract the spectral index fit parameters from the ASCII log file
     produced by the casa task fluxscale.
+    Optional parameters:
+    field: can be given as a name string (e.g. '3c279')
     Returns a list of 3 items for the first (or specified) field found: 
          flux density list: [I,0,0,0]
          reference frequency as a string (e.g. '44.5507GHz')
@@ -14787,10 +15702,26 @@ def imviewField(img, radius, minIntensity=None, maxIntensityFraction=None,
         os.system('convert -trim %s %s' % (plotfile,plotfile))
     return(plotfile)
  
+def setBeam(img, major, minor, pa='0.0deg'):
+    """
+    Sets the restoring beam in a CASA image using the ia tool.
+    major: string with units, e.g. '4.5arcsec'
+    minor: string with units, e.g. '4.5arcsec'
+    pa:    string with units, e.g. '32.1deg'
+    -Todd Hunter
+    """
+    if (not os.path.exists(img)):
+        print "Could not find image = ", img
+        return
+    myia = createCasaTool(iatool)
+    myia.open(img)
+    myia.setrestoringbeam(major=major, minor=minor, pa=pa)
+    myia.close()
 
-def imfitplot(img, region, residual=None, model=None,logfile=None,
+def imfitplot(img, region='', residual=None, model=None,logfile=None,
               colorwedge=True, pngname=None, rms=None, startSigma=3.0,
-              subimage=None):
+              subimage=None, includepix=[], excludepix=[], box='',
+              verbose=False, estimates=''):
     """
     Calls the casa task imfit, then plots the model and residual 
     images side-by-side on the same color scale.
@@ -14799,9 +15730,10 @@ def imfitplot(img, region, residual=None, model=None,logfile=None,
     logfile: The name to call the log file.
     colorwedge: whether to include a color wedge in the plot
     pngname: The name to call the two-panel png
-    rms: The rms value to use in contouring the residual image.
+    rms: The rms value to use in contouring the residual image (default=10% of peak)
     startSigma: where to start the +- contour levels on the residual
     subimage: The name to call the data subimage.
+    includpix, excludepix, box, estimates: passed to imfit
     -Todd Hunter
     """
     if (residual == None):
@@ -14822,29 +15754,47 @@ def imfitplot(img, region, residual=None, model=None,logfile=None,
         if (useImsubimage == False):
             print "This version of CASA is too old to have imsubimage."
             return
-        imsubimage(img, region=region, outfile=subimage)
-#    print "Running imfit(%s)" % (img)
-    mydict = imfit(img, region = region, residual=residual, logfile=logfile, 
-                   model=model)
-#    print "Running imstat(%s)" % img
+        if (verbose):
+            print "Running imsubimage('%s',region='%s',outfile='%s',box='%s')" % (img,region,subimage,box)
+        imsubimage(img, region=region, outfile=subimage, box=box)
+    if (verbose):
+        print "Running imfit('%s')" % (img)
+    mydict = imfit(img, region=region, residual=residual, logfile=logfile, 
+                   model=model, excludepix=excludepix, includepix=includepix, 
+                   box=box, estimates=estimates)
+    if (verbose):
+        print "Running imstat(%s)" % img
     myimstat = imstat(img, region=region)
     myrange = [float(myimstat['min'][0]), float(myimstat['max'][0])]
     if (myrange[0] > 0):
         myrange[0] = 0
-#    print "running imview(raster={'file':'%s', 'colorwedge':%s}, zoom=1,out='%s.png')" % (model,colorwedge,model)
+    if (verbose):
+        print "running imview(raster={'file':'%s', 'colorwedge':%s}, zoom=1,out='%s.png')" % (model,colorwedge,model)
     imview(raster = {'file':model, 'range':myrange, 'colorwedge':colorwedge},
            zoom=1, out=model+'.png')
-    levels = np.arange(startSigma*rms, float(imstat(residual)['max'][0]), rms, dtype=float)
-    nlevels = np.arange(-startSigma*rms, float(imstat(residual)['min'][0]), -rms, dtype=float)
-#    print "levels=%s, nlevels=%s" % (str(levels), str(nlevels))
+    if (verbose):
+        print "Running imstat('%s')" % (residual)
+    stats = imstat(residual)
+    if (verbose):
+        print stats
+    mymax = float(stats['max'][0])
+    mymin = float(stats['min'][0])
+    if (rms == None):
+        rms = 0.10*mymax
+    levels = np.arange(startSigma*rms, mymax, rms, dtype=float)
+    nlevels = np.arange(-startSigma*rms, mymin, -rms, dtype=float)
+    if (verbose):
+        print "levels=%s, nlevels=%s" % (str(levels), str(nlevels))
     levels = list(levels) + list(nlevels)
     levels = [float(a) for a in levels]
-    print "running imview(raster={'file':'%s', 'range':%s, 'colorwedge':%s}, zoom=1,out='%s.png', contour={'levels':%s})" % (model,myrange,colorwedge,model,str(levels))
+    if (verbose):
+        print "running imview(raster={'file':'%s', 'range':%s, 'colorwedge':%s}, zoom=1,out='%s.png', contour={'levels':%s})" % (model,myrange,colorwedge,model,str(levels))
     imview(raster = {'file':residual, 'range':myrange, 'colorwedge':colorwedge},
            zoom = 1, out = residual + '.png', contour={'file':residual, 'levels': levels})
     imview(raster = {'file':subimage, 'range':myrange, 'colorwedge':colorwedge},
            zoom = 1, out = subimage + '.png')
-    print "Running montagePngs"
+    if (verbose):
+        print "Running montagePngs"
     if (pngname == None):
         pngname = img+'.imfit.png'
     montagePngs(png2=model+'.png', png3=residual+'.png', outname=pngname, 
@@ -15098,7 +16048,7 @@ def brightness(fluxDensity, frequency, beamsize, beamsize2=None,
         h = 6.626e-27
         c = 2.998e10
         print "yielding kappa = %3f cm^2 g^-1" % (kappa)
-        B = 2*h*pow((frequency*1e9),3)/(pow(c,2)*(np.exp(h*frequency*1e9/(k*tdust))-1))
+        B = 2*h*pow((frequency*1e9),3)/(pow(c,2)*np.expm1(h*frequency*1e9/(k*tdust)))
         print "Using gas-to-dust mass ratio R = %f" % (R)
         mass = fluxDensity*(1e-23)*pow(distance*3.08e21,2)*masscorr*R/(B*kappa)
         massMsun = mass/2e33
@@ -15117,11 +16067,11 @@ def brightness(fluxDensity, frequency, beamsize, beamsize2=None,
                     mytempRJ = (1.224e+6)*(fluxDensity+fU)/(pow(frequency,2)*(beamsize+bU)*(beamsize2+bU2))
                     mytau = -np.log(1-mytempRJ/(tdust+tU))
                     mymasscorr = mytau/(1-exp(-mytau))
-                    myB = 2*h*pow((frequency*1e9),3)/(pow(c,2)*(np.exp(h*frequency*1e9/(k*(tdust+tU)))-1))
+                    myB = 2*h*pow((frequency*1e9),3)/(pow(c,2)*np.expm1(h*frequency*1e9/(k*(tdust+tU))))
                     Msun = (fluxDensity+fU)*(1e-23)*pow(distance*3.08e21,2)*mymasscorr*R/(myB*kappa) / 2e33
                     if (Msun > 0): break
                 Msuns.append(Msun)
-                beamAreaCM = (beamsize+bU)*(beamsize2+bU2)*np.pi*0.25*pow(distance*3.08e21,2)/pow(ARCSEC_PER_RAD,2)
+                beamAreaCM = (beamsize+bU)*(beamsize2+bU2)*np.pi*0.25*pow(distance*3.08e21,2)/(np.log(2)*pow(ARCSEC_PER_RAD,2))
                 mycolumn.append((fluxDensity+fU)*(1e-23)*pow(distance*3.08e21,2)*masscorr*R/(B*kappa)/hydrogenMoleculeMass/(beamAreaCM))
             MsunUncertainty = MAD(Msuns)
             retval['mass'] = np.median(Msuns)
@@ -15130,7 +16080,7 @@ def brightness(fluxDensity, frequency, beamsize, beamsize2=None,
         retval['massUncertainty'] = MsunUncertainty
         print "RJ mass = %f to %f Msun" % (massMsun-MsunUncertainty, massMsun+MsunUncertainty)
         
-        beamAreaCM = beamsize*beamsize2*np.pi*0.25*pow(distance*3.08e21,2)/pow(ARCSEC_PER_RAD,2)
+        beamAreaCM = beamsize*beamsize2*np.pi*0.25*pow(distance*3.08e21,2)/(np.log(2)*pow(ARCSEC_PER_RAD,2))
         column = mass/hydrogenMoleculeMass/beamAreaCM
         print "Ncolumn = %g cm-2" % (column)
         power = int(np.log10(np.median(mycolumn)))
@@ -15141,6 +16091,7 @@ def brightness(fluxDensity, frequency, beamsize, beamsize2=None,
         if (columnDensity != None):
             print "Abundance of molecule relative to H2: %e" % (columnDensity/column)
         retval['columnDensity'] = column
+        retval['columnDensityUncertainty'] = MAD(mycolumn) # column * retval['massUncertainty'] / retval['mass']
     return(retval)
 
 def backgroundSources(fluxdensity, fieldDiameter=None, fieldXsize=None,
@@ -15165,7 +16116,7 @@ def backgroundSources(fluxdensity, fieldDiameter=None, fieldXsize=None,
     return(N)
     
 def rad2radec(ra=0,dec=0,imfitdict=None, prec=5, verbose=True, component=0,
-              replaceDecDotsWithColons=True):
+              replaceDecDotsWithColons=True, hmsdms=False):
     """
     Convert a position in RA/Dec from radians to sexagesimal string which
     is comma-delimited, e.g. '20:10:49.01, +057:17:44.806'.
@@ -15174,6 +16125,8 @@ def rad2radec(ra=0,dec=0,imfitdict=None, prec=5, verbose=True, component=0,
     via the 'ra' parameter, or
     as an imfit dictionary can be passed via the 'imfitdict' argument, and the
     position of component 0 will be displayed in RA/Dec sexagesimal.
+    replaceDotsWithColons: replace dots with colons as the Declination d/m/s delimiter
+    hmsdms: produce output of format: '20h10m49.01s, +057d17m44.806s'
     Todd Hunter
     """
     if (type(imfitdict) == dict):
@@ -15210,9 +16163,18 @@ def rad2radec(ra=0,dec=0,imfitdict=None, prec=5, verbose=True, component=0,
             mydec = mydec.replace('.',':',2)
         mystring = '%s, %s' % (myra, mydec)
         myqa.done()
+    if (hmsdms):
+        mystring = convertColonDelimitersToHMSDMS(mystring)
     if (verbose):
         print mystring
     return(mystring)
+
+def convertColonDelimitersToHMSDMS(mystring):
+    """
+    Converts HH:MM:SS.SSS, +DD:MM:SS.SSS  to HHhMMmSS.SSSs,+DDdMMmSS.SSSs
+    -Todd Hunter
+    """
+    return(mystring.strip(' ').replace(':','h',1).replace(':','m',1).replace(',','s,',1).replace(':','d',1).replace(':','m',1) + 's')
     
 def radec2direction(radecstring):
     """
@@ -15229,15 +16191,19 @@ def radec2direction(radecstring):
                  'type': 'direction'}
     return(direction)
 
-def direction2radec(direction=None, prec=5):
+def direction2radec(direction=None, prec=5, hmsdms=False):
     """
-    Convert a direction dictionary to a sexagesimal string.
+    Convert a direction dictionary to a sexagesimal string of format:
+    HH:MM:SS.SSSSS, +DDD:MM:SS.SSSSSS
+    hmsdms: if True, then output format is HHhMMmSS.SSSs, +DDDdMMmSS.SSSs
     Todd Hunter
     """
     ra  = direction['m0']['value']
     dec = direction['m1']['value']
     mystring = '%s, %s' % (qa.formxxx('%.12frad'%ra,format='hms',prec=prec),
                            qa.formxxx('%.12frad'%dec,format='dms',prec=prec).replace('.',':',2))
+    if (hmsdms):
+        mystring = convertColonDelimitersToHMSDMS(mystring)
     return(mystring)
     
 def direction2radecForSimobserve(direction=None, prec=5):
@@ -15339,20 +16305,28 @@ def getModelPlanetFromVis(vis):
             break
     return(body)
 
-def planetTemperature(body='', frequency=None, angularDiameter=None, vis=None, date='',
-                      intent='OBSERVE_TARGET#ON_SOURCE', efficiency=0.75, spw=None):
+def planetTemperature(body='', frequency=None, angularDiameter=None, vis=None,
+                      date='', intent='OBSERVE_TARGET#ON_SOURCE',
+                      efficiency=None, spw=None, beamFwhm=None,
+                      beamFwhmFactor=1.13, telescopeDiameter=12,
+                      useJPL=True, surfaceRms=25):
     """
     Estimates the expected antenna temperature of a planet based on its model
     radiative temperature in CASA, the observed frequency and angular diameter
     at a specific date of observation.
     planet: one of /usr/lib64/casapy/data/alma/SolarSystemModels/*_Tb.dat
     frequency: observed frequency (Hz, GHz, or a string with units)
-    angularDiameter: of body in arcsec
+    angularDiameter: of body in arcsec (if not specified, get it from JPL)
     vis: measurement set to consult for planet name and date
     date: date of observation
     intent: the observing intent to use to search for spws to use if vis is specified but spw is not
-    efficiency: antenna efficiency (on a scale from 0 to 1.0)
+    efficiency: antenna efficiency (on a scale from 0 to 1.0),
+                 if None: then use au.antennaEfficiency() with surfaceRms
     spw: the spw to use if vis is specified
+    beamFwhm: the beamsize to use instead of 1.13 lambda/D
+    beamFwhmFactor: the coefficient (C) to use in C*lambda/D
+    telescopeDiameter: telescope diameter (meters)
+    surfaceRms: in microns, only used if efficiency==None
     """
     if (vis == None):
         if (frequency==None):
@@ -15408,26 +16382,37 @@ def planetTemperature(body='', frequency=None, angularDiameter=None, vis=None, d
     Tplanet = kelvin[index]
     if (angularDiameter == None):
         if (vis != None):
-            data1 = planet(vis=vis)
+            data1 = planet(vis=vis, useJPL=useJPL)
             angularDiameter = data1['angularDiameter']
         elif (date != ''):
-            data1 = planet(body,date=date)
+            data1 = planet(body,date=date, useJPL=useJPL)
             angularDiameter = data1['angularDiameter']
         else:
             print "No angularDiameter defined for the body."
             return
         print "Angular diameter of %s = %.3f arcsec" % (body,angularDiameter)
     planetArea = np.pi*(angularDiameter*0.5)**2
-    taper = effectiveTaper(1.13)
-    beam = primaryBeamArcsec(frequency=frequencyGHz, taper=taper)
+    if (beamFwhm==None):
+        beam = primaryBeamArcsec(frequency=frequencyGHz,
+                                 diameter=telescopeDiameter,
+                                 fwhmfactor=beamFwhmFactor)
+        if (beam == None): return
+    else:
+        beam = beamFwhm
     print "telescope Gaussian beam FWHM at %.1f GHz = %.3f arcsec" % (frequencyGHz, beam)
     beamArea = np.pi*(beam*0.5)**2 
     coupling = diskCoupling(planetArea,beamArea)
     print "coupling factor between %.3f arcsec disk and Gaussian beam = %f" % (angularDiameter, coupling)
+    if (efficiency == None):
+        efficiency = antennaEfficiency(frequency, surfaceRms)
     print "antenna efficiency assumed = %f" % (efficiency)
     Tb = Tplanet * coupling * efficiency
     print "%s model temperature = %.3f K" % (body,Tplanet)
     print "expected brightness temperature = %.3f K" % (Tb)
+    fluxDensity = planetFlux(body,date=date,frequency=frequency,vis=vis,
+                             spw=spw)['fluxDensity']
+    print "total planet flux = %f Jy" % (fluxDensity)
+    print "total flux / expected Tb = %f Jy/K (assuming no image regridding)" % (fluxDensity/Tb)
     return(Tb)
     
 def planetFlux(body='', date=None, mjd=None, frequency=345e9, bandwidth=1e6, 
@@ -16353,6 +17338,15 @@ def buildConfigurationFile(vis='', simmospath=None, field='', dropTPpads=False,
     if (observatory.find('VLA')>=0):
         coordsys = '# coordsys=XYZ\n'
         observatory = 'VLA'
+        print "Recognized observatory = VLA"
+        # Remove "VLA:" and "_" from "VLA:_W8"
+        for i,s in enumerate(stations):
+            tokens = s.split(':')
+            if (len(tokens) > 1):
+                stations[i] = tokens[1].strip('_')
+                if (len(stations[i]) == 2):
+                    stations[i] = stations[i][0] + '0' + stations[i][1]
+
     elif (observatory.find('ALMA')>=0):
         coordsys = '# coordsys=LOC (local tangent plane)\n'
     else:
@@ -17092,7 +18086,7 @@ def plotbandpass(caltable='', antenna='', field='', spw='', yaxis='amp',
                  platformingThreshold=10, platformingSigma=5, basebands=None,
                  showBasebandNumber=False, scans='',figfileSequential=False,
                  groupByBaseband=False, cleanup=False, caltable2amplitudeOffset=0,
-                 xcolor='b', ycolor='g', regression=False):
+                 xcolor='b', ycolor='g'):
   """
   This is a tool to plot bandpass solutions faster than plotcal.  It is 
   designed to work on both the old cal table format and the new format of 3.4.
@@ -17115,10 +18109,11 @@ def plotbandpass(caltable='', antenna='', field='', spw='', yaxis='amp',
                                  platformingThreshold, platformingSigma,
                                  basebands, showBasebandNumber, scans,
                                  figfileSequential, groupByBaseband, cleanup,
-                                 caltable2amplitudeOffset, xcolor, ycolor,
-                                 regression)
+                                 caltable2amplitudeOffset, xcolor, ycolor)
   return(retval)
 
+def getCOFAForASDM(asdm):
+    return(getCOFAForObservatory(getObservatoryNameFromASDM(asdm)))
 
 def getCOFA(ms):
     """
@@ -17126,7 +18121,6 @@ def getCOFA(ms):
     array of the observatory (from the CASA Observatories table) for the 
     specified ms.  - Todd Hunter
     """
-    u = simutil.simutil()
     try:
         antTable = ms+'/ANTENNA'
         tb.open(antTable)
@@ -17146,15 +18140,21 @@ def getCOFA(ms):
         print "Could not open OBSERVATION table to get the telescope name: %s" % (antTable)
         myName = ''
         return
-    repotable=os.getenv("CASAPATH").split()[0]+"/data/geodetic/Observatories"
+    return(getCOFAForObservatory(myName))
+
+def getCOFAForObservatory(observatory):
+    """
+    Return the ITRF coordinates, Longitude and Latitude of the center of the 
+    array of the specified observatory (from the CASA Observatories table).
+    - Todd Hunter
+    """
+    u = simutil.simutil()
+    repotable = os.getenv("CASAPATH").split()[0]+"/data/geodetic/Observatories"
     tb.open(repotable)
     Name = tb.getcol('Name')
-    cx = position[0][0]
-    cy = position[1][0]
-    cz = position[2][0]
     myType = ''
     for i in range(len(Name)):
-        if (Name[i] == myName):
+        if (Name[i] == observatory):
             Long = tb.getcell('Long',i)
             Lat = tb.getcell('Lat',i)
             Height = tb.getcell('Height',i)
@@ -17169,7 +18169,140 @@ def getCOFA(ms):
                 (cx,cy,cz) = output
             break
     return(cx,cy,cz,Long,Lat)
+
+def plotantsFromASDM(asdm, plotfile='', plotAntennasActualSize=True,
+                     includeWeatherStations=False):
+    """
+    Reads the antenna positions from the ASDM and makes a plot, similar to
+    the plotants function in casa.
+    Input parameters:
+    * asdm: the name of the ASDM
+    * plotfile: name of png to produce,  if plotfile==True, then generate a default name 
+                from:  asdm.plotants.png
+    * plotAntennasActualSize: if True, then the markers will be scaled to match antenna 
+              diameter.  If the configuration is larger than 400m, and 
+              plotAntennasActualSize==True, then a second plot will be made zoomed into 
+              the inner array. 
+    * includeWeatherStations: if True, then also show the location of the weather stations
+    -Todd Hunter
+    """
+    xpositions = []
+    ypositions = []
+    diameters = []
+    mydict = readStationFromASDM(asdm) # returns {0:{'name':'A050', 'position':[x,y,z]}}
+    antennas, stationIds, diameters = readAntennasFromASDM(asdm,stations=True,diameters=True)
+    if (includeWeatherStations):
+        for station in mydict.keys():
+            if (station not in stationIds):
+                antennas.append(mydict[station]['name'])
+                stationIds.append(station)
+                diameters.append(1.0)
+    if (casadef.subversion_revision >= '25324'):
+        u = simutil.simutil()
+    for antennaStation in stationIds:
+        if (casadef.subversion_revision < '25324'):
+            xpositions.append(getPadLOC(mydict[antennaStation]['name'])[0])
+            ypositions.append(getPadLOC(mydict[antennaStation]['name'])[1])
+        else:
+            cx,cy,cz,Long,Lat = getCOFAForASDM(asdm)
+            x0,y0,z0 = u.itrf2loc(mydict[antennaStation]['position'][0],
+                                  mydict[antennaStation]['position'][1],
+                                  mydict[antennaStation]['position'][2],
+                                  cx,cy,cz)
+            xpositions.append(x0)
+            ypositions.append(y0)
+    maxBaseline = 0
+    for i in range(len(xpositions)):
+        for j in range(i+1,len(xpositions)):
+            baseline = pow(pow(xpositions[i]-xpositions[j],2)+pow(ypositions[i]-ypositions[j],2),0.5)
+            if (baseline > maxBaseline):
+                maxBaseline = baseline
+    plotfile = plotAntennaPositionList(xpositions, ypositions, antennas, diameters, asdm,
+                                       plotfile, plotAntennasActualSize)
+    if (maxBaseline > 400):
+        xlim = [-140,240]
+        ylim = [-150,150]
+        if (plotfile == ''):
+            myinput = raw_input("Press return for next plot (zoom of inner array)")
+        else:
+            plotfile = plotfile.replace('.png','') + '.zoom.png'
+        plotAntennaPositionList(xpositions, ypositions, antennas, diameters, asdm,
+                                plotfile, plotAntennasActualSize, xlim, ylim)
     
+
+def plotAntennaPositionList(plotx, ploty, antenna, diam, dataset, plotfile='',
+                            plotAntennasActualSize=True, xlim=None, ylim=None):
+    """
+    Called by plotantsFromASDM and es.listobs2. 
+    Input parameters:
+    plotx, ploty: list of X and Y components of geocentric position
+    antenna: list of antenna names
+    diam: list of antenna diameters (meters)
+    dataset: the string to put in the title of the plot
+    plotfile: if specified, then produce a plot of this name.  if 'True' then
+         the plotfile name will be  <dataset>.plotants.png
+    -Todd Hunter
+    """
+    pb.clf()
+    zoomed = False
+    if (plotAntennasActualSize):
+        myaxis = pb.axes()
+        for a in range(len(plotx)):
+            circ = pb.Circle((plotx[a],ploty[a]), radius=diam[a]*0.5,
+                             facecolor='#FFB6C1', edgecolor='k')
+            myaxis.add_patch(circ)
+        pb.axis('equal')
+        if (xlim != None):
+            pb.xlim(xlim)
+            zoomed = True
+        if (ylim != None):
+            pb.ylim(ylim)
+            zoomed = True
+        xlim = pb.xlim() 
+        ylim = pb.ylim()  # actual value may vary due to axis('equal')
+    else:
+        #  Find size of plot
+        pxmin = np.min(plotx)
+        pymin = np.min(ploty)
+        pxmax = np.max(plotx)
+        pymax = np.max(ploty)
+        psize = np.sqrt((pxmax-pxmin)**2 + (pymax+pymin)**2)
+    # set marker size
+        mssize = 15.0/300.0*psize
+        pb.plot(plotx,ploty,'go',ms=mssize,mfc='#FFB6C1')
+        pb.xlim([pxmin-2*mssize, pxmax+2*mssize])
+        pb.ylim([pymin-2*mssize, pymax+2*mssize])
+    labelsize = 10
+    labelsizeMin = 2
+    labelsizeMax = 12
+    xmean = np.mean(plotx)
+    ymean = np.mean(ploty)
+    for i in range(0,len(plotx)):
+        withinFrame = True
+        if (plotAntennasActualSize):
+            radiusFromCenter = ((plotx[i]-xmean)**2 + (ploty[i]-ymean)**2)**0.5
+            cornerRadius = (((xlim[1]-xlim[0])*0.5)**2 + ((ylim[1]-ylim[0])*0.5)**2)**0.5
+            labelsize = np.int(np.round(labelsizeMin + (labelsizeMax-labelsizeMin)*radiusFromCenter/cornerRadius))
+            labelsize = labelsizeMin + (labelsizeMax-labelsizeMin)*(radiusFromCenter/cornerRadius)**0.33
+            if (xlim != None):
+                if (plotx[i] < xlim[0] or plotx[i] > xlim[1]): withinFrame = False
+            if (ylim != None):
+                if (ploty[i] < ylim[0] or ploty[i] > ylim[1]): withinFrame = False
+        if (withinFrame):
+            pb.text(plotx[i]-3.0,ploty[i]-5.0,str(i)+'='+antenna[i],size=labelsize)
+    mytitle = os.path.basename(dataset)
+    if (zoomed):
+        mytitle += ' (zoomed)'
+    pb.title(mytitle,fontsize=12)
+    pb.xlabel('X(m)')
+    pb.ylabel('Y(m)')
+    if (plotfile != ''):
+        if (plotfile == True):
+            plotfile = dataset + '.plotants.png'
+        pb.savefig(plotfile,format='png',density=108)
+        print 'saved antenna plot in %s' % (plotfile)
+    return(plotfile)
+
 def obslist(ms,cofa=''):
     """
     Parses the telescope name from the OBSERVATION table, then finds the
@@ -17742,7 +18875,9 @@ def smoothbandpass(caltable='',window_len=20, window='flat', method='ri' ,
 
 def getScansForIntentFast(vm,uniqueScans,intent):
   """
-  This is a faster version of the one in ValueMapping.
+  Given a ValueMapping structure and a list of scans, return those
+  that have the specified intent.
+  This is a faster version of the function in ValueMapping.
   - Todd Hunter
   """
   onsourceScans = []
@@ -17905,35 +19040,31 @@ def findNearestField(ra,dec,raAverageDegrees, decAverageDegrees):
             nearestField = i
     return([nearestField,smallestSeparation])
 
-def plotMosaic(vis='',sourceid='',figfile='', coord='relative', skipsource=-1,
-               doplot=True, help=False, sciencespws=False, vm=''):
-  """
-  Produce a plot of the pointings with the primary beam FWHM and field names.
-  For further help and examples, see http://casaguides.nrao.edu/index.php?title=Plotmosaic
-  -- Todd Hunter
-  """
-  return plotmosaic(vis,sourceid,figfile,coord,skipsource,doplot,help, sciencespws, vm)
-
 def plotmosaic(vis='',sourceid='',figfile='', coord='relative', skipsource=-1,
-               doplot=True, help=False, sciencespws=False, vm='', debug=False):
+               doplot=True, help=False, sciencespws=False, vm='', debug=False,
+               intent='OBSERVE_TARGET#ON_SOURCE'):
     """
     Produce a plot of the pointings with the primary beam FWHM and field names.
     For further help and examples, see http://casaguides.nrao.edu/index.php?title=Plotmosaic
+    Required parameters:
+    vis: the measurement set
+
+    Optional parameters:
+    sourceid: int or string (name or ID)
+    figfile: name of the png to produce
+    coord: 'relative' or 'absolute'
+    skipsource: source ID to avoid
+    doplot: if False, then the central field ID is returned as an integer. 
+            if True, the a list of values is returned: 
+               [central field,  maxRA, minRA, minDec, maxDec]
+       where the latter 4 values are in units of arcsec relative to the center.
+    sciencespws: if True, then only use the science spws
+    vm: a ValueMapping structure (obsolete, only for CASA < 4.1)
+    debug: if True, print extra messages
+    intent: determine the source IDs to use from this intent (if sourceid='')
+
     -- Todd Hunter
     """
-    if (help):
-        print "Usage: plotmosaic(vis, sourceid='', figfile='', coord='relative',"
-        print "         skipsource=-1, doplot=True, help=False, sciencespws=False, vm='')"
-        print "  The sourceid may be either an integer, integer string, or the string name"
-        print "     of the source (but it cannot be a list)."
-        print "  If doplot=False, then the central field ID is returned as an integer. "
-        print "     Otherwise, a list is returned: "
-        print "         [central field,  maxRA, minRA, minDec, maxDec]"
-        print "     where the angles are in units of arcsec relative to the center."
-        print "  If coord='absolute', then nothing is returned."
-        print "  If sciencespws=True, then run ValueMapping to determine science spws."
-        print "  If vm is not '', then it's assumed to be a ValueMapping structure."
-        return
   
     # open the ms table
     if (coord.find('abs')<0 and coord.find('rel')<0):
@@ -17968,8 +19099,12 @@ def plotmosaic(vis='',sourceid='',figfile='', coord='relative', skipsource=-1,
                     print "Available sources = ",np.unique(name)
                     return
                 else:
-                    print "No source specified, so plotting the first source = %s." % (name[0])
-                    sourceid = 0
+                    if (casadef.casa_version >= '4.1.0'):
+                        print "No source specified, so using the intent %s." % (intent)
+                    else:
+                        print "No source specified, so using the first source."
+                        sourceid = 0
+                        return
             else:
                 sourceid = srcs[0]
     #  sourcename = name[sourceid]  # original method, replaced by the line after the 'if' block
@@ -17983,7 +19118,20 @@ def plotmosaic(vis='',sourceid='',figfile='', coord='relative', skipsource=-1,
             print "No fields contain source ID = ", sourceid
             return
         print "Field IDs with matching source ID = ", fields
-    sourcename = name[list(sourceID).index(sourceid)]  # protects against the case of non-consecutive source IDs
+        sourcename = name[list(sourceID).index(sourceid)]  # protects against the case of non-consecutive source IDs
+    else:
+        mymsmd = createCasaTool(msmdtool)
+        mymsmd.open(vis)
+        fields = mymsmd.fieldsforintent(intent)
+        if (len(fields) == 0):
+            fields = mymsmd.fieldsforintent('*'+intent+'*')
+            if (len(fields) == 0):
+                print "No fields have intent = %s. Using first field instead." % (intent)
+                fields = [0]
+        sourcename = mymsmd.namesforfields(fields[0])[0]
+        mymsmd.close()
+        srcID = sourceID[list(name).index(sourcename)]
+        print "Found %d fields for source ID=%d: %s: %s" % (len(fields), srcID, sourcename, str(fields))
     name = mytb.getcol('NAME')
     mytb.close()
     mytb.open(vis)
@@ -18007,6 +19155,7 @@ def plotmosaic(vis='',sourceid='',figfile='', coord='relative', skipsource=-1,
         bandNames = []
         for spwName in spwNames:
             bandNames.append(spwName.split('#')[0])
+        bandNames = np.unique(bandNames)
         if (debug):
             print "bandNames = ", bandNames
         mytb.close()
@@ -18016,7 +19165,7 @@ def plotmosaic(vis='',sourceid='',figfile='', coord='relative', skipsource=-1,
         titleString = vis.split('/')[-1]
         dishDiameter =  [0]
     [latitude,longitude,obs] = getObservatoryLatLong('ALMA') 
-    print "Got longitude = %.3f deg" % (longitude)
+    if (debug): print "Got observatory longitude = %.3f deg" % (longitude)
     tsysOnlyFields = []
     if (sciencespws):
         if (casadef.casa_version >= '4.1.0'):
@@ -18069,7 +19218,7 @@ def plotmosaic(vis='',sourceid='',figfile='', coord='relative', skipsource=-1,
         myband = freqToBand(meanRefFreq)[0]
         print "Mean frequency = %f GHz (band = %d)" % (meanRefFreq*1e-9, myband)
         # If mean freq is not within one of the observed bands, then recalculate
-        if ('ALMA_RB_%02d'%(myband) not in bandNames and bandNames != ['']): # old data do not have band names in spw names
+        if ('ALMA_RB_%02d'%(myband) not in bandNames and len(bandNames) > 1): # old data do not have band names in spw names
             print "Mean frequency is not in any observed band. Recalculating over higher frequencies."
             newFreqs = refFreqs[matches]
             newmatches = np.where(newFreqs > meanRefFreq)[0]
@@ -18110,7 +19259,7 @@ def plotmosaic(vis='',sourceid='',figfile='', coord='relative', skipsource=-1,
             for i in range(len(ra)):
                 if (i in fields):
                     if (j > 0):
-                        arcsec = 0.5*primaryBeamArcsec(wavelength=lambdaMeters*1000,diameter=j)
+                        arcsec = 0.5*primaryBeamArcsec(wavelength=lambdaMeters*1000,diameter=j, showEquation=False)
                         radius = arcsec/3600.0
                         if (radius > maxradius):
                             maxradius = radius
@@ -18153,7 +19302,7 @@ def plotmosaic(vis='',sourceid='',figfile='', coord='relative', skipsource=-1,
             for i in range(len(ra)):
                 if (i in fields):
                     if (j > 0):
-                        arcsec = 0.5*primaryBeamArcsec(wavelength=lambdaMeters*1000, diameter=j)
+                        arcsec = 0.5*primaryBeamArcsec(wavelength=lambdaMeters*1000, diameter=j, showEquation=False)
                         radius = arcsec
                         if (radius > maxradius):
                             maxradius = radius
@@ -18235,7 +19384,9 @@ def plotmosaic(vis='',sourceid='',figfile='', coord='relative', skipsource=-1,
         return
 
 def plotconfig(telescope='', config='', figfile='', list=False, limits=None,
-               gridlines=True, listconfig=False, cofa=[], title=''):
+               gridlines=True, listconfig=False, cofa=[], title='',
+               repotable='', antennaSizePercent=0.5, units='m',
+               tickSpacing=None, fontsize=12, showPadNames=False):
     """
     Plots pad layout for specified telescope and configuration name. It also returns an
     array containing the baseline lengths, sorted from shortest to longest.
@@ -18257,6 +19408,11 @@ def plotconfig(telescope='', config='', figfile='', list=False, limits=None,
     listconfig: optional Boolean parameter to print the .cfg file
     cofa: center-of-array coordinates [x,y,z]; if [], then use the value in CASA
     title:  title for plot (default is "telescope config")
+    repotable: default is the CASA simmos area
+    antennaSizePercent: size of antennas to draw in large configurations
+    units: 'm' or 'km'
+    tickSpacing: change the X & Y axis major tick spacing (in specified units)
+    fontsize: for axis labels and tick labels
     """
     z = None
     if (telescope == 'wsrt'):
@@ -18288,10 +19444,9 @@ def plotconfig(telescope='', config='', figfile='', list=False, limits=None,
             if (str(config).find('cycle1')>=0):
                 configString = '_' + config
             elif (str(config).isdigit()==False and config.find('alma.out')<0):  # cycle 0
-                print "prepend period"
                 configString = '.' + config
-
-    repotable=os.getenv("CASAPATH").split()[0]+"/data/alma/simmos/"
+    if (repotable == ''):
+        repotable = os.getenv("CASAPATH").split()[0]+"/data/alma/simmos/"
     if (telescope == 'alma' and str(config).isdigit()):
         #  1
         myfile = repotable+telescope+'.out%02d'%int(config)+".cfg"
@@ -18341,6 +19496,8 @@ def plotconfig(telescope='', config='', figfile='', list=False, limits=None,
                 if (line.find('observatory')>=0):
                     if (telescope.upper() == 'ACA'):
                         telescopeCOFA = 'ALMA'
+                    if (telescope == ''):
+                        telescope = line.split('=')[1].strip('\n')
                 elif (line.find('coordsys')>=0):
                     coordsys = mystr
                 elif (line.find('datum')>=0):
@@ -18352,7 +19509,7 @@ def plotconfig(telescope='', config='', figfile='', list=False, limits=None,
         else:
             newcolumns = line.split()
             if (len(newcolumns) > 2):
-                if (str.isdigit(newcolumns[-1].replace(".","",1))):
+                if (str.isdigit(newcolumns[-1].replace(".","",1)) or showPadNames):
                     columns.append(newcolumns)
                 else:
                     columns.append(newcolumns[0:len(newcolumns)-1])
@@ -18363,8 +19520,11 @@ def plotconfig(telescope='', config='', figfile='', list=False, limits=None,
         y = np.array(columns).transpose()[1].astype('float')
         z = np.array(columns).transpose()[2].astype('float')
         diameter = np.array(columns).transpose()[3].astype('float')
+        if (showPadNames):
+            padnames = np.array(columns).transpose()[4].astype('str')
         if (config == 'i.loc' or config == 'ns.loc' or config == 'nc.loc'):
             diameter = 7*(diameter/diameter)
+        print "Maximum height difference = %f m" % (np.max(z)-np.min(z))
     else:
         position = np.array(columns).transpose().astype('float')
         diameter = np.array(columns).transpose()[3].astype('float')
@@ -18424,15 +19584,18 @@ def plotconfig(telescope='', config='', figfile='', list=False, limits=None,
                     lengths.append(((x[i]-x[j])**2+(y[i]-y[j])**2+(z[i]-z[j])**2)**0.5)
     lengths = np.sort(lengths)
     if (limits == None):
-        maxlength = np.max(lengths)
+        maxlength = np.max(lengths) # in meters
     else:
         xsize = (limits[1]-limits[0])
         ysize = (limits[3]-limits[2])
-        maxlength = 0.5*(ysize+xsize)
+        maxlength = 0.5*(ysize+xsize)  # meters or km
+        if (units == 'km'):
+            maxlength *= 1000
     pb.clf()
     uniqueDiameters = np.unique(diameter)
     print "diameters = ", uniqueDiameters
     adesc = pb.subplot(111)
+    pb.subplots_adjust(bottom=np.max([0.1,fontsize/100.])) # make room for baseline stats
     pb.hold(True)
     dcolor = ['b','r']
     axes = pb.axes()
@@ -18440,15 +19603,22 @@ def plotconfig(telescope='', config='', figfile='', list=False, limits=None,
     for d in range(len(uniqueDiameters)):
         diam = uniqueDiameters[d]
         matches = np.where(diam == diameter)[0]
-#        pb.plot(x[matches],y[matches],'o')
         for m in matches:
             myx = x[m]
             myy = y[m]
-            radius = np.max([maxlength*0.004,diameter[m]*0.5])
+            radius= np.max([maxlength*antennaSizePercent*0.01,diameter[m]*0.5])
             if (radius > diameter[m]*0.5):
                 exaggerated = True
-            circ=pb.Circle((myx, myy),radius=radius, color=dcolor[d]) # , transform=adesc.transAxes)
+            if (units == 'km'):
+               myx *= 0.001
+               myy *= 0.001
+               radius *= 0.001
+            circ=pb.Circle((myx, myy),radius=radius, color=dcolor[d])
             axes.add_patch(circ)
+            if (showPadNames):
+                if (limits==None or (myx <= limits[1] and myx >=limits[0] and 
+                                     myy <= limits[3] and myy >= limits[1])):
+                    pb.text(myx, myy, padnames[m], size=10)
     pb.hold(False)
     if (title == ''):
         configString = config
@@ -18465,9 +19635,15 @@ def plotconfig(telescope='', config='', figfile='', list=False, limits=None,
         pb.title(titleString,size=14)
     else:
         pb.title(title,size=14)
-    pb.text(-0.1,-0.11,"baselines: min/median/rms/max = %.1f / %.1f / %.1f / %.1f m" % (np.min(lengths),np.median(lengths),np.sqrt(np.mean(lengths**2)),np.max(lengths)),transform=adesc.transAxes)
-    pb.xlabel('X (m)')
-    pb.ylabel('Y (m)')
+    pb.text(-0.1,-fontsize/100.,"baselines: min/median/rms/max = %.1f / %.1f / %.1f / %.1f m" % (np.min(lengths),np.median(lengths),np.sqrt(np.mean(lengths**2)),np.max(lengths)),transform=adesc.transAxes)
+    if (units == 'km'):
+       xlabel = 'X (km)'
+       ylabel = 'Y (km)'
+    else:
+       xlabel = 'X (m)'
+       ylabel = 'Y (m)'
+    pb.xlabel(xlabel, size=fontsize)
+    pb.ylabel(ylabel, size=fontsize)
     if (list):
         for i in range(len(lengths)):
             print "%.1f m" % (lengths[i])
@@ -18486,6 +19662,17 @@ def plotconfig(telescope='', config='', figfile='', list=False, limits=None,
         if (gridlines):
             adesc.yaxis.grid(True,which='major')
             adesc.xaxis.grid(True,which='major')
+        if (tickSpacing == None):
+            majorTicks = pb.gca().get_xticks()
+            print "majorTicks = ", majorTicks
+            xmajorTickSpacing = abs(majorTicks[1] - majorTicks[0])
+            majorTicks = pb.gca().get_yticks()
+            ymajorTickSpacing = abs(majorTicks[1] - majorTicks[0])
+            print "xmajor tick spacing = %f, y=%f" % (xmajorTickSpacing, ymajorTickSpacing)
+            tickSpacing = np.max([xmajorTickSpacing,ymajorTickSpacing])
+        adesc.xaxis.set_major_locator(MultipleLocator(tickSpacing))
+        adesc.yaxis.set_major_locator(MultipleLocator(tickSpacing))
+    resizeFonts(adesc,fontsize)
     pb.draw()
     if (limits != None):
         # This seems to be necessary in order for the first plot to be square.
@@ -18524,7 +19711,7 @@ class stuffForScienceDataReduction:
         mypath += pathEnding
         return(mypath)
 
-    def correctMyAntennaPositions(self, msName, obsTime='', verbose=True):
+    def correctMyAntennaPositions(self, msName, obsTime='', verbose=True, checkForAntennaMoves=True):
 
         #casaCmd = 'print "# Correcting for antenna position errors."\n\n'
         casaCmd = ''
@@ -18649,7 +19836,12 @@ class stuffForScienceDataReduction:
                 if antMoves1[j]['Date'] <= obsTime: break
 
             if antMoves1[j]['To'] != padNames[i]:
-                sys.exit("ERROR: Current data file has antenna "+str(antNames[i])+" on pad "+str(padNames[i])+" while latest move recorded is on pad "+str(antMoves1[j]['To']))
+                if checkForAntennaMoves == True:
+                    sys.exit("ERROR: Current data file has antenna "+str(antNames[i])+" on pad "+str(padNames[i])+" while latest move recorded is on pad "+str(antMoves1[j]['To']))
+                else:
+                    print "ERROR: Current data file has antenna "+str(antNames[i])+" on pad "+str(padNames[i])+" while latest move recorded is on pad "+str(antMoves1[j]['To'])
+                    msAntPos.pop(antNames[i])
+                    continue
 
             msAntPos[antNames[i]]['putInTime'] = antMoves1[j]['Date']
 
@@ -18943,34 +20135,38 @@ class stuffForScienceDataReduction:
     def getCalWeightStats(self, msName):
 
         sciSpwInfo = self.getSpwInfo(msName, intent='OBSERVE_TARGET|CALIBRATE_BANDPASS')
-        mytb = createCasaTool(tbtool)
-        mytb.open(msName+'/DATA_DESCRIPTION')
-        spwIds = mytb.getcol('SPECTRAL_WINDOW_ID')
-        mytb.close()
-
-        output = "# Spw Pol Min Mean Max\n"
-
-        mytb.open(msName)
+#         mytb = createCasaTool(tbtool)
+#         mytb.open(msName+'/DATA_DESCRIPTION')
+#         spwIds = mytb.getcol('SPECTRAL_WINDOW_ID')
+#         mytb.close()
+# 
+#         output = "# Spw Pol Min Mean Max\n"
+# 
+#         mytb.open(msName)
+# 
+#         for i in sciSpwInfo:
+#             dataDescId = np.where(np.array(spwIds) == i)[0]
+#             if len(dataDescId) != 1: sys.exit('ERROR: Too many data desc ids')
+#             dataDescId = dataDescId[0]
+#             tb1 = mytb.query('DATA_DESC_ID == '+str(dataDescId)+' AND FLAG_ROW != True')
+#             calWeightStats = tb1.statistics(column='WEIGHT')
+#             for j in calWeightStats.keys():
+#                 output = output + '%d %s %.2f %.2f %.2f' %(i, j.split('_')[1], calWeightStats[j]['min'], calWeightStats[j]['mean'], calWeightStats[j]['max'])
+#                 if calWeightStats[j]['max'] < 10:
+#                     output = output + ' -> OK\n'
+#                 else:
+#                     output = output + ' -> NOT OK\n'
+#             tb1.close()
+#         mytb.close()
+#         print output
+# 
+#         f = open(msName+'.calweights', 'w')
+#         print >> f, output
+#         f.close()
 
         for i in sciSpwInfo:
-            dataDescId = np.where(np.array(spwIds) == i)[0]
-            if len(dataDescId) != 1: sys.exit('ERROR: Too many data desc ids')
-            dataDescId = dataDescId[0]
-            tb1 = mytb.query('DATA_DESC_ID == '+str(dataDescId)+' AND FLAG_ROW != True')
-            calWeightStats = tb1.statistics(column='WEIGHT')
-            for j in calWeightStats.keys():
-                output = output + '%d %s %.2f %.2f %.2f' %(i, j.split('_')[1], calWeightStats[j]['min'], calWeightStats[j]['mean'], calWeightStats[j]['max'])
-                if calWeightStats[j]['max'] < 10:
-                    output = output + ' -> OK\n'
-                else:
-                    output = output + ' -> NOT OK\n'
-            tb1.close()
-        mytb.close()
-        print output
-
-        f = open(msName+'.calweights', 'w')
-        print >> f, output
-        f.close()
+            plotms(vis = msName, xaxis = 'time', yaxis = 'weight', spw = str(i), xselfscale = True, yselfscale = True,
+                coloraxis = 'field', plotfile = msName + '_weights_spw'+str(i)+'.png', overwrite = True)
 
     def getFlagStats(self, msName):
 
@@ -19018,10 +20214,11 @@ class stuffForScienceDataReduction:
             else:
                 print str(i) + " %.2f PSF fit did not converge." %(psfStats['all_fits']['keyword']['frequency'][i]/1.0e9)
 
-    def plotAntennas(self, vis):
+    def plotAntennas(self, vis, plotfile=''):
         """
         Plot antenna/pad positions in ANTENNA table.
-
+        vis: measurement set
+        plotfile: default name is <vis>.plotAntennas.png
         """
         (sitelon, sitelat) = (pb.radians(-67.75), pb.radians(-23.02))
         tb.open(vis+'/ANTENNA')
@@ -19038,14 +20235,19 @@ class stuffForScienceDataReduction:
         for (i, pad) in enumerate(ant_station):
             pads[pad] = pb.array(self.shiftAlmaCoord(geoToAlma(sitelon, sitelat, \
                 (ant_pos[0][i], ant_pos[1][i], ant_pos[2][i]))))
-
-        # map: with pad names
+   # map: with pad names
         plf1 = pb.figure(1)
         pb.clf()
         subpl1 = plf1.add_subplot(1, 1, 1, aspect='equal')
         self.draw_pad_map_in_subplot(subpl1, pads, config_antennas)
-        pb.title(vis)
-        myfigfile = vis + '.plotAntennas.png'
+        mytitle = vis
+        if (len(mytitle) > 55):
+            mytitle = '...'+vis[-55:]
+        pb.title(mytitle)
+        if (plotfile == ''):
+            myfigfile = vis + '.plotAntennas.png'
+        else:
+            myfigfile = plotfile
         pb.savefig(myfigfile,format='png',density=108)
         print "Figure output to %s" % (myfigfile)
         plf1.show()
@@ -20012,7 +21214,9 @@ class stuffForScienceDataReduction:
                     casaCmd = casaCmd + "\nflagcmd(vis = '"+msName+"',\n"
                     casaCmd = casaCmd + "  inpmode = 'table',\n"
                     casaCmd = casaCmd + "  useapplied = True,\n"
-                    casaCmd = casaCmd + "  action = 'plot')\n\n"
+#                     casaCmd = casaCmd + "  action = 'plot')\n\n"
+                    casaCmd = casaCmd + "  action = 'plot',\n"
+                    casaCmd = casaCmd + "  plotfile = '"+msName+".flagcmd.png')\n\n"
                     casaCmd = casaCmd + "flagcmd(vis = '"+msName+"',\n"
                     casaCmd = casaCmd + "  inpmode = 'table',\n"
                     casaCmd = casaCmd + "  useapplied = True,\n"
@@ -20223,6 +21427,21 @@ class stuffForScienceDataReduction:
             casaCmd = casaCmd + "casalog.setlogfile(mylogfile)\n\n"
 
         calTableName1 = msName+'.wvr'
+
+        if (casadef.casa_version >= '4.2.0'):
+            casaCmd = casaCmd + "# This is a temporary workaround, which will be included in a future version of CASA\n\n"
+            casaCmd = casaCmd + "tb.open('"+calTableName1+"', nomodify=False)\n"
+            casaCmd = casaCmd + "count = 0\n"
+            casaCmd = casaCmd + "numrows = tb.nrows()\n"
+            casaCmd = casaCmd + "mycparamcol = tb.getcol('CPARAM')\n"
+            casaCmd = casaCmd + "for i in range(0, numrows):\n"
+            casaCmd = casaCmd + "    if mycparamcol[0][0][i] == (1.+0.j):\n"
+            casaCmd = casaCmd + "        tb.putcell('FLAG', i, [[True]])\n"
+            casaCmd = casaCmd + "        count += 1\n"
+            casaCmd = casaCmd + "tb.close()\n"
+            casaCmd = casaCmd + "del mycparamcol\n"
+            casaCmd = casaCmd + "if(numrows>0):\n"
+            casaCmd = casaCmd + "    print 'Flagged', count, 'of', numrows, 'solutions =', 100.*count/float(numrows),'%'\n\n\n"
 
         spwInfo = self.getSpwInfo(msName)
         integTime = []
@@ -20610,7 +21829,7 @@ class stuffForScienceDataReduction:
 
     def getFieldsForSetjy(self, msName):
 
-        setjyModels = ['Mars', 'Jupiter', 'Uranus', 'Neptune', 'Pluto', 'Io', 'Europa', 'Ganymede', 'Callisto', 'Titan', 'Triton', 'Ceres', 'Pallas', 'Vesta', 'Juno', 'Victoria', 'Davida']
+        setjyModels = ['Venus', 'Mars', 'Jupiter', 'Uranus', 'Neptune', 'Pluto', 'Io', 'Europa', 'Ganymede', 'Callisto', 'Titan', 'Triton', 'Ceres', 'Pallas', 'Vesta', 'Juno', 'Victoria', 'Davida']
 
         #tb.open(msName+'/FIELD')
         #fieldNames = tb.getcol('NAME')
@@ -20729,13 +21948,37 @@ class stuffForScienceDataReduction:
 
             if len(intentSources1['sourceid']) != 0:
 
-                fluxCalSourceId = intentSources1['sourceid']
-                if len(fluxCalSourceId) != 1: sys.exit("ERROR: There are more than one flux calibrator.")
-                fluxCalSourceId = fluxCalSourceId[0]
-                fluxCalSourceName = intentSources1['name'][0]
-                fluxCalFieldIds = intentSources1['id']
+#                 fluxCalSourceId = intentSources1['sourceid']
+#                 if len(fluxCalSourceId) != 1: sys.exit("ERROR: There are more than one flux calibrator.")
+#                 fluxCalSourceId = fluxCalSourceId[0]
+#                 fluxCalSourceName = intentSources1['name'][0]
+#                 fluxCalFieldIds = intentSources1['id']
+# 
+#                 sourceFluxes = self.getFluxesFromSourceTable(msName)
 
                 sourceFluxes = self.getFluxesFromSourceTable(msName)
+
+                fluxCalSourceId = intentSources1['sourceid']
+
+                if len(fluxCalSourceId) > 1:
+                    print "WARNING: THERE ARE MORE THAN ONE FLUX CALIBRATOR. I WILL PICK THE FIRST ONE. THIS MAY BE WRONG."
+                    fluxCalSourceId = [j for j in fluxCalSourceId if j in sourceFluxes.keys()]
+
+                if len(fluxCalSourceId) == 0: sys.exit("ERROR: There are no flux calibrator.")
+
+                fluxCalSourceId = fluxCalSourceId[0]
+
+                fluxCalSourceName = intentSources1['name'][intentSources1['sourceid'].index(fluxCalSourceId)]
+
+                if len(intentSources1['sourceid']) > 1:
+                    tb.open(msName+'/FIELD')
+                    tb1 = tb.query('SOURCE_ID == '+str(fluxCalSourceId))
+                    fluxCalFieldIds1 = tb1.rownumbers().tolist()
+                    tb1.close()
+                    tb.close()
+                    fluxCalFieldIds = [j for j in fluxCalFieldIds1 if j in intentSources1['id']]
+                else:
+                    fluxCalFieldIds = intentSources1['id']
 
                 if fluxCalSourceId in sourceFluxes:
 
@@ -20766,7 +22009,9 @@ class stuffForScienceDataReduction:
                         casaCmd = casaCmd + "setjy(vis = '"+msName1+"',\n"
                         casaCmd = casaCmd + "  field = '"+fluxCalFieldIds+"', # source name = "+fluxCalSourceName+"\n"
                         casaCmd = casaCmd + "  spw = '"+str(spwIds[j])+"', # center frequency of spw = "+str(spwMeanFreq[j]/1.e9)+"GHz\n"
+                        if (casadef.casa_version >= '4.2.0'): casaCmd = casaCmd + "  standard = 'manual',\n"
                         casaCmd = casaCmd + "  fluxdensity = ["+str(flux1)+", 0, 0, 0]) # frequency of measurement = "+str(frequency1/1.e9)+"GHz\n\n"
+
 
         return casaCmd
 
@@ -20908,13 +22153,37 @@ class stuffForScienceDataReduction:
 
             if len(intentSources1['sourceid']) != 0:
 
-                fluxCalSourceId = intentSources1['sourceid']
-                if len(fluxCalSourceId) != 1: sys.exit("ERROR: There are more than one flux calibrator.")
-                fluxCalSourceId = fluxCalSourceId[0]
-                fluxCalSourceName = intentSources1['name'][0]
-                fluxCalFieldIds = intentSources1['id']
+#                 fluxCalSourceId = intentSources1['sourceid']
+#                 if len(fluxCalSourceId) != 1: sys.exit("ERROR: There are more than one flux calibrator.")
+#                 fluxCalSourceId = fluxCalSourceId[0]
+#                 fluxCalSourceName = intentSources1['name'][0]
+#                 fluxCalFieldIds = intentSources1['id']
+# 
+#                 sourceFluxes = self.getFluxesFromSourceTable(msName)
 
                 sourceFluxes = self.getFluxesFromSourceTable(msName)
+
+                fluxCalSourceId = intentSources1['sourceid']
+
+                if len(fluxCalSourceId) > 1:
+                    print "WARNING: THERE ARE MORE THAN ONE FLUX CALIBRATOR. I WILL PICK THE FIRST ONE. THIS MAY BE WRONG."
+                    fluxCalSourceId = [j for j in fluxCalSourceId if j in sourceFluxes.keys()]
+
+                if len(fluxCalSourceId) == 0: sys.exit("ERROR: There are no flux calibrator.")
+
+                fluxCalSourceId = fluxCalSourceId[0]
+
+                fluxCalSourceName = intentSources1['name'][intentSources1['sourceid'].index(fluxCalSourceId)]
+
+                if len(intentSources1['sourceid']) > 1:
+                    tb.open(msName+'/FIELD')
+                    tb1 = tb.query('SOURCE_ID == '+str(fluxCalSourceId))
+                    fluxCalFieldIds1 = tb1.rownumbers().tolist()
+                    tb1.close()
+                    tb.close()
+                    fluxCalFieldIds = [j for j in fluxCalFieldIds1 if j in intentSources1['id']]
+                else:
+                    fluxCalFieldIds = intentSources1['id']
 
                 if fluxCalSourceId in sourceFluxes:
 
@@ -21163,6 +22432,7 @@ class stuffForScienceDataReduction:
                     casaCmd = casaCmd + "      setjy(vis = '"+msName1+"',\n"
                     casaCmd = casaCmd + "        field = phaseCalName.replace(';','*;').split(';')[0],\n"
                     casaCmd = casaCmd + "        spw = spwId,\n"
+                    if (casadef.casa_version >= '4.2.0'): casaCmd = casaCmd + "        standard = 'manual',\n"
                     casaCmd = casaCmd + "        fluxdensity = [flux,0,0,0])\n\n"
 
 
@@ -21522,6 +22792,7 @@ class stuffForScienceDataReduction:
             casaCmd = casaCmd + "setjy(vis = '"+msName[i]+"',\n"
             casaCmd = casaCmd + "  field = '"+fieldName[i]+"',\n"
             casaCmd = casaCmd + "  spw = '"+spwId[i]+"',\n"
+            if (casadef.casa_version >= '4.2.0'): casaCmd = casaCmd + "  standard = 'manual',\n"
             casaCmd = casaCmd + "  fluxdensity = ["+fluxVal[i]+", 0, 0, 0])\n\n"
 
         for i in range(len(msNames)):
@@ -22163,6 +23434,395 @@ class stuffForScienceDataReduction:
                 if 'CALIBRATE_DELAY#ON_SOURCE' in scanIntents:
                     editIntents(msName, field=i, scan=j, newintents='AMPLITUDE', append=True)
 
+    def fixForICT331(self, asdmName):
+
+        f = open(asdmName+'/Scan.xml')
+        fc = f.read()
+        f.close()
+
+        blocks = re.findall('<row>.*?</row>', fc, re.DOTALL|re.MULTILINE)
+        if len(blocks) == 0: sys.exit('Found 0 block.')
+
+        scanIntents = {}
+
+        for i in range(len(blocks)):
+
+            scanNumber = re.findall('<scanNumber>.*?</scanNumber>', blocks[i])[0]
+            scanNumber = int(scanNumber.replace('<scanNumber>', '').replace('</scanNumber>', ''))
+
+            scanIntents1 = re.findall('<scanIntent>.*?</scanIntent>', blocks[i])[0]
+            scanIntents1 = scanIntents1.replace('<scanIntent>', '').replace('</scanIntent>', '')
+            scanIntents1 = re.findall('[A-Za-z_]+', scanIntents1)
+            scanIntents1 = [j for j in scanIntents1 if j != 'CALIBRATE_WVR']
+
+            scanIntents[scanNumber] = scanIntents1
+
+        f = open(asdmName+'/Main.xml')
+        fc = f.read()
+        f.close()
+
+        blocks = re.findall('<row>.*?</row>', fc, re.DOTALL|re.MULTILINE)
+        if len(blocks) == 0: sys.exit('Found 0 block.')        
+
+        needsFix = False
+        needsSyscalRegen = False
+
+        for i in range(len(blocks)):
+
+            scanNumber = re.findall('<scanNumber>.*?</scanNumber>', blocks[i])[0]
+            scanNumber = int(scanNumber.replace('<scanNumber>', '').replace('</scanNumber>', ''))
+
+            stateIds = re.findall('<stateId>.*?</stateId>', blocks[i])[0]
+            stateIds = stateIds.replace('<stateId>', '').replace('</stateId>', '').strip()
+
+            if re.search('null', stateIds) != None:
+
+                print 'Scan '+str(scanNumber)+' is affected.'
+
+                needsFix = True
+                if 'CALIBRATE_ATMOSPHERE' in scanIntents[scanNumber]: needsSyscalRegen = True
+
+                stateIds1 = stateIds.replace('null_', 'State_')
+
+                block = blocks[i].replace(stateIds, stateIds1)
+                if len(re.findall(blocks[i], fc)) != 1: sys.exit('ERROR')
+                fc = fc.replace(blocks[i], block)
+
+        if needsFix == True:
+
+            os.system('cp '+asdmName+'/Main.xml '+asdmName+'/Main.xml.old')
+
+            f = open(asdmName+'/Main.xml', 'w')
+            f.write(fc)
+            f.close()
+
+            print 'Main.xml was fixed. (The previous version was copied to "Main.xml.old".)'
+
+            if needsSyscalRegen:
+                print 'NOTE: YOU WILL NEED TO REGENERATE THE SYSCAL TABLE.'
+
+    def checkRMS(self, msNames='', cycle='', numAnts='', timeOnSource='', numFieldsPerSource='', maxFlag=0.1, groupFieldsByRADec=False, groupSpwsByFreq=False):
+
+        # groupSpwsByFreq will need implementation!! remember to check spw ids from one field to the next
+
+        print 'WARNING: THIS WAS NOT TESTED FOR SESSIONS'
+        print 'WARNING: OPTION groupSpwsByFreq NOT IMPLEMENTED YET'
+
+        if msNames == '': sys.exit('ERROR: YOU MUST SPECIFY A LIST (CALIBRATED) MEASUREMENT SETS')
+
+        if '*' in msNames:
+            msNames = glob.glob(msNames)
+            msNames = sorted(msNames)
+
+        if type(msNames) is str:
+            msNames = [msNames]
+
+        if timeOnSource == '': sys.exit('ERROR: YOU MUST SPECIFY A TIME ON SOURCE')
+        timeOnSource = float(timeOnSource)
+
+        if numFieldsPerSource == '':
+            print 'WARNING: YOU HAVE NOT SPECIFIED A NUMBER OF FIELDS PER SOURCE'
+        else:
+            numFieldsPerSource = int(numFieldsPerSource)
+
+        if cycle == '' and numAnts == '': sys.exit('ERROR: YOU MUST SPECIFY EITHER A CYCLE OR A NUMBER OF ANTENNAS')
+        if cycle != '' and numAnts != '': sys.exit('ERROR: YOU CANNOT SPECIFY A CYCLE AND A NUMBER OF ANTENNAS')
+
+        if cycle != '':
+            if int(cycle) == 1:
+                numAnts_ACA = 9
+                numAnts_BL12 = 32
+            else:
+                sys.exit('ERROR: CYCLE NOT SUPPORTED')
+        else:
+            numAnts = int(numAnts)
+
+        maxRatios = {3:1.1, 6:1.1, 7:1.15, 9:1.2}
+
+        maxFlag = float(maxFlag)
+
+        mydict = {}
+        array = ''
+
+        for i in range(len(msNames)):
+
+            msName = msNames[i]
+
+            print '# Processing -> ', msName
+
+            msmd.open(msName)
+            sciSpwIds = msmd.spwsforintent('OBSERVE_TARGET#ON_SOURCE')
+            wvrSpwIds = msmd.wvrspws()
+            sciFieldIds = msmd.fieldsforintent('OBSERVE_TARGET#ON_SOURCE')
+            antennaNames = msmd.antennanames()
+
+            sciSpwIds = np.array([j for j in sciSpwIds if j not in wvrSpwIds])
+
+            sciSpwMeanFreq = []
+            sciSpwChanWidth = []
+            sciSpwChanNum = []
+            for j in sciSpwIds:
+                sciSpwMeanFreq.append(msmd.meanfreq(j))
+                sciSpwChanWidth1 = np.unique(msmd.chanwidths(j))
+                if len(sciSpwChanWidth1) != 1: sys.exit('ERROR')
+                sciSpwChanWidth.append(sciSpwChanWidth1[0])
+                sciSpwChanNum.append(msmd.nchan(j))
+
+            msmd.close()
+
+            numCMAnts = 0
+            for j in range(len(antennaNames)):
+                if re.search('^CM', antennaNames[j]) != None:
+                    numCMAnts += 1
+            if 1. * numCMAnts / len(antennaNames) > 0.5:
+                array1 = 'ACA'
+            else:
+                array1 = 'BL12'
+            if array == '':
+                array = array1
+            else:
+                if array != array1: sys.exit('ERROR: THE FIRST DATASET WAS IDENTIFIED AS '+array+' WHILE THE CURRENT ONE IS IDENTIFIED AS '+array1)
+
+            tb.open(msName+'/FIELD')
+            sourceIds = tb.getcol('SOURCE_ID')
+            fieldDirs = tb.getcol('PHASE_DIR')
+            tb.close()
+
+            sourceIds1 = np.unique(sourceIds[sciFieldIds])
+
+            print '# Found ', len(sourceIds1), ' source(s)'
+
+            tb.open(msName+'/SOURCE')
+            sourceIds2 = tb.getcol('SOURCE_ID')
+            sourceNames2 = tb.getcol('NAME')
+            sourceDirs2 = tb.getcol('DIRECTION')
+            tb.close()
+
+            tb.open(msName+'/DATA_DESCRIPTION')
+            spwId2DataDescId = tb.getcol('SPECTRAL_WINDOW_ID').tolist()
+            tb.close()
+
+            tb.open(msName+'/SPECTRAL_WINDOW')
+            spwNames = tb.getcol('NAME').tolist()
+            tb.close()
+
+            tb.open(msName)
+
+            for j in range(len(sourceIds1)):
+
+                ij = np.where(sourceIds2 == sourceIds1[j])
+
+                sourceName = np.unique(sourceNames2[ij])
+                sourceDir = sourceDirs2.swapaxes(0,1)[ij]
+                sourceDir = sourceDir.swapaxes(0,1)
+                if len(sourceName) != 1 or len(np.unique(sourceDir[0])) != 1 or len(np.unique(sourceDir[1])) != 1: sys.exit('ERROR')
+                sourceName = sourceName[0]
+                sourceDir = [np.unique(sourceDir[0])[0], np.unique(sourceDir[1])[0]]
+
+                found = 0
+
+                if len(mydict.keys()) == 0:
+                    k = 0
+                else:
+                    for k in mydict.keys():
+                        if mydict[k]['sourceName'] == sourceName and mydict[k]['sourceDir'] == sourceDir:
+                            found = 1
+                            break
+                    if found == 0:
+                        k = max(mydict.keys()) + 1
+
+                if found == 0:
+                    mydict[k] = {}
+                    mydict[k]['sourceName'] = sourceName
+                    mydict[k]['sourceDir'] = sourceDir
+                    mydict[k]['perField'] = {}
+
+                sciFieldIds1 = np.where(sourceIds == sourceIds1[j])[0]
+                sciFieldIds1 = [kl for kl in sciFieldIds1 if kl in sciFieldIds]
+
+                for ij in sciFieldIds1:
+
+                    found = 0
+
+                    if len(mydict[k]['perField'].keys()) == 0:
+                        kl = 0
+                    else:
+                        if groupFieldsByRADec == True:
+                            for kl in mydict[k]['perField'].keys():
+                                if mydict[k]['perField'][kl]['fieldDir'] == [ str(fieldDirs[0][0][ij]), str(fieldDirs[1][0][ij]) ]:
+                                    found = 1
+                                    break
+                        else:
+                            if sciFieldIds1.index(ij) in mydict[k]['perField'].keys():
+                                kl = sciFieldIds1.index(ij)
+                                found = 1
+                            else:
+                                kl = max(mydict[k]['perField'].keys()) + 1
+
+                    if found == 0:
+                        mydict[k]['perField'][kl] = {}
+                        mydict[k]['perField'][kl]['fieldDir'] = [ str(fieldDirs[0][0][ij]), str(fieldDirs[1][0][ij]) ]
+                        mydict[k]['perField'][kl]['perSpw'] = {}
+
+                    for ij1 in sciSpwIds:
+
+                        found = 0
+
+                        if len(mydict[k]['perField'][kl]['perSpw'].keys()) == 0:
+                            kl1 = 0
+                        else:
+                            if groupSpwsByFreq == True:
+                                sys.exit('ERROR')
+                            else:
+                                if sciSpwIds.tolist().index(ij1) in mydict[k]['perField'][kl]['perSpw'].keys():
+                                    kl1 = sciSpwIds.tolist().index(ij1)
+                                    found = 1
+                                else:
+                                    kl1 = max(mydict[k]['perField'][kl]['perSpw'].keys()) + 1
+
+                        if found == 0:
+                            mydict[k]['perField'][kl]['perSpw'][kl1] = {}
+
+                        tb1 = tb.query('DATA_DESC_ID == '+str(spwId2DataDescId.index(ij1))+' AND FIELD_ID == '+str(ij))
+                        if tb1.nrows() == 0: continue
+
+                        exp1 = np.unique(tb1.getcol('EXPOSURE'))
+                        if len(exp1) != 1: sys.exit('ERROR')
+                        exp1 = exp1[0]
+
+                        if 'exp' not in mydict[k]['perField'][kl]['perSpw'][kl1].keys():
+                            mydict[k]['perField'][kl]['perSpw'][kl1]['exp'] = exp1
+                        else:
+                            if mydict[k]['perField'][kl]['perSpw'][kl1]['exp'] != exp1: sys.exit('ERROR')
+
+                        if 'meanFreq' not in mydict[k]['perField'][kl]['perSpw'][kl1].keys():
+                            mydict[k]['perField'][kl]['perSpw'][kl1]['meanFreq'] = sciSpwMeanFreq[sciSpwIds.tolist().index(ij1)]
+#                             mydict[k]['perField'][kl]['perSpw'][kl1]['band'] = getBand(sciSpwMeanFreq[sciSpwIds.tolist().index(ij1)])
+                            band1 = re.findall('ALMA_RB_[0-9]+', spwNames[ij1])
+                            if len(band1) != 1: sys.exit('ERROR')
+                            mydict[k]['perField'][kl]['perSpw'][kl1]['band'] = int(band1[0].split('_')[2])
+                        else:
+                            if mydict[k]['perField'][kl]['perSpw'][kl1]['meanFreq'] != sciSpwMeanFreq[sciSpwIds.tolist().index(ij1)]:
+                                print 'WARNING: THE MEAN FREQUENCY OF SPW ', ij1, ' OF CURRENT MS DOES NOT MATCH THE MEAN FREQUENCY OF THE SAME SPW OF THE FIRST MS'
+
+                        if 'chanWidth' not in mydict[k]['perField'][kl]['perSpw'][kl1].keys():
+                            mydict[k]['perField'][kl]['perSpw'][kl1]['chanWidth'] = sciSpwChanWidth[sciSpwIds.tolist().index(ij1)]
+                        else:
+                            if mydict[k]['perField'][kl]['perSpw'][kl1]['chanWidth'] != sciSpwChanWidth[sciSpwIds.tolist().index(ij1)]:
+                                print 'WARNING: THE CHANNEL WIDTH OF SPW ', ij1, ' OF CURRENT MS DOES NOT MATCH THE MEAN FREQUENCY OF THE SAME SPW OF THE FIRST MS'
+
+                        if 'chanNum' not in mydict[k]['perField'][kl]['perSpw'][kl1].keys():
+                            mydict[k]['perField'][kl]['perSpw'][kl1]['chanNum'] = sciSpwChanNum[sciSpwIds.tolist().index(ij1)]
+                        else:
+                            if mydict[k]['perField'][kl]['perSpw'][kl1]['chanNum'] != sciSpwChanNum[sciSpwIds.tolist().index(ij1)]:
+                                print 'WARNING: THE NUMBER OF CHANNELS OF SPW ', ij1, ' OF CURRENT MS DOES NOT MATCH THE MEAN FREQUENCY OF THE SAME SPW OF THE FIRST MS'
+
+                        tb1 = tb.query('FLAG_ROW == FALSE AND DATA_DESC_ID == '+str(spwId2DataDescId.index(ij1))+' AND FIELD_ID == '+str(ij))
+                        if tb1.nrows() > 0:
+
+                            ant1 = tb1.getcol('ANTENNA1')
+                            ant2 = tb1.getcol('ANTENNA2')
+                            flag1 = tb1.getcol('FLAG')
+                            flag2 = flag1.swapaxes(1,2)
+
+                            nchan1 = len(flag2[0])
+
+                            if 'nvis' not in mydict[k]['perField'][kl]['perSpw'][kl1].keys():
+                                nvis1 = 0
+                            else:
+                                nvis1 = mydict[k]['perField'][kl]['perSpw'][kl1]['nvis']
+
+                            for ij2 in range(len(ant1)):
+
+                                if ant1[ij2] == ant2[ij2]: continue
+
+                                flag3 = []
+                                for ij3 in range(2):
+                                    flag3.append(1. * len(np.where(np.array(flag2[ij3][ij2]) == True)[0]) / nchan1)
+
+                                if len(np.where(np.array(flag3) > maxFlag)[0]) == 0:
+                                    nvis1 += 1
+
+                            mydict[k]['perField'][kl]['perSpw'][kl1]['nvis'] = nvis1
+
+                        else:
+
+                            mydict[k]['perField'][kl]['perSpw'][kl1]['nvis'] = 0
+
+            tb1.close()
+            tb.close()
+
+        if cycle != '':
+            if array == 'ACA':
+                numAnts = numAnts_ACA
+            else:
+                numAnts = numAnts_BL12
+
+        for i in mydict.keys():
+
+            if numFieldsPerSource == '':
+                numFieldsPerSource = len(mydict[i]['perField'].keys())
+            else:
+                if len(mydict[i]['perField'].keys()) != numFieldsPerSource: sys.exit('ERROR: THE OBSERVED NUMBER OF FIELDS PER SOURCE DOES NOT MATCH THE SPECIFIED NUMBER')
+
+            for j in mydict[i]['perField'].keys():
+                for k in mydict[i]['perField'][j]['perSpw'].keys():
+                    nvis1 = mydict[i]['perField'][j]['perSpw'][k]['nvis']
+                    if nvis1 != 0:
+                        mydict[i]['perField'][j]['perSpw'][k]['ratio'] = np.sqrt( ( numAnts * (numAnts-1) * (timeOnSource * 60. / numFieldsPerSource) ) / (2. * nvis1 * exp1) )
+                    else:
+                        mydict[i]['perField'][j]['perSpw'][k]['ratio'] = float('inf')
+
+        for i in mydict.keys():
+
+            mydict[i]['perSpw'] = {}
+    
+            ij = []
+            band = []
+            for j in mydict[i]['perField'].keys():
+                for k in mydict[i]['perField'][j]['perSpw'].keys():
+                    ij.append(k)
+                    band.append(mydict[i]['perField'][j]['perSpw'][k]['band'])
+            ij = np.unique(ij)
+            band = np.unique(band)
+            if len(band) != 1: sys.exit('ERROR')
+
+            for j in ij:
+
+                mydict[i]['perSpw'][j] = {}
+                mydict[i]['perSpw'][j]['band'] = band[0]
+                mydict[i]['perSpw'][j]['ratio'] = {}
+
+                ratio1 = []
+                for k in mydict[i]['perField'].keys():
+                    ratio1.append(mydict[i]['perField'][k]['perSpw'][j]['ratio'])
+
+                mydict[i]['perSpw'][j]['ratio']['min'] = np.min(ratio1)
+                mydict[i]['perSpw'][j]['ratio']['max'] = np.max(ratio1)
+                mydict[i]['perSpw'][j]['ratio']['median'] = np.median(ratio1)
+
+        print '---------'
+        print 'Number of executions = ', len(msNames)
+
+        for i in mydict.keys():
+
+            print '\nSource name = ', mydict[i]['sourceName']
+            print 'Number of fields found = ', len(mydict[i]['perField'].keys())
+            print 'Maximum rms ratio across all fields, per spw:\n'
+
+            for j in mydict[i]['perSpw'].keys():
+
+                line = str(j)+' -> '+str(mydict[i]['perSpw'][j]['ratio']['max'])+' -> '
+
+                if mydict[i]['perSpw'][j]['ratio']['max'] < maxRatios[mydict[i]['perSpw'][j]['band']]:
+                    line += 'PASS'
+                else:
+                    line += 'FAIL -> need '+str(len(msNames) * ( (1./maxRatios[mydict[i]['perSpw'][j]['band']])**2 - (1./mydict[i]['perSpw'][j]['ratio']['max'])**2 ))+' additional executions'
+
+                print line
+
+        return mydict
+
     def fixForCSV2555(self, msName):
 
         print 'INFO: Running routine fixForCSV2555 on '+msName
@@ -22278,74 +23938,107 @@ class stuffForScienceDataReduction:
 
         print 'INFO: Finished running routine fixForCSV2555 on '+msName
 
-    def listobs3(self, msName, figfile = ''):
+    def listobs3(self, msName, figfile = '', colorby = 'intent'):
 
 #        import matplotlib.pyplot as plt
 
-        vm = ValueMapping(msName)
+        if colorby not in ['', 'intent', 'spw']: sys.exit('ERROR')
+        if (casadef.casa_version < '4.1.0') and colorby == 'spw': sys.exit('ERROR')
+
+        colors = ['blue', 'cyan', 'red', 'green', 'magenta', 'yellow', 'orange', 'blue', 'cyan', 'red', 'green', 'magenta', 'yellow', 'orange']
+        intents = ['OBSERVE_TARGET#ON_SOURCE', 'CALIBRATE_PHASE#ON_SOURCE', 'CALIBRATE_BANDPASS#ON_SOURCE', 'CALIBRATE_AMPLI#ON_SOURCE', \
+            'CALIBRATE_FLUX#ON_SOURCE', 'CALIBRATE_ATMOSPHERE#ON_SOURCE', 'CALIBRATE_POINTING#ON_SOURCE', 'CALIBRATE_SIDEBAND_RATIO#ON_SOURCE', \
+            'CALIBRATE_POLARIZATION#ON_SOURCE', 'CALIBRATE_DELAY#ON_SOURCE']
+
+        if (casadef.casa_version >= '4.1.0'):
+
+            msmd.open(msName)        
+            scanList = msmd.scannumbers()
+            scanTimes1 = msmd.timesforscan(1)
+            scanTimes2 = msmd.timesforscan(scanList[len(scanList)-1])
+
+            if colorby == 'spw':
+
+                spwList1 = msmd.chanavgspws()
+                spwList2 = msmd.wvrspws()
+
+                spwList = []
+                for i in scanList:
+                    spwList3 = msmd.spwsforscan(i)
+                    spwList3 = [j for j in spwList3 if j not in spwList1]
+                    spwList3 = [j for j in spwList3 if j not in spwList2]
+                    spwList.append(tuple(spwList3))
+
+                spwList = np.unique(spwList)
+                spwList = [list(j) for j in spwList]
+
+        else:
+
+            vm = ValueMapping(msName)
+            scanList = vm.uniqueScans
+            scanTimes1 = vm.getTimesForScan(1)
+            scanTimes2 = vm.getTimesForScan(scanList[len(scanList)-1])
+
+        obsStart = scanTimes1.min()
+        obsEnd = scanTimes2.max()
+        obsDuration = (obsEnd-obsStart) / 60.
 
         fig = plt.figure(figsize=(14,9))
         ax = fig.add_subplot(111)
 
-        scanList = vm.uniqueScans
-
-        scanTimes = vm.getTimesForScan(1)
-        obsStart = scanTimes.min()
-        scanTimes = vm.getTimesForScan(scanList[len(scanList)-1])
-        obsEnd = scanTimes.max()
-        obsDuration = (obsEnd-obsStart) / 60.
-
         for i in scanList:
-            scanTimes = vm.getTimesForScan(i)
+
+            if (casadef.casa_version >= '4.1.0'):
+
+                scanTimes = msmd.timesforscan(i)
+                scanIntent = msmd.intentsforscan(i)
+            
+            else:
+
+                scanTimes = vm.getTimesForScan(i)
+                scanIntent = vm.getIntentsForScan(i)
+
             scanStartTime = (scanTimes.min() - obsStart) / 60.
             scanDuration = (scanTimes.max() - scanTimes.min()) / 60.
-            scanIntent = vm.getIntentsForScan(i)
-            if 'CALIBRATE_SIDEBAND_RATIO#ON_SOURCE' in scanIntent:
-                scanColor = 'orange'
-                scanY = 35
-                ax.broken_barh([(scanStartTime, scanDuration)] , (scanY, 5), facecolors=scanColor)
-                ax.annotate(str(i), (scanStartTime, scanY+6))
-            if 'CALIBRATE_POINTING#ON_SOURCE' in scanIntent:
-                scanColor = 'yellow'
-                scanY = 30
-                ax.broken_barh([(scanStartTime, scanDuration)] , (scanY, 5), facecolors=scanColor)
-                ax.annotate(str(i), (scanStartTime, scanY+6))
-            if 'CALIBRATE_ATMOSPHERE#ON_SOURCE' in scanIntent:
-                scanColor = 'magenta'
-                scanY = 25
-                ax.broken_barh([(scanStartTime, scanDuration)] , (scanY, 5), facecolors=scanColor)
-                ax.annotate(str(i), (scanStartTime, scanY+6))
-            if 'CALIBRATE_FLUX#ON_SOURCE' in scanIntent:
-                scanColor = 'green'
-                scanY = 20
-                ax.broken_barh([(scanStartTime, scanDuration)] , (scanY, 5), facecolors=scanColor)
-                ax.annotate(str(i), (scanStartTime, scanY+6))
-            if 'CALIBRATE_AMPLI#ON_SOURCE' in scanIntent:
-                scanColor = 'green'
-                scanY = 15
-                ax.broken_barh([(scanStartTime, scanDuration)] , (scanY, 5), facecolors=scanColor)
-                ax.annotate(str(i), (scanStartTime, scanY+6))
-            if 'CALIBRATE_BANDPASS#ON_SOURCE' in scanIntent:
-                scanColor = 'red'
-                scanY = 10
-                ax.broken_barh([(scanStartTime, scanDuration)] , (scanY, 5), facecolors=scanColor)
-                ax.annotate(str(i), (scanStartTime, scanY+6))
-            if 'CALIBRATE_PHASE#ON_SOURCE' in scanIntent:
-                scanColor = 'cyan'
-                scanY = 5
-                ax.broken_barh([(scanStartTime, scanDuration)] , (scanY, 5), facecolors=scanColor)
-                ax.annotate(str(i), (scanStartTime, scanY+6))
-            if 'OBSERVE_TARGET#ON_SOURCE' in scanIntent:
-                scanColor = 'blue'
-                scanY = 0
-                ax.broken_barh([(scanStartTime, scanDuration)] , (scanY, 5), facecolors=scanColor)
-                ax.annotate(str(i), (scanStartTime, scanY+6))
 
-        ax.set_ylim(0, 42.5)
+            for j in range(len(intents)):
+
+                if intents[j] in scanIntent:
+
+                    scanY = 5*j
+
+                    label1 = ''
+
+                    if colorby == '':
+                        scanColor = colors[0]
+
+                    if colorby == 'intent':
+                        scanColor = colors[scanY/5]
+
+                    if colorby == 'spw':
+
+                        spwList3 = msmd.spwsforscan(i)
+                        spwList3 = [k for k in spwList3 if k not in spwList1]
+                        spwList3 = [k for k in spwList3 if k not in spwList2]
+
+                        scanColor = colors[spwList.index(spwList3)]
+                        
+                    ax.broken_barh([(scanStartTime, scanDuration)] , (scanY, 5), facecolors=scanColor)
+                    ax.annotate(str(i), (scanStartTime, scanY+6))
+
+        if (casadef.casa_version >= '4.1.0'):
+            msmd.close()
+
+        if colorby == 'spw':
+            for i in range(len(spwList)):
+                print spwList[i], ' -> ', colors[i]
+
+        ax.set_ylim(0, len(intents)*5+2.5)
         ax.set_xlim(-1, obsDuration+1)
         ax.set_xlabel('Minutes since start of observation')
-        ax.set_yticks([2.5,7.5,12.5,17.5,22.5,27.5, 32.5, 37.5])
-        ax.set_yticklabels(['SCIENCE', 'CAL_PHASE', 'CAL_BANDPASS', 'CAL_AMPLITUDE', 'CAL_FLUX', 'CAL_ATMOSPHERE', 'CAL_POINTING', 'CAL_SIDEBAND'])
+        ax.set_yticks(np.array(range(len(intents)))*5+2.5)
+        intents1 = [j.replace('#ON_SOURCE', '').replace('CALIBRATE', 'CAL').replace('OBSERVE', 'OBS').replace('SIDEBAND', 'SB') for j in intents]
+        ax.set_yticklabels(intents1)
         ax.grid(True)
 
         obsStart=((obsStart/86400.0)+2400000.5-2440587.5)*86400.0
@@ -22595,9 +24288,9 @@ class stuffForScienceDataReduction:
 ###        for i in range(len(msNames)):
 
         if step == 'softreg':
-            asis1 = 'Antenna Station Receiver Source CalAtmosphere'
+            asis1 = 'Antenna Station Receiver Source CalAtmosphere CalWVR'
         else:
-            asis1 = 'Antenna Station Receiver Source CalAtmosphere'
+            asis1 = 'Antenna Station Receiver Source CalAtmosphere CalWVR'
 
         i = 0
 
@@ -22663,7 +24356,7 @@ class stuffForScienceDataReduction:
                 f1 = open(msName+'.scriptForWVRCalibration.py', 'w')
                 print >> f1, "import re\n"
                 print >> f1, "es = aU.stuffForScienceDataReduction() \n\n"
-                print >> f1, "if re.search('^"+re.findall('^[0-9]+.[0-9]+', casadef.casa_version)[0]+"', casadef.casa_version) == None:"
+                print >> f1, "if re.search('^"+re.findall('^[0-9]+.[0-9]+.[0-9]+', casadef.casa_version)[0]+"', casadef.casa_version) == None:"
                 print >> f1, " sys.exit('ERROR: PLEASE USE THE SAME VERSION OF CASA THAT YOU USED FOR GENERATING THE SCRIPT: "+re.findall('^[0-9]+.[0-9]+', casadef.casa_version)[0]+"')\n\n"
 
                 myRefAnt = refant
@@ -22717,7 +24410,7 @@ class stuffForScienceDataReduction:
                 f1 = open(msName+'.scriptForSoftwareCheckout.py', 'w')
                 print >> f1, "import re\n"
                 print >> f1, "es = aU.stuffForScienceDataReduction() \n\n"
-                print >> f1, "if re.search('^"+re.findall('^[0-9]+.[0-9]+', casadef.casa_version)[0]+"', casadef.casa_version) == None:"
+                print >> f1, "if re.search('^"+re.findall('^[0-9]+.[0-9]+.[0-9]+', casadef.casa_version)[0]+"', casadef.casa_version) == None:"
                 print >> f1, " sys.exit('ERROR: PLEASE USE THE SAME VERSION OF CASA THAT YOU USED FOR GENERATING THE SCRIPT: "+re.findall('^[0-9]+.[0-9]+', casadef.casa_version)[0]+"')\n\n"
 
                 tempStdout = sys.stdout
@@ -22894,7 +24587,7 @@ class stuffForScienceDataReduction:
                 print >> f1, "import re\n"
                 print >> f1, "import os\n"
                 print >> f1, "if applyonly != True: es = aU.stuffForScienceDataReduction() \n\n"
-                print >> f1, "if re.search('^"+re.findall('^[0-9]+.[0-9]+', casadef.casa_version)[0]+"', casadef.casa_version) == None:"
+                print >> f1, "if re.search('^"+re.findall('^[0-9]+.[0-9]+.[0-9]+', casadef.casa_version)[0]+"', casadef.casa_version) == None:"
                 print >> f1, " sys.exit('ERROR: PLEASE USE THE SAME VERSION OF CASA THAT YOU USED FOR GENERATING THE SCRIPT: "+re.findall('^[0-9]+.[0-9]+', casadef.casa_version)[0]+"')\n\n"
 
                 tempStdout = sys.stdout
@@ -22908,6 +24601,7 @@ class stuffForScienceDataReduction:
 
                 stext = "if os.path.exists('"+msName+"') == False:\n"
                 stext += "  importasdm('"+re.findall('.+(?=\.ms)', msName, re.IGNORECASE)[0]+"', asis='"+asis1+"')"
+                stext += "\nif applyonly != True: es.fixForCSV2555('"+msName+"')"
                 self.addReducScriptStep(f1, mystepdict, "Import of the ASDM", stext, mystepindent, applyonly=True)
 
                 stext = "from recipes.almahelpers import fixsyscaltimes\nfixsyscaltimes(vis = '"+msName+"')"
@@ -22997,7 +24691,7 @@ class stuffForScienceDataReduction:
             myRefAnt = refant # note: no need to run getRefAntenna because it will be called in doFluxCalibration if refant=''
             f1 = open('scriptForFluxCalibration.py', 'w')
             print >> f1, "import re\n"
-            print >> f1, "if re.search('^"+re.findall('^[0-9]+.[0-9]+', casadef.casa_version)[0]+"', casadef.casa_version) == None:"
+            print >> f1, "if re.search('^"+re.findall('^[0-9]+.[0-9]+.[0-9]+', casadef.casa_version)[0]+"', casadef.casa_version) == None:"
             print >> f1, " sys.exit('ERROR: PLEASE USE THE SAME VERSION OF CASA THAT YOU USED FOR GENERATING THE SCRIPT: "+re.findall('^[0-9]+.[0-9]+', casadef.casa_version)[0]+"')\n\n"
             print >> f1, self.doFluxCalibration(msNames, refant=myRefAnt)
             f1.close()
@@ -23013,7 +24707,7 @@ class stuffForScienceDataReduction:
 
             f1 = open('scriptForImaging.py', 'w')
             print >> f1, "import re\n"
-            print >> f1, "if re.search('^"+re.findall('^[0-9]+.[0-9]+', casadef.casa_version)[0]+"', casadef.casa_version) == None:"
+            print >> f1, "if re.search('^"+re.findall('^[0-9]+.[0-9]+.[0-9]+', casadef.casa_version)[0]+"', casadef.casa_version) == None:"
             print >> f1, " sys.exit('ERROR: PLEASE USE THE SAME VERSION OF CASA THAT YOU USED FOR GENERATING THE SCRIPT: "+re.findall('^[0-9]+.[0-9]+', casadef.casa_version)[0]+"')\n\n"
             print >> f1, self.runCleanOnSource(msNames, chanWid=chanWid, angScale=angScale)
             f1.close()
@@ -23031,7 +24725,7 @@ class stuffForScienceDataReduction:
                 #if os.path.exists(msName) == False: sys.exit('ERROR: '+msNames[i]+' does not seem to exist in the current directory.')
 
                 tsysmap = ''
-                if re.search('^3.3', casadef.casa_version) == None:
+                if re.search('^3.3', casadef.casa_version) == None and skipSyscalChecks == False:
 
                     print "\n*** ANALYSIS OF TSYS TABLE ***"
 
@@ -23075,7 +24769,7 @@ class stuffForScienceDataReduction:
                 f1 = open(msName+'.scriptForCalibration.py', 'w')
                 print >> f1, "import re\n"
                 print >> f1, "es = aU.stuffForScienceDataReduction() \n\n"
-                print >> f1, "if re.search('^"+re.findall('^[0-9]+.[0-9]+', casadef.casa_version)[0]+"', casadef.casa_version) == None:"
+                print >> f1, "if re.search('^"+re.findall('^[0-9]+.[0-9]+.[0-9]+', casadef.casa_version)[0]+"', casadef.casa_version) == None:"
                 print >> f1, " sys.exit('ERROR: PLEASE USE THE SAME VERSION OF CASA THAT YOU USED FOR GENERATING THE SCRIPT: "+re.findall('^[0-9]+.[0-9]+', casadef.casa_version)[0]+"')\n\n"
 
                 myRefAnt = refant
@@ -23180,7 +24874,7 @@ class stuffForScienceDataReduction:
                 print >> f1, "import re\n"
                 print >> f1, "es = aU.stuffForScienceDataReduction()\n"
                 print >> f1, "import analysisUtilsForSD as aUsd\n\n"
-                print >> f1, "if re.search('^"+re.findall('^[0-9]+.[0-9]+', casadef.casa_version)[0]+"', casadef.casa_version) == None:"
+                print >> f1, "if re.search('^"+re.findall('^[0-9]+.[0-9]+.[0-9]+', casadef.casa_version)[0]+"', casadef.casa_version) == None:"
                 print >> f1, " sys.exit('ERROR: PLEASE USE THE SAME VERSION OF CASA THAT YOU USED FOR GENERATING THE SCRIPT: "+re.findall('^[0-9]+.[0-9]+', casadef.casa_version)[0]+"')\n\n"
 
                 asdmName1 = re.findall('^uid___[0-9a-z]+_[0-9a-z]+_[0-9a-z]+', msName, re.IGNORECASE)[0]
@@ -23367,7 +25061,7 @@ class stuffForScienceDataReduction:
                 print >> f1, "import re\n"
                 print >> f1, "import filltsys\n"
                 print >> f1, "es = aU.stuffForScienceDataReduction()\n"
-                print >> f1, "if re.search('^"+re.findall('^[0-9]+.[0-9]+', casadef.casa_version)[0]+"', casadef.casa_version) == None:"
+                print >> f1, "if re.search('^"+re.findall('^[0-9]+.[0-9]+.[0-9]+', casadef.casa_version)[0]+"', casadef.casa_version) == None:"
                 print >> f1, " sys.exit('ERROR: PLEASE USE THE SAME VERSION OF CASA THAT YOU USED FOR GENERATING THE SCRIPT: "+re.findall('^[0-9]+.[0-9]+', casadef.casa_version)[0]+"')\n\n"
 
                 tempStdout = sys.stdout
@@ -23387,9 +25081,17 @@ class stuffForScienceDataReduction:
                 antNames = tb.getcol('NAME').tolist()
                 tb.close()
 
-                stext = "for i in "+str(antNames)+":\n  os.system('rm -Rf "+msName+".'+i+'*')\n\n"
-                stext += "sd.splitant(filename = '"+msName+"',\n  outprefix = '"+msName+"',\n  overwrite = True)\n\n"
-                self.addReducScriptStep(f1, mystepdict, "Split by antenna", stext, mystepindent)
+                if (casadef.casa_version >= '4.2.2'):
+
+                    stext = "for i in "+str(antNames)+":\n  os.system('rm -Rf "+msName+".'+i+'*')\n\n"
+                    stext += "sdsave(filename = '"+msName+"',\n  splitant = True,\n  outfile = '"+msName+".asap',\n  overwrite = True)\n\n"
+                    self.addReducScriptStep(f1, mystepdict, "Split by antenna", stext, mystepindent)
+
+                else:
+
+                    stext = "for i in "+str(antNames)+":\n  os.system('rm -Rf "+msName+".'+i+'*')\n\n"
+                    stext += "sd.splitant(filename = '"+msName+"',\n  outprefix = '"+msName+"',\n  overwrite = True)\n\n"
+                    self.addReducScriptStep(f1, mystepdict, "Split by antenna", stext, mystepindent)
 
                 asapNames = [msName+'.'+i+'.asap' for i in antNames]
                 asapNames = sorted(asapNames)
@@ -23420,9 +25122,23 @@ class stuffForScienceDataReduction:
 
                 stext = ''
 
-                for i in asapNames:
-                    for maskflag in chanFlags.keys():
-                        stext += "sdflag2(infile = '"+i+"',\n  specunit = 'channel',\n  mode = 'manual',\n  ifs = "+str(chanFlags[maskflag])+",\n  maskflag = "+maskflag+",\n  overwrite = True)\n\n"
+                if (casadef.casa_version >= '4.2.2'):
+                    for i in asapNames:
+                        for maskflag in chanFlags.keys():
+                            maskflag1 = eval(maskflag)
+                            maskflag2 = []
+                            for j in range(len(maskflag1)):
+                                maskflag2.append('~'.join([str(k) for k in maskflag1[j]]))
+                            maskflag2 = ';'.join(maskflag2)
+                            spwmaskflag = []
+                            for j in chanFlags[maskflag]:
+                                spwmaskflag.append(str(j)+':'+maskflag2)
+                            spwmaskflag = ','.join(spwmaskflag)
+                            stext += "sdflag(infile = '"+i+"',\n  mode = 'manual',\n  spw = '"+spwmaskflag+"',\n  overwrite = True)\n\n"
+                else:
+                    for i in asapNames:
+                        for maskflag in chanFlags.keys():
+                            stext += "sdflag2(infile = '"+i+"',\n  specunit = 'channel',\n  mode = 'manual',\n  ifs = "+str(chanFlags[maskflag])+",\n  maskflag = "+maskflag+",\n  overwrite = True)\n\n"
 
                 self.addReducScriptStep(f1, mystepdict, "Do initial flagging", stext, mystepindent)
 
@@ -23891,8 +25607,8 @@ class stuffForScienceDataReduction:
         execfile ('ant_amp_temporal.py')
 
         """
-
         import pylab as pl
+
         qa2_output_dir = self.addTrailingSlashIfNecessary(qa2_output_dir)
 
         #  Plot calibrator gains
@@ -24476,7 +26192,7 @@ class stuffForScienceDataReduction:
 
         pl.savefig(qa2_output_dir+'ant_phase_temporal.png')
 
-    def bandpass_plot(self, ms2='', qa2_output_dir=''):
+    def bandpass_plot(self, ms2='', qa2_output_dir='', bandpassShowFlaggedSolutions=False):
 
         """
         band_pass.py
@@ -24543,6 +26259,7 @@ class stuffForScienceDataReduction:
             else:
                 tb1 = tb.query('SPECTRAL_WINDOW_ID=='+str(ispw))
                 g = tb1.getcol('CPARAM')
+            flags = tb1.getcol('FLAG')
             ant = tb1.getcol('ANTENNA1')
             gbp = numpy.abs(g)
             gch = []
@@ -24556,12 +26273,19 @@ class stuffForScienceDataReduction:
                     for iant in range(0,n2):
                         gsum = gsum + gbp[pol][ich][iant]
                 gch.append(gsum/n0/n2)
-            pl.subplot(nsub1, nsub2, nsub3)
+            adesc = pl.subplot(nsub1, nsub2, nsub3)
             pl.subplots_adjust(hspace=0.40, wspace=0.0)
-            pl.plot(chan,gch,'b,')
-            pl.title('Avg Bandpass for spw '+str(ispw))
-            if nsub3 < nsub1: pl.xticks([])
+            if (bandpassShowFlaggedSolutions):
+                pl.plot(chan,gch,'b,')
+            else:
+                unflaggedChans = np.unique(np.where(flags==False)[1])
+                pl.plot(np.array(chan)[unflaggedChans],np.array(gch)[unflaggedChans],'b,')
+                pl.xlim([np.min(chan), np.max(chan)])
+            pl.title('Avg Bandpass for spw '+str(ispw), fontsize=12)
+#            if nsub3 < nsub1: pl.xticks([])
+            pl.setp(adesc.get_xticklabels(), fontsize=8)
         tb.close()
+        pl.xlabel('Channel')
 
         if caltable2 != 'N':
             nsub3 = 0
@@ -25031,7 +26755,8 @@ class stuffForScienceDataReduction:
                 qa2_output_dir += '/'
         return(qa2_output_dir)
 
-    def listobs2(self, ms2='', makeplot=True, qa2_output_dir='', plotAntennasActualSize=False, xlim=None, ylim=None):
+    def listobs2(self, ms2='', makeplot=True, qa2_output_dir='', 
+                 plotAntennasActualSize=False, xlim=None, ylim=None):
 
         """
         This is an experimental qa2 python script that produces a more
@@ -25042,10 +26767,10 @@ class stuffForScienceDataReduction:
 
            ms2 = visibility data set.  inputset to desired ms.
            makeplot  T = make antenna array plot, F = do not ...
-           plotAntennaActualSize: will behave similar to plotants, but without the problems
-                  that plotants has:
-                  1. It fails on measurement sets that are read-only.
-                  2. The title cannot be read if the path is very long
+           plotAntennaActualSize: will behave similar to plotants, but without 
+                                  the problems that plotants has:
+                  1. It will work on measurement sets that are read-only.
+                  2. The title will not include the directory.
            xlim, ylim: plotrange (in meters), used only if plotAntennaActualSize is True 
 
         OUTPUTS:
@@ -25066,22 +26791,7 @@ class stuffForScienceDataReduction:
         execfile (listobs.py)
 
         """
-
-        #==================================================#
-        #  Basic Parameters
-
-        import sys
-        import time
-        import os.path
-        import datetime
-        import string
-        import numpy
-        import math
-        import pylab as pl
-
-
         qa2_output_dir = self.addTrailingSlashIfNecessary(qa2_output_dir)
-        
         ms.open(ms2)
         scanInfo = ms.getscansummary()
         ms.close()
@@ -25105,7 +26815,7 @@ class stuffForScienceDataReduction:
         for sc in scan_list:
             scan_num.append(int(sc))
 
-        scan_srt = numpy.sort(scan_num)
+        scan_srt = np.sort(scan_num)
 
         nscans = len(scan_srt)
 
@@ -25114,17 +26824,17 @@ class stuffForScienceDataReduction:
             ttemp = vm.getTimesForScan(scan_srt[0])
             int_time = scanInfoSummary[str(scan_srt[0])]['0']['IntegrationTime']
             ttemp = ((ttemp/86400.0)+2400000.5-2440587.5)*86400.0 - int_time/2.0
-            scan_begin = numpy.min(ttemp)
+            scan_begin = np.min(ttemp)
             ttemp = vm.getTimesForScan(scan_srt[nscans-1])
             ttemp = ((ttemp/86400.0)+2400000.5-2440587.5)*86400.0 + int_time/2.0
-            scan_end = numpy.max(ttemp)
+            scan_end = np.max(ttemp)
         else:
             ttemp = mymsmd.timesforscans(mymsmd.scannumbers())
             ttemp = ((ttemp/86400.0)+2400000.5-2440587.5)*86400.0
             scan_begin = np.min(ttemp)
             scan_end = np.max(ttemp)
-        exp_start=time.strftime('%Y/%m/%d/%H:%M:%S', time.gmtime(scan_begin))
-        exp_end=time.strftime('%Y/%m/%d/%H:%M:%S', time.gmtime(scan_end))
+        exp_start=timeUtilities.strftime('%Y/%m/%d/%H:%M:%S', timeUtilities.gmtime(scan_begin))
+        exp_end=timeUtilities.strftime('%Y/%m/%d/%H:%M:%S', timeUtilities.gmtime(scan_end))
 
         scan_list = []
         field_list = []
@@ -25160,7 +26870,7 @@ class stuffForScienceDataReduction:
             for sc in nk:
                 subscan.append(int(sc))
 
-            sub_scan = numpy.sort(subscan)
+            sub_scan = np.sort(subscan)
             sfid = []
             sstart = []
             sstop = []
@@ -25391,63 +27101,13 @@ class stuffForScienceDataReduction:
             plotx.append (e_off)
             ploty.append (n_off)
         #
-        #  Find size of plot
-        pxmin = numpy.min(plotx)
-        pymin = numpy.min(ploty)
-        pxmax = numpy.max(plotx)
-        pymax = numpy.max(ploty)
-        psize = numpy.sqrt((pxmax-pxmin)**2 + (pymax+pymin)**2)
-#        mssize = 30.0/300.0*psize
-        mssize = 15.0/300.0*psize
-
         if makeplot:
-            pl.close()
             pngname = 'antenna_config.png'
-            if (plotAntennasActualSize):
-                myaxis = pl.axes()
-                for a in range(len(plotx)):
-                    circ = pl.Circle((plotx[a],ploty[a]), radius=diam[a]*0.5, facecolor='#FFB6C1', edgecolor='k')
-                    myaxis.add_patch(circ)
-                pl.axis('equal')
-                if (xlim != None):
-                    pl.xlim(xlim)
-                    pngname = 'antenna_config_zoom.png'
-                if (ylim != None):
-                    pl.ylim(ylim)
-                    pngname = 'antenna_config_zoom.png'
-                xlim = pl.xlim() 
-                ylim = pl.ylim()  # actual value may vary due to axis('equal')
-            else:
-                pl.plot(plotx,ploty,'go',ms=mssize,mfc='#FFB6C1')
-                pl.xlim([pxmin-2*mssize, pxmax+2*mssize])
-                pl.ylim([pymin-2*mssize, pymax+2*mssize])
-            labelsize = 10
-            labelsizeMin = 2
-            labelsizeMax = 12
-            xmean = np.mean(plotx)
-            ymean = np.mean(ploty)
-            for i in range(0,len(plotx)):
-                withinFrame = True
-                if (plotAntennasActualSize):
-                    if (pngname == 'antenna_config.png'):
-                        radiusFromCenter = ((plotx[i]-xmean)**2 + (ploty[i]-ymean)**2)**0.5
-                        cornerRadius = (((xlim[1]-xlim[0])*0.5)**2 + ((ylim[1]-ylim[0])*0.5)**2)**0.5
-                        labelsize = np.int(np.round(labelsizeMin + (labelsizeMax-labelsizeMin)*radiusFromCenter/cornerRadius))
-                        labelsize = labelsizeMin + (labelsizeMax-labelsizeMin)*(radiusFromCenter/cornerRadius)**0.33
-#                        print "radius=%f/%f, labelsize = %d" % (radiusFromCenter, cornerRadius, labelsize)
-                    if (xlim != None):
-                        if (plotx[i] < xlim[0] or plotx[i] > xlim[1]): withinFrame = False
-                    if (ylim != None):
-                        if (ploty[i] < ylim[0] or ploty[i] > ylim[1]): withinFrame = False
-                if (withinFrame):
-                    pl.text(plotx[i]-3.0,ploty[i]-5.0,str(i)+'='+antenna[i],size=labelsize)
-                
-            pl.title(os.path.basename(ms2),fontsize=12)
-            pl.xlabel('X(m)')
-            pl.ylabel('Y(m)')
-            myfigfile = qa2_output_dir+pngname
-            pl.savefig(myfigfile,format='png',density=108)
-            print 'saved antenna plot in %s' % (pngname)
+            plotfile = qa2_output_dir + pngname
+            if (xlim != None or ylim != None):
+                plotfile = qa2_output_dir + 'antenna_config_zoom.png'
+            plotAntennaPositionList(plotx, ploty, antenna, diam, os.path.basename(ms2),
+                                    plotfile, plotAntennasActualSize, xlim, ylim)
 
         f.close()
         os.system('cat '+zfileRes)
@@ -26846,12 +28506,12 @@ class stuffForScienceDataReduction:
                     if pdiff <10: pdiff = 10
                     pmax = pmax + 0.25*pdiff
                     pmin = pmin - 0.25*pdiff
-                pl.plot_date(tt, pc_1_plot, 'b.')
+                pl.plot_date(tt, pc_1_plot, 'b.', markeredgecolor='b')
                 pl.title('WVR '+ant_names[iant], size=10)
                 if (autoscale_yaxis):
-                    pl.plot_date(tt,pc_2_plot,'g.')
+                    pl.plot_date(tt,pc_2_plot,'g.', markeredgecolor='g')
                 else:
-                    pl.plot_date(tt,pc_2_plot,'g.')
+                    pl.plot_date(tt,pc_2_plot,'g.', markeredgecolor='g')
                 # tt is in units of days
                 ttrange = tt[-1] - tt[0]
                 if (ttrange < 3.5/1440.):
@@ -27390,16 +29050,28 @@ class stuffForScienceDataReduction:
         for i in asapName:
 
             casaCmd = casaCmd + "os.system('rm -Rf "+i+".bl')\n\n"
-            casaCmd = casaCmd + "sdbaseline(infile = '"+i+"',\n"
-            casaCmd = casaCmd + "  iflist = "+str(spwIds1)+",\n"
-            casaCmd = casaCmd + "  maskmode = 'auto',\n"
-            casaCmd = casaCmd + "  thresh = 5.0,\n"
-            casaCmd = casaCmd + "  avg_limit = 4,\n"
-#            casaCmd = casaCmd + "  edge = [120],\n"
-            casaCmd = casaCmd + "  blfunc = 'poly',\n"
-            casaCmd = casaCmd + "  order = 1,\n"
-            casaCmd = casaCmd + "  outfile = '"+i+".bl',\n"
-            casaCmd = casaCmd + "  overwrite = True)\n\n"
+            if (casadef.casa_version >= '4.2.2'):
+                casaCmd = casaCmd + "sdbaseline(infile = '"+i+"',\n"
+                casaCmd = casaCmd + "  spw = '"+','.join([str(j) for j in spwIds1])+"',\n"
+                casaCmd = casaCmd + "  maskmode = 'auto',\n"
+                casaCmd = casaCmd + "  thresh = 5.0,\n"
+                casaCmd = casaCmd + "  avg_limit = 4,\n"
+    #            casaCmd = casaCmd + "  edge = [120],\n"
+                casaCmd = casaCmd + "  blfunc = 'poly',\n"
+                casaCmd = casaCmd + "  order = 1,\n"
+                casaCmd = casaCmd + "  outfile = '"+i+".bl',\n"
+                casaCmd = casaCmd + "  overwrite = True)\n\n"
+            else:
+                casaCmd = casaCmd + "sdbaseline(infile = '"+i+"',\n"
+                casaCmd = casaCmd + "  iflist = "+str(spwIds1)+",\n"
+                casaCmd = casaCmd + "  maskmode = 'auto',\n"
+                casaCmd = casaCmd + "  thresh = 5.0,\n"
+                casaCmd = casaCmd + "  avg_limit = 4,\n"
+    #            casaCmd = casaCmd + "  edge = [120],\n"
+                casaCmd = casaCmd + "  blfunc = 'poly',\n"
+                casaCmd = casaCmd + "  order = 1,\n"
+                casaCmd = casaCmd + "  outfile = '"+i+".bl',\n"
+                casaCmd = casaCmd + "  overwrite = True)\n\n"
 
             if doplot == True:
                 casaCmd = casaCmd + "es.SDcheckSpectra('"+i+".bl', spwIds='"+spwIds+"', interactive=False)\n\n"
@@ -27431,14 +29103,21 @@ class stuffForScienceDataReduction:
         for i in asapName:
 
             casaCmd = casaCmd + "os.system('rm -Rf "+i+".cal')\n\n"
-            casaCmd = casaCmd + "sdcal(infile = '"+i+"',\n"
-            casaCmd = casaCmd + "  calmode = '"+calmode+"',\n"
-            casaCmd = casaCmd + "  iflist = "+str(spwIds1)+",\n"
-            casaCmd = casaCmd + "  scanaverage = False,\n"
-            casaCmd = casaCmd + "  timeaverage = False,\n"
-            casaCmd = casaCmd + "  polaverage = False,\n"
-            casaCmd = casaCmd + "  outfile = '"+i+".cal',\n"
-            casaCmd = casaCmd + "  overwrite = True)\n\n"
+            if (casadef.casa_version >= '4.2.2'):
+                casaCmd = casaCmd + "sdcal(infile = '"+i+"',\n"
+                casaCmd = casaCmd + "  calmode = '"+calmode+"',\n"
+                casaCmd = casaCmd + "  spw = '"+','.join([str(j) for j in spwIds1])+"',\n"
+                casaCmd = casaCmd + "  outfile = '"+i+".cal',\n"
+                casaCmd = casaCmd + "  overwrite = True)\n\n"
+            else:
+                casaCmd = casaCmd + "sdcal(infile = '"+i+"',\n"
+                casaCmd = casaCmd + "  calmode = '"+calmode+"',\n"
+                casaCmd = casaCmd + "  iflist = "+str(spwIds1)+",\n"
+                casaCmd = casaCmd + "  scanaverage = False,\n"
+                casaCmd = casaCmd + "  timeaverage = False,\n"
+                casaCmd = casaCmd + "  polaverage = False,\n"
+                casaCmd = casaCmd + "  outfile = '"+i+".cal',\n"
+                casaCmd = casaCmd + "  overwrite = True)\n\n"
 
             if doplot == True:
                 casaCmd = casaCmd + "es.SDcheckSpectra('"+i+".cal', spwIds='"+spwIds+"', interactive=False)\n\n"
@@ -27468,16 +29147,28 @@ class stuffForScienceDataReduction:
             spwIds1 = spwIds.split(',')
             spwIds1 = [int(i) for i in spwIds1]
 
-        for i in spwIds1:
-            sdplot(infile=asapName, iflist=[i], plottype='spectra', specunit=specunit, scanaverage=True, stack='pol', panel=panel, outfile=asapName+'.plots/'+asapName+'.spectra.spw'+str(i)+'.png', overwrite = True)
-            if interactive == True:
-                userRawInput = raw_input("Press Enter to continue, or n to go non-interactive. ")
-                if userRawInput.lower() == 'n': interactive = False
+        if (casadef.casa_version >= '4.2.2'):
+            for i in spwIds1:
+                sdplot(infile=asapName, spw=str(i), plottype='spectra', specunit=specunit, timeaverage=True, scanaverage=True, stack='p', panel=panel, outfile=asapName+'.plots/'+asapName+'.spectra.spw'+str(i)+'.png', overwrite = True)
+                if interactive == True:
+                    userRawInput = raw_input("Press Enter to continue, or n to go non-interactive. ")
+                    if userRawInput.lower() == 'n': interactive = False
 
-        print "# This is what SDcheckSpectra executed:\n"
-        print "# for i in "+str(spwIds1)+":"
-        print "#   sdplot(infile='"+asapName+"', iflist=[i], plottype='spectra', specunit='"+specunit+"', scanaverage=True, stack='pol', panel='"+panel\
-            +"', outfile='"+asapName+".plots/"+asapName+".spectra.spw'+str(i)+'.png', overwrite = True)"
+            print "# This is what SDcheckSpectra executed:\n"
+            print "# for i in "+str(spwIds1)+":"
+            print "#   sdplot(infile='"+asapName+"', spw=str(i), plottype='spectra', specunit='"+specunit+"', timeaverage=True, scanaverage=True, stack='p', panel='"+panel\
+                +"', outfile='"+asapName+".plots/"+asapName+".spectra.spw'+str(i)+'.png', overwrite = True)"
+        else:
+            for i in spwIds1:
+                sdplot(infile=asapName, iflist=[i], plottype='spectra', specunit=specunit, scanaverage=True, stack='pol', panel=panel, outfile=asapName+'.plots/'+asapName+'.spectra.spw'+str(i)+'.png', overwrite = True)
+                if interactive == True:
+                    userRawInput = raw_input("Press Enter to continue, or n to go non-interactive. ")
+                    if userRawInput.lower() == 'n': interactive = False
+
+            print "# This is what SDcheckSpectra executed:\n"
+            print "# for i in "+str(spwIds1)+":"
+            print "#   sdplot(infile='"+asapName+"', iflist=[i], plottype='spectra', specunit='"+specunit+"', scanaverage=True, stack='pol', panel='"+panel\
+                +"', outfile='"+asapName+".plots/"+asapName+".spectra.spw'+str(i)+'.png', overwrite = True)"
 
     def detectOutliers(self, values, threshold=10., edgetrim=5):
         """
@@ -27695,7 +29386,7 @@ def getIntegrationTime(vis, spw=None, intent='OBSERVE_TARGET#ON_SOURCE', scan=No
 
     if (spw==None or spw==''):
         integration = '0'
-        if (casadef.subversion_revision >= '26688'):
+        if (casadef.subversion_revision >= casaRevisionWithAlmaspws):
             spws = np.intersect1d(spws,mymsmd.almaspws(tdm=True,fdm=True,chavg=True,sqld=True))
         else:
             spws = np.setdiff1d(spws,mymsmd.wvrspws())
@@ -27831,7 +29522,7 @@ class linfit:
               else:
                   y.append(10**(random_slope[t]*x + random_intercept[t]))
       rms = np.std(y)
-      print "Value at %f = %f +- %f (scaled MAD = %f)" % (x, np.median(y), rms, MAD(y))
+      print "Median Monte-Carlo result at %f = %f +- %f (scaled MAD = %f)" % (x, np.median(y), rms, MAD(y))
       return(rms)
   
   def readFluxscaleResult(self,xfilename, yfilename, source, verbose=False,
@@ -28000,9 +29691,9 @@ class linfit:
       else:
           print "Will use spw = ", spwlist
     if (filename == ''):
-        x = np.array(freqs)
-        y = np.array(fluxes)
-        yerror = np.array(errors)
+        x = np.array(freqs, dtype=np.float)
+        y = np.array(fluxes, dtype=np.float)
+        yerror = np.array(errors, dtype=np.float)
         if (len(x) != len(y) or len(x) != len(yerror)):
             print "Inconsistent array lengths of freqs, fluxes, errors"
             return
@@ -28135,9 +29826,9 @@ class linfit:
       else:
           print "Will use spw = ", spwlist
     if (filename == ''):
-        x = np.array(freqs)
-        y = np.array(fluxes)
-        yerror = np.array(errors)
+        x = np.array(freqs,dtype=float)
+        y = np.array(fluxes,dtype=float)
+        yerror = np.array(errors,dtype=float)
         if (len(x) != len(y) or len(x) != len(yerror)):
             print "Inconsistent array lengths of freqs, fluxes, errors"
             return
@@ -28225,7 +29916,7 @@ class linfit:
     Bryan Butler sent me in Feb 2013. However, for the case of only 2 points,
     the denominator becomes zero in his formula, so it instead uses the
     sqrt(covariance matrix) which seems to agree well with the Monte-Carlo
-    method.
+    method.             
     -- Todd Hunter
 
     filename: contains a listobs output file
@@ -28302,7 +29993,9 @@ class linfit:
         print "Error-weighted fit: Slope: %.3f+-%.3f  Flux D. @ %.3f%s: %.3f+-%.3f Jy" % (slope,
                                  slopeFitError, freqUnNormalized, freqUnits, amp, ampError)
         print "   Un-weighted fit: Slope: %.3f         Flux D. @ %.3f%s: %.3f Jy" % (p2[0], freqUnNormalized, freqUnits, amp2)
-    rc('text',usetex=True)
+    
+    if (distutils.spawn.find_executable('dvipng')):
+        rc('text',usetex=True)
     if (showplot):
         pb.clf()
         desc = pb.subplot(111)
@@ -28403,7 +30096,7 @@ class linfit:
         print "Plot saved in %s" % (pngname)
       pb.draw()
     return(mydict)
-# end of spectralIndexCovarMatrix()
+# end of spectralIndexCovarMatrix()    text
 
   def spectralindex(self,filename='',yfilename='',source='',verbose=False,
                     maxpoints=0,trials=0,spw='',plotdir='',
@@ -28442,6 +30135,12 @@ class linfit:
     if (plotunits not in ['linear','log']):
         print "plotunits must be either 'linear' or 'log'"
         return
+    if (len(errors) == 2):
+        # report the exact fit, and 1-sigma extrema fits
+        si = np.log(fluxes[1]/fluxes[0]) / np.log(freqs[1]/freqs[0])
+        si1 = np.log((fluxes[1]+errors[1])/(fluxes[0]-errors[0])) / np.log(freqs[1]/freqs[0])
+        si2 = np.log((fluxes[1]-errors[1])/(fluxes[0]+errors[0])) / np.log(freqs[1]/freqs[0])
+        print "exact value: %f,  1-sigma extrema: %f, %f,  mean unc=%f" % (si,si1,si2,0.5*abs(si2-si1))
     if (trials > 0):
         if (trials < 100):
             trials = 100
@@ -28520,7 +30219,8 @@ class linfit:
       amp2 = 10.0**p2[1]
       amp2 *= freq**p2[0]
       print "   Un-weighted fit: Slope: %.3f         Flux D. @ %.3f%s: %.3f" % (p2[0], freqUnNormalized, freqUnits, amp2)
-      rc('text',usetex=True)
+      if (distutils.spawn.find_executable('dvipng')):
+          rc('text',usetex=True)
       yfit = x*p[0]+p[1]  # the fit result with zero Monte-Carlo errors added to the data
       for myx in xaxis:
           mydict['yaxis'].append(10**(p[1] + (np.log10(myx)-meanOfLogX)*p[0]))
@@ -28756,12 +30456,14 @@ def replace_bpsol(intable,replacetable,antennas,outtable):
     return 0
 
 def uvplot(msfile, field='', plotrange=[0,0,0,0], figfile=False, markersize=2, 
-           density=144):
+           density=144, units='m', mirrorPoints=True):
     """
     A simple function to make u vs. v plot with points mirrored about the
     origin, similar to AIPS.  This functionality is not yet in casa's plotms,
     but it *is* in plotuv. For further help and examples, see
     https://safe.nrao.edu/wiki/bin/view/ALMA/Uvplt
+    field: restrict to single field name or field ID
+    units: 'm' or 'km'
     -Todd Hunter
     """
     fieldid = field
@@ -28769,15 +30471,17 @@ def uvplot(msfile, field='', plotrange=[0,0,0,0], figfile=False, markersize=2,
         print "Could not find ms = %s." % (msfile)
         return
     try:
-        tb.open(msfile)
-        tb.close()
+        mytb = createCasaTool(tbtool)
+        mytb.open(msfile)
+        mytb.close()
     except:
         print "Could not open ms = %s." % (msfile)
         return
     if (type(fieldid) == str):
         if (fieldid == ''):
             print "Showing points for all fields"
-            tb1.open(msfile)
+            mytb.open(msfile)
+            tb1 = mytb
         elif (len(fieldid) == sum([m in [str(m) for m in range(10)] for m in fieldid])):
             fieldid = int(fieldid)
             vm = ValueMapping(msfile)
@@ -28786,18 +30490,18 @@ def uvplot(msfile, field='', plotrange=[0,0,0,0], figfile=False, markersize=2,
                 print "No such field in the ms."
                 return
             print "Showing field id = %d = %s" % (fieldid, fieldname)
-            tb.open(msfile)
-            tb1 = tb.query('FIELD_ID == '+str(fieldid))
+            mytb.open(msfile)
+            tb1 = mytb.query('FIELD_ID == '+str(fieldid))
         else:
             # convert from name to ID
             fieldname = fieldid
             vm = ValueMapping(msfile)
             fieldid = vm.getFieldIdsForFieldName(fieldname)[0]
-            tb.open(msfile)
-            tb1 = tb.query('FIELD_ID == '+str(fieldid))
+            mytb.open(msfile)
+            tb1 = mytb.query('FIELD_ID == '+str(fieldid))
             print "Showing field id = %d = %s" % (fieldid, fieldname)
     elif (type(fieldid) == int):
-        tb1 = tb.query('FIELD_ID == '+str(fieldid))
+        tb1 = mytb.query('FIELD_ID == '+str(fieldid))
         vm = ValueMapping(msfile)
         fieldname = vm.getFieldNamesForFieldId(fieldid)
         if (fieldname == None):
@@ -28812,23 +30516,31 @@ def uvplot(msfile, field='', plotrange=[0,0,0,0], figfile=False, markersize=2,
     if (len(rawdata) < 1):
         print "No data found for this field"
         return
-    tb.close()
+    mytb.close()
     pb.clf()
     adesc = pb.subplot(111)
+    if (units == 'km'):
+        rawdata *= 0.001
     maxbase = max([max(rawdata[0,]),max(rawdata[1,])])  # in m
+        
     pb.plot(rawdata[0,],rawdata[1,],'b.',markersize=markersize)
-    pb.plot(-rawdata[0,],-rawdata[1,],'b.',markersize=markersize)
+    if (mirrorPoints):
+        pb.plot(-rawdata[0,],-rawdata[1,],'b.',markersize=markersize)
     if (plotrange[0] != 0 or plotrange[1] != 0):
         pb.xlim([plotrange[0],plotrange[1]])
     if (plotrange[2] != 0 or plotrange[3] != 0):
         pb.ylim([plotrange[2],plotrange[3]])
     pb.gca().set_aspect(aspect='equal')
-    pb.xlabel('u (meter)',fontsize='medium')
-    pb.ylabel('v (meter)',fontsize='medium')
-    if (fieldid==''):
-        pb.title(msfile + '  all fields')
+    if (units == 'km'):
+        pb.xlabel('u (km)',fontsize='medium')
+        pb.ylabel('v (km)',fontsize='medium')
     else:
-        pb.title(msfile + '  field %d = %s' % (fieldid,fieldname),fontsize=12)
+        pb.xlabel('u (meter)',fontsize='medium')
+        pb.ylabel('v (meter)',fontsize='medium')
+    if (fieldid==''):
+        pb.title(os.path.basename(msfile) + '  all fields')
+    else:
+        pb.title(os.path.basename(msfile) + '  field %d = %s' % (fieldid,fieldname),fontsize=12)
     yFormatter = matplotlib.ticker.ScalarFormatter(useOffset=False)
     adesc.yaxis.set_major_formatter(yFormatter)
     adesc.yaxis.grid(True,which='major')
@@ -29048,6 +30760,7 @@ def editIntents(msName='', field='', scan='', newintents='', help=False,
         for state_id in state_ids:
             if state_id not in states:
                 states.append(state_id)
+#        print "states = ", states
         for ij in range(len(states)):
             states[ij] = intentcol[states[ij]]
         print 'current intents are:'
@@ -29190,6 +30903,9 @@ def tunnel(server='pomona.osf.alma.cl', port=8080, gateway='tatio.aiv.alma.cl', 
     return
 
 def computeFlaggedFraction(flagarray):
+    """
+    Called by timeOnSourceSD
+    """
     flags = 0
     npoints = 0
     for row in flagarray:
@@ -29230,16 +30946,29 @@ def getALMAFluxForMS(vis, field=None, frequency=None, verbose=False,
     mymsmd = createCasaTool(msmdtool)
     mymsmd.open(vis)
     if (frequency==None or frequency==''):
-        if (casadef.casa_version >= '4.2.0'):
+        if (casadef.subversion_revision >= casaRevisionWithAlmaspws):
             spws = mymsmd.almaspws(tdm=True,fdm=True)
         else:
             spws = np.setdiff1d(np.union1d(mymsmd.fdmspws(),mymsmd.tdmspws()), mymsmd.chanavgspws())
-        frequency = mymsmd.meanfreq(spws[0])
+        # if OBSERVE_TARGET is present, only use those spws
+        if ('OBSERVE_TARGET#ON_SOURCE' in mymsmd.intents()):
+            myspws = np.intersect1d(mymsmd.spwsforintent('OBSERVE_TARGET#ON_SOURCE'),spws)
+            if (verbose):
+                print "spw interection of %s with %s = %s" % (mymsmd.spwsforintent('OBSERVE_TARGET#ON_SOURCE'),spws,myspws)
+            spws = myspws
+        frequency = []
+        for spw in myspws:
+            frequency.append(mymsmd.meanfreq(spw))
+        frequency = np.mean(frequency)
         print "Using frequency = ", frequency
     else:
         frequency = parseFrequencyArgument(frequency)
     if (field==None):
-        field = mymsmd.fieldsfortimes()  # get all the fields
+        field = mymsmd.fieldsforintent('CALIBRATE_PHASE*')  # get all the fields
+        field = np.append(field,mymsmd.fieldsforintent('CALIBRATE_BANDPASS*'))
+        field = np.append(field,mymsmd.fieldsforintent('CALIBRATE_AMPLI*'))
+        field = np.append(field,mymsmd.fieldsforintent('CALIBRATE_FLUX*'))
+        field = sorted(list(np.unique(field)))
     elif (type(field)==int):
         field = [field]
     elif (type(field)==str):
@@ -29250,8 +30979,9 @@ def getALMAFluxForMS(vis, field=None, frequency=None, verbose=False,
 
     date = getObservationStartDate(vis).split()[0]
     sources = {}
-    for f in field:
-        print "Working on field %d = %s" % (f, mymsmd.namesforfields(f)[0])
+    print "fields = ", field
+    for i,f in enumerate(field):
+        print "\nWorking on field %d of %d: %d = %s" % (i+1, len(field), f, mymsmd.namesforfields(f)[0])
         if (f == ''):
             print "Error in field ID.  Not found in MS"
             return
@@ -29261,7 +30991,7 @@ def getALMAFluxForMS(vis, field=None, frequency=None, verbose=False,
                              server=server, dayWindow=dayWindow, 
                              showplot=showplot, plotfile=plotfile)
         if (mydict != None):
-            sources[mymsmd.namesforfields(f)[0]] = {'fluxDensity': mydict['fluxDensity'], 'fluxDensityUncertainty': mydict['fluxDensityUncertainty']}
+            sources[mymsmd.namesforfields(f)[0]] = {'fluxDensity': mydict['fluxDensity'], 'fluxDensityUncertainty': mydict['fluxDensityUncertainty'], 'frequency': frequency}
     mymsmd.close()
     return(sources)
 
@@ -29325,11 +31055,13 @@ def getALMAFlux(sourcename, frequency, lowband=3, highband=7, ignoreLowBand=Fals
     for band in [lowband,highband]:
         if (band == lowband and ignoreLowBand): continue
         if (band == highband and ignoreHighBand): continue
-#        if (verbose):
-#            print "Calling searchFlux('%s', band='%s', date='%s', returnMostRecent=True, verbose=%s, searchAdjacentNames=%s)" % (sourcename, band, date, verbose, searchAdjacentNames)
+        if (verbose):
+            print "Calling searchFlux('%s', band='%s', date='%s', returnMostRecent=True, verbose=%s, searchAdjacentNames=%s)" % (sourcename, band, date, verbose, searchAdjacentNames)
         results = searchFlux(sourcename, band=band, date=date, returnMostRecent=True,
-                                  verbose=verbose, searchAdjacentNames=searchAdjacentNames, 
-                                  server=server, dayWindow=dayWindow)
+                             verbose=verbose, searchAdjacentNames=searchAdjacentNames, 
+                             server=server, dayWindow=dayWindow)
+        if (results == None): return
+        if (results == -1): continue  # source not found in catalog
         if (dayWindow < 0):
             results = [results]
         allresults[band] = {} # each key is an array of the same length
@@ -29398,6 +31130,8 @@ def getALMAFlux(sourcename, frequency, lowband=3, highband=7, ignoreLowBand=Fals
                     allresults[band]['flux'].append(result['flux'])
                     allresults[band]['uncertainty'].append(result['uncertainty'])
                     allresults[band]['age'].append(result['age'])
+    # end 'for' loop over band
+    if (allresults == {}): return None
     spectralIndex = defaultSpectralIndex
     spectralIndexUncertainty = defaultSpectralIndexUncertainty
     if (noLowBandMeasurement or noHighBandMeasurement):
@@ -29405,7 +31139,13 @@ def getALMAFlux(sourcename, frequency, lowband=3, highband=7, ignoreLowBand=Fals
             band = highband
         else:
             band = lowband
+#        print "allresults.keys() = ", allresults.keys()
         fluxDensity = allresults[band]['flux'][0] * (frequency/allresults[band]['frequency'][0])**spectralIndex
+
+        # The following does not account for uncertainty in the spectral index, but
+        # prevents a crash when defining mydict later.
+        fluxDensityUncertainty = fluxDensity * allresults[band]['uncertainty'][0]/allresults[band]['flux'][0]
+        
         intercept = np.log10(fluxDensity) 
         # interceptUncertainty should simply be the flux density uncertainty on the log scale
         interceptUncertainty = 0.434*allresults[band]['uncertainty'][0]/allresults[band]['flux'][0]
@@ -29428,7 +31168,8 @@ def getALMAFlux(sourcename, frequency, lowband=3, highband=7, ignoreLowBand=Fals
         interceptUncertainty = mydict['interceptUncertainty']
         fluxDensity = fluxes[0] * (frequency/freqs[0])**spectralIndex
     logfit = True
-    fluxDensityUncertainty = linfit().computeStdDevMonteCarlo(spectralIndex,
+    if (not noLowBandMeasurement and not noHighBandMeasurement):
+        fluxDensityUncertainty = linfit().computeStdDevMonteCarlo(spectralIndex,
                                                         spectralIndexUncertainty,
                                                         intercept,
                                                         interceptUncertainty,
@@ -29495,7 +31236,7 @@ def searchFlux(sourcename=None, date='', band = None, fLower=1e9, fUpper=1e12,
                                             returnMostRecent,showDateReduced,
                                             sourceBandLimit=limit,dayWindow=dayWindow)
                     if (status != -1): break
-        else:
+        elif (verbose):
             print "You could try setting searchAdjacentNames=True"
     return(status)
 
@@ -29608,7 +31349,7 @@ def timeOnSourceSD(vis, obsid=0, spw=None, debug=False, ignore7m=True):
     spws = mymsmd.spwsforintent('OBSERVE_TARGET#ON_SOURCE')
     print "spws with observe_target = ", spws
     if (spw == None):
-        if (casadef.casa_version >= '4.2.0'):
+        if (casadef.subversion_revision >= casaRevisionWithAlmaspws):
             spws = np.setdiff1d(spws, mymsmd.almaspws(wvr=True))
         else:
             spws = np.setdiff1d(spws, mymsmd.wvrspws())
@@ -29895,10 +31636,14 @@ def getTPSampling(vis, obsid=0, showplot=False, plotfile='', debug=False,
     firstCalAtmScan = -1
     if ('CALIBRATE_ATMOSPHERE#ON_SOURCE' in mymsmd.intents()):
         calAtmFields = mymsmd.fieldsforname(mymsmd.namesforfields(mymsmd.fieldsforintent(intent+'#ON_SOURCE')[0])[0])
-        scans1 = mymsmd.scansforintent('CALIBRATE_ATMOSPHERE#ON_SOURCE') 
+#        print "calAtmFields = ", calAtmFields
+        scans1 = mymsmd.scansforintent('CALIBRATE_ATMOSPHERE#ON_SOURCE')
+#        print "scans1 = ", scans1
         scans2 = scansforfields(mymsmd,calAtmFields)
+#        print "scans2 = ", scans2
         calAtmScans = np.intersect1d(scans1,scans2)
-        if (calAtmScans != []):
+#        print "calAtmScans = ", calAtmScans
+        if (len(calAtmScans) > 0):
             firstCalAtmScan = calAtmScans[0]
             firstCalAtmScanMeanMJD = np.mean(mymsmd.timesforscan(firstCalAtmScan))/86400.
             calAtmField = mymsmd.fieldsforscan(firstCalAtmScan)[0]
@@ -30350,11 +32095,12 @@ def getTPSampling(vis, obsid=0, showplot=False, plotfile='', debug=False,
         ySampling = np.median(successiveRowDifferences)
 #        ySampling = np.median(successiveRowDifferences[:len(successiveRowDifferences)/4])
 
-    if (fieldName != None):
+    if (fieldName != None):  # comment this block out for Crystal's temporary usage
         if (fieldName.upper() in majorPlanets):
             if (pickFirstRaster == False):
                 print "Setting pickFirstRaster=True"
             pickFirstRaster = True
+
     if (pickFirstRaster):
         # Recalculate the y Sampling for major planets
         medianYoffset = np.median(y)
@@ -30537,6 +32283,35 @@ def getTPSampling(vis, obsid=0, showplot=False, plotfile='', debug=False,
     return xSampling, ySampling, largestDimension
     # end of getTPSampling
     
+def imshift(img, rashift, decshift, copyimage=True):
+    """
+    Uses imhead to shift a CASA image in RA/Dec.
+    rashift: value in arcsec to subtract from CRPIX1
+    decshift: value in arcsec to subtract from CRPIX2
+    copyimage: if True, then first copy the image to *.imshift
+    -Todd Hunter
+    """
+    if (not os.path.exists(img)):
+        print "Could not find image: %s" % (img)
+        return
+    if (not os.path.isdir(img)):
+        print "This is not a CASA image."
+        return
+    if (copyimage):
+        os.system('cp -r %s %s.imshift'%(img,img))
+        img = img+'.imshift'
+        print "Copied image to ", img
+    cdelt1 = headerToArcsec(imhead(img, mode='get', hdkey='CDELT1'))
+    cdelt2 = headerToArcsec(imhead(img, mode='get', hdkey='CDELT2'))
+    rapix = rashift/cdelt1
+    decpix = decshift/cdelt2
+    crpix1 = imhead(img, mode='get', hdkey='CRPIX1')
+    crpix2 = imhead(img, mode='get', hdkey='CRPIX2')
+    print "Shifting RA  by %+f arcsec = %+f pixels" % (rashift,rapix)
+    imhead(img, mode='put', hdkey='CRPIX1', hdvalue=crpix1-rapix)
+    print "Shifting Dec by %+f arcsec = %+f pixels" % (decshift,decpix)
+    imhead(img, mode='put', hdkey='CRPIX2', hdvalue=crpix2-decpix)
+
 def readNonStandardHeader(image):
     """
     If restfreq is missing, then imhead(mode='list') will bomb (CAS-5901).
@@ -30569,6 +32344,68 @@ def readNonStandardHeader(image):
                 a[keyn] = arcsec
     return(a)
     
+def getFitsDate(image):
+    """
+    Extracts and prints the date information from a FITS image.
+    Todd Hunter
+    """
+    if (os.path.exists(image) == False):
+        print "image not found"
+        return
+    if (pyfitsPresent == False):
+        print "pyfits is not present"
+        return
+    if (os.path.isdir(image)):
+        # Assume this is a CASA image
+        a = imhead(image,mode = 'list')
+        if (a == None):
+            if (os.access(".",os.W_OK) == False):
+                print "Change to a directory where you have write permission and try again."
+                print "e.g. au.getFitsDate('%s/%s')" % (os.getcwd(),image)
+                return
+            else:
+                try:
+                    restfreq = imhead(image,mode='get',hdkey='restfreq')
+                    if (restfreq['value'] <= 0.0):
+                        a = readNonStandardHeader(image)
+                        print "Reading non-standard header: ", a
+                    else:
+                        print "restfreq = ", restfreq
+                except:
+                    print "imhead returned NoneType."
+                    print "This image header is not sufficiently standard."
+                    return
+        foundDate = 0
+        for datekey in a.keys():
+            if (datekey.lower().find('date') >= 0):
+                foundDate += 1
+                print "%s = %s" % (datekey, a[datekey])
+        if (foundDate == 0): print "No date keys found in the header."
+    else:
+        f = pyfits.open(image)
+        hdr = f[0].header
+        bmaj = -1
+        try:
+            keys = hdr.ascardlist().keys()
+        except:
+            keys = hdr.keys()
+        for datekey in ['DATE-OBS', 'DATE_OBS', 'DATE-END', 'DATE_END']:
+            if (datekey in keys):
+                print "%s = %s" % (datekey, hdr[datekey])
+        f.close()
+
+def kelvinPerJansky(img):
+    """
+    Compute the Kelvin per Jansky conversion factor of a FITS or CASA 
+    interferometric image using the beam size and frequency.
+    -Todd Hunter
+    """
+    bmaj,bmin,bpa,cdelt1,cdelt2,naxis1,naxis2,imgfreq = getFitsBeam(img)
+    # imgfreq is in GHz, bmaj and bmin are in arcsec
+    bdict = brightness(1, imgfreq, bmaj, bmin)
+    print bdict
+    return(bdict['temperature'])
+
 def getFitsBeam(image):
     """
     Extract the beam information from a FITS image, or a CASA image.
@@ -30586,6 +32423,7 @@ def getFitsBeam(image):
         if (a == None):
             if (os.access(".",os.W_OK) == False):
                 print "Change to a directory where you have write permission and try again."
+                print "e.g. au.getFitsBeam('%s/%s')" % (os.getcwd(),image)
                 return
             else:
                 try:
@@ -30603,6 +32441,20 @@ def getFitsBeam(image):
             bmaj = a['beammajor']
             bmin = a['beamminor']
             bpa = a['beampa']
+        elif ('perplanebeams' in a.keys()):
+            beammajor = []
+            beamminor = []
+            beampa = []
+            for beamchan in range(a['perplanebeams']['nChannels']):
+                beamdict = a['perplanebeams']['*'+str(beamchan)]
+                beammajor.append(beamdict['major']['value'])
+                beamminor.append(beamdict['minor']['value'])
+                beampa.append(beamdict['positionangle']['value'])
+            bmaj = np.median(beammajor)
+            bmin = np.median(beamminor)
+            sinbpa = np.sin(np.radians(np.array(beampa)))
+            cosbpa = np.cos(np.radians(np.array(beampa)))
+            bpa = degrees(np.median(np.arctan2(np.median(sinbpa), np.median(cosbpa))))
         else:
             bmaj = 0
             bmin = 0
@@ -30652,40 +32504,58 @@ def getFitsBeam(image):
         print "pyfits is not present"
         return
     f = pyfits.open(image)
-    hdr = f[0].header
-    bmaj = -1
-    if ('BMAJ' not in hdr.keys()):
-        if ('HISTORY' not in hdr.keys()):
-            print "Did not find BMAJ in header, and there are no HISTORY keys."
-            return
-        keys = hdr.ascardlist().keys()
-        for key in range(len(keys)):
-            if ('HISTORY' == keys[key]):
-                value = hdr.ascardlist().values()[key]
-                if (value.find('BMAJ') >= 0):
-                    # Assume all are in one record.  If not, be careful of
-                    # BPA being confused with BPASS.
-                    tokens = value.split()
-                    for t in range(len(tokens)):
-                        if (tokens[t].find('BMAJ') == 0):
-                            bmaj = float(tokens[t+1])*3600
-                            break
-                    for t in range(len(tokens)):
-                        if (tokens[t].find('BMIN') == 0):
-                            bmin = float(tokens[t+1])*3600
-                            break
-                    for t in range(len(tokens)):
-                        if (tokens[t].find('BPA') == 0):
-                            bpa = float(tokens[t+1].split('/')[0])
-                            break
-        if (bmaj < 0):
-            print "Did not find BMAJ in header, nor in the HISTORY keys."
-            return
-    else:            
-        bmaj = hdr['BMAJ']*3600
-        bmin = hdr['BMIN']*3600
-        bpa = hdr['BPA']
-    print "%g'' x %g'' at %+g deg" % (bmaj, bmin, bpa)
+    imghdr = 0
+    for hdctr in range(len(f)): # support Herschel images (where the image is an extension)
+        hdr = f[hdctr].header
+        bmaj = -1
+        if ('BMAJ' not in hdr.keys()):
+            if ('HISTORY' not in hdr.keys()):
+                if (hdctr == len(f)-1):
+                    print "Did not find BMAJ in header, and there are no HISTORY keys."
+                    hdr = f[imghdr].header
+                    bmin = 0
+                    bmaj = 0
+                    bpa = 0
+                    break
+                else:
+                    if 'CDELT1' in hdr.keys():
+                        # Take note of the image header, when you encounter it
+                        imghdr = hdctr
+                    continue
+            try:
+                keys = hdr.ascardlist().keys()
+            except:
+                keys = hdr.keys()
+            for key in range(len(keys)):
+                if ('HISTORY' == keys[key]):
+                    try:
+                        value = hdr.ascardlist().values()[key]
+                    except:
+                        value = hdr.values()[key]
+                    if (value.find('BMAJ') >= 0):
+                        # Assume all are in one record.  If not, be careful of
+                        # BPA being confused with BPASS.
+                        tokens = value.split()
+                        for t in range(len(tokens)):
+                            if (tokens[t].find('BMAJ') == 0):
+                                bmaj = float(tokens[t+1])*3600
+                                break
+                        for t in range(len(tokens)):
+                            if (tokens[t].find('BMIN') == 0):
+                                bmin = float(tokens[t+1])*3600
+                                break
+                        for t in range(len(tokens)):
+                            if (tokens[t].find('BPA') == 0):
+                                bpa = float(tokens[t+1].split('/')[0])
+                                break
+            if (bmaj < 0):
+                print "Did not find BMAJ in header, nor in the HISTORY keys."
+                return
+        else:            
+            bmaj = hdr['BMAJ']*3600
+            bmin = hdr['BMIN']*3600
+            bpa = hdr['BPA']
+        print "%g'' x %g'' at %+g deg" % (bmaj, bmin, bpa)
     naxis1 = hdr['NAXIS1']
     naxis2 = hdr['NAXIS2']
     cdelt1 = hdr['CDELT1']*3600
@@ -30781,10 +32651,13 @@ def gjincBeam(frequency, pixelsize=10, diameter=12.0, xSamplesPerBeam=5.0,
             return
     if (img != None):
         if (img.lower().find('ticra') == 0):
-            ticraDir = os.path.dirname(__file__) + '/TicraImages/'
-            if (os.path.exists(ticraDir) == False):
-                print "The Ticra model images are not present in the analysisUtils area."
-                return
+            ticraDir = os.getenv("CASAPATH").split()[0]+"/data/alma/responses/"
+            ticraImage = ticraDir + "ALMA_0_DA__0_0_360_0_45_90_602_602_631.5_GHz_ticra2007_EFP.im.square.normalized"
+            if (not os.path.exists(ticraImage)):
+                ticraDir = os.path.dirname(__file__) + '/TicraImages/'
+                if (os.path.exists(ticraDir) == False):
+                    print "The Ticra model images (squared) are not present in the analysisUtils area nor CASA."
+                    return
             img = pickTicraImage(frequency,img,ticraDir,excludeBand3,
                                  excludeBand3Below)
             if (img == None): return
@@ -30862,26 +32735,39 @@ def pickPixelSize(frequency, convsupport=5, sfratio=0.5):
     pixelsize = beam * sfratio * 1.34589/float(convsupport)
     return(pixelsize)
 
-def janskyPerKelvin(frequency, beamsize=None, diameter=12, obscuration=0.75, surfaceRms=25):
+def antennaEfficiency(frequency, surfaceRms, R0=0.72):
     """
-    Computes the theoretical Jy/K for an ALMA single dish image based on its measured
-    beamsize.
+    frequency: GHz or Hz, or string with units
+    surfaceRms: in microns
+    R0: initial efficiency factor (other than Ruze)
+        default value is for ALMA based on technical handbook p. 114
+    returns: telescope efficiency (from 0..1)
+    -Todd Hunter
+    """
+    frequency = parseFrequencyArgumentToHz(frequency)
+    efficiency= R0*np.exp(-16*(np.pi**2)*(surfaceRms*1e-4)**2*(frequency/c)**2)
+    return(efficiency)
+
+def janskyPerKelvin(frequency, beamsize=None, diameter=12, obscuration=0.75,
+                    surfaceRms=25):
+    """
+    Computes the theoretical Jy/K for an ALMA single dish image based on its
+    measured beamsize.
     frequency: GHz
     beamsize: arcsec, if not specified, then the theoretical beam will be used
     diameter: m
     obscuration: m
     surfaceRms: micron
     """
-    R0 = 0.72 # page 114 of technical handbook
     frequency = parseFrequencyArgumentToHz(frequency)
-    efficiency = R0*np.exp(-16*(np.pi**2)*(surfaceRms*1e-4)**2*(frequency/c)**2)
+    efficiency = antennaEfficiency(frequency, surfaceRms)
     print "efficiency = ", efficiency
     area = np.pi*(diameter*50)**2*efficiency
 #    print "effective area = ", area
     jyPerK = (2*k/area) * 1e23
 #    print "Jy/K of raw antenna beam = ", jyPerK
     if (beamsize != None):
-        jyPerK *= (beamsize/primaryBeamArcsec(frequency=frequency,diameter=diameter,obscuration=obscuration))**2
+        jyPerK *= (beamsize/primaryBeamArcsec(frequency=frequency,diameter=diameter,obscuration=obscuration,showEquation=False))**2
     return(jyPerK)
     
 def sfBeamWeightVariation(frequency=None, pixelsize=None, diameter=12.0, samplesPerBeam=5.0,
@@ -31152,6 +33038,89 @@ def setImageUnits(img, value='deg'):
         imhead(img, mode='put', hdkey='cunit1', hdvalue=value)
         imhead(img, mode='put', hdkey='cunit2', hdvalue=value)
 
+def subtractGaussianFromImage(img, peak, x, y, major, minor, pa):
+    """
+    Subtract a 2D Gaussian from an image and create a difference image.
+    peak: peak intensity in image brightness units (set to None for value at xpeak,ypeak)
+    xpeak: x pixel of the peak of the Gaussian (set to None for image peak)
+    ypeak: y pixel of the peak of the Gaussian
+    major: FWHM of major axis in pixels
+    minor: FWHM minor axis in pixels
+    pa: position angle of major axis in degrees
+    -Todd Hunter
+    """
+    if (os.path.exists(img) == False):
+        print "Could not find image = ", img
+        return
+    gimg = makeGaussianForImage(img, peak, x, y, major, minor, pa)
+    outfile = 'difference.image'
+    if (os.path.exists(outfile)):
+        print "Removing existing image"
+        shutil.rmtree(outfile)
+    print "Running immath(['%s','%s'], outfile='%s', expr='IM0-IM1')" % (img,gimg,outfile)
+    immath([img,gimg], outfile=outfile, expr='IM0-IM1')
+    print "Created new image = ", outfile
+
+def makeGaussianForImage(img, peak, xpeak, ypeak, major, minor, pa):
+    """
+    Take an image as a template, and build an image with a single Gaussian
+    component at the specified location and width.
+    peak: peak intensity in image brightness units (set to None for value at xpeak,ypeak)
+    xpeak: x pixel of the peak of the Gaussian (set to None for image peak)
+    ypeak: y pixel of the peak of the Gaussian
+    major: FWHM of major axis in pixels
+    minor: FWHM minor axis in pixels
+    pa: position angle of major axis in degrees
+    -Todd Hunter
+    """
+    if (os.path.exists(img) == False):
+        print "Could not find image = ", img
+        return
+    newimage = img + '.gaussian'
+    if (os.path.exists(newimage)):
+        print "Removing existing image"
+        shutil.rmtree(newimage)
+    os.system('cp -r %s %s' % (img,newimage))
+    myia = createCasaTool(iatool)
+    myia.open(newimage)
+    pixels = myia.getregion()
+    xpixels = np.shape(pixels)[0]
+    ypixels = np.shape(pixels)[1]
+    if (xpeak == None):
+        xpeak, ypeak = np.unravel_index(np.argmax(pixels), np.shape(pixels))
+        print "Peak pixel found at %d,%d" % (xpeak,ypeak)
+    if (peak == None):
+        peak = pixels[xpeak][ypeak]
+        print "Using peak intensity found at %d,%d = %f" % (xpeak,ypeak,peak)
+    myia.putregion(pixels=build2DGaussian(peak, xpeak, ypeak, major, minor, pa, xpixels, ypixels, pixels))
+    myia.close()
+    print "New image created = ", newimage
+    return(newimage)
+
+def build2DGaussian(peak, xpeak, ypeak, major, minor, pa, xpixels, ypixels, pixels):
+    """
+    peak: peak intensity in image brightness units
+    xpeak: x pixel of the peak of the Gaussian
+    ypeak: y pixel of the peak of the Gaussian
+    major: FWHM of major axis in pixels
+    minor: FWHM of minor axis in pixels
+    pa: position angle of major axis in degrees
+    xpixels: number of pixels in the x axis of the image
+    ypixels: number of pixels in the y axis of the image
+    pixels: a 2D array of image pixel values
+    -Todd Hunter
+    """
+    par = np.radians(90-pa)
+    major /= (8*np.log(2))**0.5
+    minor /= (8*np.log(2))**0.5
+    a = np.cos(par)**2/(2*major**2) + np.sin(par)**2/(2*minor**2)
+    b = np.sin(2*par)/(4*major**2) + np.sin(2*par)/(4*minor**2)
+    c = np.sin(par)**2/(2*major**2) + np.cos(par)**2/(2*minor**2)
+    for x in range(xpixels):
+        for y in range(ypixels):
+            pixels[x][y] = peak*np.exp(-(a*(xpeak-x)**2 + 2*b*(ypeak-y)*(xpeak-x) + c*(ypeak-y)**2))
+    return pixels
+
 def normalizeImage(img, value=1.0, regrid=False):
     """
     Read a CASA image, and normalize the intensity scale to a specified value 
@@ -31382,8 +33351,8 @@ def pickTicraImage(frequency, antennaType,
             else:
                 pick = antType + '*' + '%g'%(u) + '_GHz_ticra2007_EFP.im.square.normalized'
             break
-    if (pick == None or (ghz < 84) or (ghz > 163 and ghz < 211)):
-        # bands 1,2,5 not supported
+    if (pick == None or (ghz < 70) or (ghz > 163 and ghz < 211)):
+        # bands 1,2,5 not supported, set low bound to 70 for Crystal's Jy/K plot
         print "Frequency out of range of TICRA models"
         return
     dadv = glob.glob(ticraDir+'/*'+pick)
@@ -31466,13 +33435,17 @@ def sfBeam(frequency, pixelsize=10, diameter=12.0, xSamplesPerBeam=5.0,
             return
     if (img != None):
         if (img.lower().find('ticra') == 0):
-            ticraDir = os.path.dirname(__file__) + '/TicraImages/'
-            if (os.path.exists(ticraDir) == False):
-                print "The Ticra model images are not present in the analysisUtils area."
-                return
+            ticraDir = os.getenv("CASAPATH").split()[0]+"/data/alma/responses/"
+            ticraImage = ticraDir + "ALMA_0_DA__0_0_360_0_45_90_602_602_631.5_GHz_ticra2007_EFP.im.square.normalized"
+            if (not os.path.exists(ticraImage)):
+                ticraDir = os.path.dirname(__file__) + '/TicraImages/'
+                if (os.path.exists(ticraDir) == False):
+                    print "The Ticra model images (squared) are not present in the analysisUtils area nor CASA."
+                    return
             img = pickTicraImage(frequency,img,ticraDir,excludeBand3,
                                  excludeBand3Below)
-            if (img == None): return
+            if (img == None):
+                return
             if (verbose):
                 print "Using TICRA image: %s" % (os.path.basename(img))
         if (os.path.exists(img) == False):
@@ -31792,7 +33765,9 @@ class griddedBeam:
         The peak of this function is 0.5.
         """
         argument = np.pi*np.abs(x)/jwidth
-        result = scipy.special.j1(argument) / argument
+        np.seterr(invalid='ignore') # prevent warning for central point
+        result = scipy.special.j1(argument) / argument 
+        np.seterr(invalid='warn')
         for i in range(len(x)):
             if (abs(x[i]) < 1e-8):
                 result[i] = 0.5
@@ -32864,6 +34839,7 @@ def primaryBeamArcsec(vis='', spw='', frequency='',wavelength='',
         return
     if (fwhmfactor != None):
         taper = effectiveTaper(fwhmfactor,diameter,obscuration,use2007formula)
+        if (taper == None): return
     if (taper < 0):
         taper = abs(taper)
     if (obscuration>0.4*diameter):
@@ -34519,18 +36495,25 @@ def checkTimeAgreement(a,b,t1,t2, fid):
     else:
         return(True, failures)
 
-def scaleweights(msfile, wtfac=1.0, antenna='', square=False, squareroot=False):
+def scaleweights(msfile, wtfac=1.0, antenna='', square=False, squareroot=False,
+                 spw=''):
     """
-    scaleweights:  scale data weights by a user supplied factor (or square or square root them)
-    Originally created by S.T. Myers 2011-08-23  v1.0 from flagaverage.py (CAS-2422)
+    scaleweights:  scale data weights by a user supplied factor (or square or 
+                   square root them)
+    Originally created by S.T. Myers 2011-08-23  v1.0 from flagaverage.py 
+                     (CAS-2422)
+    Improved and maintained by Todd Hunter 2014
+    Note: this function assumes equivalence between spw and data_descriptor_id.
+         If this is not the case for your data, email the maintainer.         
     Usage:
-          scaleweights(msfile, wtfac, antenna)
-              wtfac =  multiplicative weight factor
-              antenna = restrict scaling to baselines including this single antenna ID (int or string)
-              square = Boolean, if True, then square the weights 
-              squareroot = Boolean, if True, then take the square root of the weights 
-    For help and examples, see https://safe.nrao.edu/wiki/bin/view/ALMA/Scaleweights
-    -- Todd Hunter
+    au.scaleweights(msfile, wtfac, antenna)
+    * wtfac =  multiplicative weight factor
+    * antenna = restrict scaling to baselines including this single 
+                        antenna ID (int or string)
+    * square = Boolean, if True, then square the weights 
+    * squareroot = Boolean, if True, then take the square root of the weights 
+    * spw = integer or string or list of spws to process
+    For examples, see https://safe.nrao.edu/wiki/bin/view/ALMA/Scaleweights
     """
     if (os.path.exists(msfile) == False):
         print "Could not find ms file = ", msfile
@@ -34568,7 +36551,10 @@ def scaleweights(msfile, wtfac=1.0, antenna='', square=False, squareroot=False):
     #
     ntotrow=0
     ntotpts=0
+    spw = parseSpw(msfile,spw)
+    print "Will process spws = ", spw
     for idd in range(ndd):
+      if (idd in spw):
         # Find number of correlations in this DD
         pid = ddpollist[idd]
         ncorr = ncorlist[pid]
@@ -34608,12 +36594,14 @@ def scaleweights(msfile, wtfac=1.0, antenna='', square=False, squareroot=False):
     ms.close()
     return
 
-def resetweights(msfile,wtval=1.0):
+def resetweights(msfile,wtval=1.0,spw=''):
     """
-    resetweights:  set data weights to a user supplied factor
+    resetweights:  set data weights to a user supplied value
     Usage:
-          resetweights(msfile,wtval)
-              wtval =  multiplicative weight factor
+    au.resetweights(msfile,wtval)
+    * msfile = name of measurement set
+    * wtval =  new weight value
+    * spw = integer or string or list of spws to process
     -- Todd Hunter
     """
     if (os.path.exists(msfile) == False):
@@ -34645,7 +36633,10 @@ def resetweights(msfile,wtval=1.0):
     #
     ntotrow=0
     ntotpts=0
+    spw = parseSpw(msfile,spw)
+    print "Will process spws = ", spw
     for idd in range(ndd):
+      if (idd in spw):
         # Find number of correlations in this DD
         pid = ddpollist[idd]
         ncorr = ncorlist[pid]
@@ -34689,6 +36680,74 @@ def splitListIntoContiguousLists(mylist):
     mylists.append(newlist)
     return(mylists)
     
+def compareWeights(vis, vis2):
+    """
+    Checks whether the 'WEIGHT' columns are equal in two measurement sets, requiring 
+    that both have the same number of rows. 
+    - Todd Hunter
+    """
+    if (not os.path.exists(vis)):
+        print "Can not find vis = ", vis
+        return
+    if (not os.path.exists(vis2)):
+        print "Can not find vis2 = ", vis2
+        return
+    mytb = createCasaTool(tbtool)
+    mytb2 = createCasaTool(tbtool)
+    mytb.open(vis)
+    mytb2.open(vis2)
+    nrows = len(mytb.getcol('TIME'))
+    nrows2 = len(mytb2.getcol('TIME'))
+    if (nrows != nrows2):
+        mytb.close()
+        mytb2.close()
+        print "These measurement sets have an unequal number of rows."
+        return
+    wt = mytb.getcol('WEIGHT')
+    wt2 = mytb2.getcol('WEIGHT')
+    check = (wt==wt2)
+    if (check.all()):
+        print "The weights are identical."
+    else:
+        print "The weights are not all the same."
+        print "%g percent are the same." % (sum(check)*100.0/len(check))
+    mytb.close()
+    mytb2.close()
+
+def transferWeights(vis, outputvis):
+    """
+    Copies the weights from one ms to another ms, requiring that both have
+    the same number of rows.  This is useful for copying weights from a
+    continuum-subtracted dataset to the corresponding continuum dataset.
+    vis: the measurement set from which to read the weights
+    outputvis: the measurement set to which to write the weights
+    - Todd Hunter
+    """
+    if (not os.path.exists(vis)):
+        print "Can not find vis = ", vis
+        return
+    if (not os.path.exists(outputvis)):
+        print "Can not find outputvis = ", outputvis
+        return
+    mytb = createCasaTool(tbtool)
+    mytb2 = createCasaTool(tbtool)
+    mytb.open(vis)
+    mytb2.open(outputvis, nomodify=False)
+    nrows = len(mytb.getcol('TIME'))
+    nrows2 = len(mytb2.getcol('TIME'))
+    if (nrows != nrows2):
+        mytb.close()
+        mytb2.close()
+        print "These measurement sets have an unequal number of rows."
+        return
+    print "Reading weights"
+    wt = mytb.getcol('WEIGHT')
+    print "Writing weights"
+    mytb2.putcol('WEIGHT', wt)
+    mytb.close()
+    mytb2.close()
+    
+
 def copyweights(msfile):
     """
     copyweights copies the WEIGHT column to the WEIGHT_SPECTRUM column by
@@ -34796,6 +36855,40 @@ def getDataShapes(vis):
     ncorrs = np.unique(ncorrs)
 #    print "unique sizes of correlations = ", ncorrs
     return(ncorrs)
+
+def getObservationStop(vis):
+    """
+    Read the stop time of the observation and report it in MJD seconds.
+    -Todd Hunter
+    """
+    if (os.path.exists(vis) == False):
+        print "vis does not exist = %s" % (vis)
+        return(2)
+    if (os.path.exists(vis+'/table.dat') == False):
+        print "No table.dat.  This does not appear to be an ms."
+        return
+    mytb = createCasaTool(tbtool)
+    try:
+        mytb.open(vis+'/OBSERVATION')
+    except:
+        print "ERROR: failed to open OBSERVATION table on file "+vis
+        return(3)
+
+    time_range = mytb.getcol('TIME_RANGE')[0]
+    mytb.close()
+    if (type(time_range) == np.ndarray):
+        time_range = time_range[-1]
+    return(time_range)
+
+def getObservationStopDate(vis):
+    """
+    Read the stop time of the observation and reports the date.
+    '2013-01-31 07:36:01 UT'
+    -Todd Hunter
+    """
+    mjdsec = getObservationStop(vis)
+    obsdateString = mjdToUT(mjdsec/86400.)
+    return(obsdateString)
 
 def getObservationStart(vis):
     """
@@ -35117,7 +37210,7 @@ def getObservatoryNameFromASDM(asdm):
     rowlist = xmlscans.getElementsByTagName("row")
     fid = 0
     row = rowlist[0].getElementsByTagName("telescopeName")
-    myName = str(row[0].childNodes[0].nodeValue)
+    myName = str(row[0].childNodes[0].nodeValue).strip(' ')
 #    print "Observatory = ", myName
     return(myName)
 
@@ -35673,7 +37766,7 @@ def buildtarfile(path=os.path.dirname(__file__), outpath='~'):
     cmd = "cd %s ; tar --exclude='CVS' -cvf %s" % (inpath,tarfile)
     files = ['analysisUtils.py','fileIOPython.py','mpfit.py','calDatabaseQuery.py','tmUtils.py',
              'plotbandpass3.py','readscans.py','XmlObjectifier.py','README','AOS_Pads_XYZ_ENU.txt',
-             'au_noASDMLibrary.py','TicraImages']
+             'au_noASDMLibrary.py','TicraImages','compUtils.py']
     for f in files:
         cmd += ' analysis_scripts/%s' % (f)
     print "Running: %s" % (cmd)
@@ -35791,7 +37884,7 @@ def getChanRangeFromFreqRange(vis=None, fieldid=0, spwid=None, minf=None, maxf=N
 
     return rval
 
-def replaceTsysScan(calTable, antenna, spw, pol, fromscan, toscan):
+def replaceTsysScan(calTable, antenna, spw, pol, fromscan, toscan, newvalue=None, verbose=True):
     """
     This is a utility to replace the Tsys spectrum from one combination
     of antenna+spw+pol+scan with the value from a different scan of the same
@@ -35803,16 +37896,20 @@ def replaceTsysScan(calTable, antenna, spw, pol, fromscan, toscan):
         pol: 'X' or 'Y'
         fromscan: integer or string integer
         toscan: integer or string integer
+        newvalue: if specified, put this value into all channels
+                  (in this case, set fromscan=toscan)
+    Returns: the number of rows replaced, and if newvalue is specfied, the
+              median factor by which the values changed
     - Todd Hunter
     """
     fromscan = int(fromscan)
     if (fromscan < 0):
         print "Invalid fromscan number"
         return
+    toscan = int(toscan)
     if (toscan < 0):
         print "Invalid toscan number"
         return
-    toscan = int(toscan)
     try:
         antenna = int(antenna)
         if (antenna < 0):
@@ -35824,7 +37921,7 @@ def replaceTsysScan(calTable, antenna, spw, pol, fromscan, toscan):
     if (type(spw) == list):
         spwsToFix = spw
     else:
-        spwsToFix = [spw] # Original spw ids
+        spwsToFix = [int(spw)] # Original spw ids
     scaleFactor = 1.0
     pols = ['X', 'Y']  # for now, assume this is always true
     if (pol not in pols):
@@ -35848,6 +37945,7 @@ def replaceTsysScan(calTable, antenna, spw, pol, fromscan, toscan):
         tb.close()
         tb.open(calTable,nomodify=False)
 
+    change = []
     for i in range(len(antennas)):
         for spw in spwsToFix:
             if (newCalTable):
@@ -35858,9 +37956,17 @@ def replaceTsysScan(calTable, antenna, spw, pol, fromscan, toscan):
                 colname = 'GAIN'
             if (antennas[i] == antenna and spws[i] == myspw and
                 scans[i] == fromscan):
-                print "Reading from row %d" % (i)
+                if (verbose):
+                    print "Reading from row %d" % (i)
                 gain = tb.getcell(colname,i)
-                fromlist.append(gain[pol] * scaleFactor)
+                if (newvalue == None):
+                    fromlist.append(gain[pol] * scaleFactor)
+                else:
+                    mymedian = np.median(np.ma.masked_array(gain[pol], np.isnan(gain[pol])))
+                    change.append(newvalue / mymedian)
+                    if (verbose):
+                        print change[-1], newvalue, mymedian
+                    fromlist.append(newvalue * (gain[pol]/gain[pol]))
 
     replaced = 0
     for i in range(len(antennas)):
@@ -35873,14 +37979,24 @@ def replaceTsysScan(calTable, antenna, spw, pol, fromscan, toscan):
                 colname = 'GAIN'
             if (antennas[i] == antenna and spws[i] == myspw and
                 scans[i] == toscan):
-                print "Writing to row %d" % (i)
+                if (verbose):
+                    print "Writing to row %d" % (i)
                 gain = tb.getcell(colname,i)
                 gain[pol] = fromlist[replaced]
                 tb.putcell(colname,i,gain)
                 replaced += 1
-                
-    print "Replaced %d rows for antenna %d" % (replaced,antenna)
+    if (verbose):
+        print "Replaced %d rows for antenna=%d, spw=%s, pol=%s, scan=%d" % (replaced,antenna,str(spw),pol,toscan)
+    mymedian = 0
+    if (newvalue != None and replaced>0):
+        mymedian = np.median(np.ma.masked_array(change, np.isnan(change)))
+        if (verbose):
+            print "The median change in value was a factor of %f" % (mymedian)
     tb.close()
+    if (newvalue != None):
+        return(replaced, mymedian)
+    else:
+        return(replaced)
 
 def createCasaTool(mytool):
     """
@@ -35893,28 +38009,57 @@ def createCasaTool(mytool):
         myt = mytool.create()
     return(myt)
 
+def parseSpw(vis, spw):
+    """
+    Parse the antenna argument (integer or string or list) to emulate 
+    plotms selection.
+    vis: name of the measurement set to get the valid spw list from
+    spw: integer or string or list
+    Todd Hunter
+    """
+    mymsmd = createCasaTool(msmdtool)
+    mymsmd.open(vis)
+    uniqueSpws = range(mymsmd.nspw())
+    mymsmd.close()
+    return(parseSpwArgument(spw,  uniqueSpws))
+
 def parseSpwArgument(spw, uniqueSpwsInCalTable):
     """
     Parse the antenna argument (integer or string or list) to emulate 
     plotms selection.
+    spw: integer or string or list
+    uniqueSpwsInCalTable: list or comma-delimited string
     Todd Hunter
     """
+    if (type(uniqueSpwsInCalTable) == str):
+        uniqueSpwsInCalTable = uniqueSpwsInCalTable.split(',')
+    if (spw == ''):
+        return(uniqueSpwsInCalTable)
     if (type(spw) == str):
-        if (spw.find('!')>=0):
-            print "The ! modifier is not (yet) supported"
-            return
         tokens = spw.split(',')
         spwsToPlot = []
+        removeSpw = []
         for token in tokens:
             if (len(token) > 0):
                 if (token.find('*')>=0):
                     spwsToPlot = uniqueSpwsInCalTable
                     break
+                elif (token.find('!')==0):
+                    spwsToPlot = uniqueSpwsInCalTable
+                    removeSpw.append(int(token[1:]))
                 elif (token.find('~')>0):
                     (start,finish) = token.split('~')
                     spwsToPlot +=  range(int(start),int(finish)+1)
                 else:
                     spwsToPlot.append(int(token))
+            spwsToPlot = np.array(spwsToPlot,dtype=int)
+            removeSpw = np.array(removeSpw,dtype=int)
+            for rm in removeSpw:
+                spwsToPlot = spwsToPlot[np.where(spwsToPlot != rm)[0]]
+            spwsToPlot = list(spwsToPlot)
+            if (len(spwsToPlot) < 1 and len(removeSpw)>0):
+                print "Too many negated spws -- there are no spws left."
+                return
     elif (type(spw) == list):
         spwsToPlot = np.sort(spw)
     else:
@@ -35937,14 +38082,52 @@ def parseTimerangeArgument(timerange, vis):
     timerange[1] = dateStringToMJDSec(timerange[1], verbose=False)
     return(timerange)
 
-def parseAntennaArgument(antenna, uniqueAntennaIds, msname=''):
+def parseBasebandArgument(basebands):
+    if (type(basebands) == str):  # '1,2'
+        basebands = [int(i) for i in basebands.split(',')]
+    elif (type(basebands) != list and type(basebands) != np.array):  # 1
+        basebands = [basebands]
+    else:  # ['1','2'] or [1,2]
+        basebands = [int(i) for i in basebands]
+
+    return(basebands)
+
+def parseAntenna(vis, antenna):
+    """
+    Parse an antenna argument (integer or string or list) to emulate 
+    plotms selection, given a measurement set.
+    Returns: an integer list of antenna IDs:
+    antenna='' will return all antenna IDs
+    Todd Hunter
+    """
+    if (casadef.casa_version >= '4.1.0'):
+        mymsmd = createCasaTool(msmdtool)
+        mymsmd.open(vis)
+        if (casadef.subversion_revision >= '27137'):
+            uniqueAntennaIds = mymsmd.antennaids()
+        else:
+            uniqueAntennaIds = range(mymsmd.nantennas())
+        mymsmd.close()
+    else:
+        print "Running ValueMapping to translate antenna names"
+        vm = ValueMapping(vis)
+        uniqueAntennaIds = range(vm.numAntennas)
+    if (antenna == ''):
+        return(uniqueAntennaIds)
+    return(parseAntennaArgument(antenna, uniqueAntennaIds, vis))
+
+def parseAntennaArgument(antenna, uniqueAntennaIds, msname='', verbose=False):
     """
     Parse an antenna argument (integer or string or list) to emulate 
     plotms selection, given a list of unique antenna IDs present in
     the dataset.
+    antenna: can be string, list of integers, or single integer
+    uniqueAntennaIds: list of integers, or comma-delimited string
     Todd Hunter
     """
     myValidCharacterListWithBang = ['~', ',', ' ', '*', '!',] + [str(m) for m in range(10)]
+    if (type(uniqueAntennaIds) == str):
+        uniqueAntennaIds = uniqueAntennaIds.split(',')
     if (type(antenna) == str):
         if (len(antenna) == sum([m in myValidCharacterListWithBang for m in antenna])):
             # a simple list of antenna numbers was given 
@@ -35964,7 +38147,8 @@ def parseAntennaArgument(antenna, uniqueAntennaIds, msname=''):
                         antlist +=  range(int(start),int(finish)+1)
                     else:
                         antlist.append(int(token))
-            antlist = np.array(antlist)
+            antlist = np.array(antlist,dtype=int)
+            removeAntenna = np.array(removeAntenna,dtype=int)
             for rm in removeAntenna:
                 antlist = antlist[np.where(antlist != rm)[0]]
             antlist = list(antlist)
@@ -35973,41 +38157,62 @@ def parseAntennaArgument(antenna, uniqueAntennaIds, msname=''):
                 return
         else:
             # The antenna name (or list of names) was specified
+            if (verbose): print "name specified"
             tokens = antenna.split(',')
             if (msname != ''):
-                print "Running ValueMapping to translate antenna names"
-                vm = ValueMapping(msname)
+                if (casadef.casa_version < '4.1.0'):
+                    print "Running ValueMapping to translate antenna names"
+                    vm = ValueMapping(msname)
+                    uniqueAntennas = vm.uniqueAntennas
+                else:
+                    mymsmd = createCasaTool(msmdtool)
+                    mymsmd.open(msname)
+                    if (casadef.subversion_revision >= '27137'):
+                        uniqueAntennas = mymsmd.antennanames()
+                    else:
+                        uniqueAntennas = getAntennaNames(msname)
                 antlist = []
                 removeAntenna = []
                 for token in tokens:
-                    if (token in vm.uniqueAntennas):
+                    if (token in uniqueAntennas):
                         antlist = list(antlist)  # needed in case preceding antenna had ! modifier
-                        antlist.append(vm.getAntennaIdsForAntennaName(token))
-                    elif (token[0] == '!'):
-                        if (token[1:] in vm.uniqueAntennas):
-                            antlist = uniqueAntennaIds
-                            removeAntenna.append(vm.getAntennaIdsForAntennaName(token[1:]))
+                        if (casadef.casa_version < '4.1.0'):
+                            antlist.append(vm.getAntennaIdsForAntennaName(token))
                         else:
-                            print "Antenna %s is not in the ms. It contains: " % (token), vm.uniqueAntennas
+                            antlist.append(mymsmd.antennaids(token)[0])
+                    elif (token[0] == '!'):
+                        if (token[1:] in uniqueAntennas):
+                            antlist = uniqueAntennaIds
+                            if (casadef.casa_version < '4.1.0'):
+                                removeAntenna.append(vm.getAntennaIdsForAntennaName(token[1:]))
+                            else:
+                                removeAntenna.append(mymsmd.antennaids(token[1:]))
+                        else:
+                            print "Antenna %s is not in the ms. It contains: " % (token), uniqueAntennas
                             return
                     else:
-                        print "Antenna %s is not in the ms. It contains: " % (token), vm.uniqueAntennas
+                        print "Antenna %s is not in the ms. It contains: " % (token), uniqueAntennas
                         return
-                antlist = np.array(antlist)
+                antlist = np.array(antlist,dtype=int)
+                removeAntenna = np.array(removeAntenna,dtype=int)
                 for rm in removeAntenna:
                     antlist = antlist[np.where(antlist != rm)[0]]
                 antlist = list(antlist)
                 if (len(antlist) < 1 and len(removeAntenna)>0):
                     print "Too many negated antennas -- there are no antennas left."
                     return
+                if (casadef.casa_version >= '4.1.0'):
+                    mymsmd.close()
             else:
                 print "Antennas cannot be specified my name if the ms is not found."
                 return
-    elif (type(antenna) == list):
-        # it's a list of integers
-        antlist = antenna
+    elif (type(antenna) == list or type(antenna) == np.ndarray):
+        # it's a list or array of integers
+        if (verbose): print "converting int to list"
+        antlist = list(antenna)
     else:
         # It's a single, integer entry
+        if (verbose): print "converting int to list"
         antlist = [antenna]
     return(antlist)
 
@@ -36476,7 +38681,53 @@ def montageTwoPngLists(pnglist1, pnglist2, pdfname='', sidebyside=True, geometry
                     sidebyside=sidebyside, spacing=spacing, geometry=geometry)
     buildPdfFromPngs(plotfiles,pdfname=pdfname)
     return(pdfname)
-        
+
+def countPagesInPDF(pdf, pdfinfo='pdfinfo'):
+    """
+    Counts the number of pages in a PDF.
+    pdf: the name of the PDF file
+    pdfinfo: the path to the pdfinfo executable
+    -Todd Hunter
+    """
+    if (os.path.exists(pdf) == False):
+        print "Could not find file ", pdf
+        return 0
+    cmd = pdfinfo + ' ' + pdf + '| grep Pages'
+    status, output = commands.getstatusoutput(cmd)
+    pages = output.split()
+    if (len(pages) > 1):
+        return(int(pages[1]))
+    else:
+        return 0
+
+def comparePngs(png1, png2, compare='compare', metric='AE', cleanup=True):
+    """
+    Compares two pngs images using the ImageMagick compare command.
+    Returns 0 if identical, or positive integer if not.
+    compare: the path to the compare command
+    cleanup: if True, remove the difference image even if there are differences
+    """
+    if (os.path.exists(png1) == False):
+        print "Could not find file ", png1
+        return 0
+    if (os.path.exists(png2) == False):
+        print "Could not find file ", png2
+        return 0
+    diffimage = png1.replace('.png','') + '.diff.png'
+    cmd = compare + ' -verbose -metric %s '%(metric) + png1 + ' ' + png2 + ' ' + diffimage
+    status, output = commands.getstatusoutput(cmd)
+    if (output.find('dB') >= 0):
+        dB = int(output.split('dB')[0].split('\n')[-1])
+        if (cleanup or dB==0):
+            os.remove(diffimage)
+        else:
+            print "Wrote image: ", diffimage
+    else:
+        dB = -1
+        print output
+        print "Wrote image: ", diffimage
+    return (dB)
+
 def buildPdfFromPngs(pnglist=[],pdfname='',convert='convert',gs='gs',
                      pdftk='pdftk',maxcount=0,cleanup=True,quiet=False):
     """
@@ -36840,7 +39091,7 @@ def getScansForTime(ft, time):
 def plotTsys(vis='', antenna = '', spw='', xaxis='freq', gs='gs',
              buildpdf=False, interactive=True, overlay='',
              plotrange=[0,0,0,0],pol='', figfile='', renumber=False,
-             replace={}, showatm=False, scan=''):
+             replace={}, showatm=False, scan='', verbose=False, fontsize=12):
     """
     Plot the Tsys from the SYSCAL table of the specified ms.  
     Produce a multi-page pdf.
@@ -36858,6 +39109,7 @@ def plotTsys(vis='', antenna = '', spw='', xaxis='freq', gs='gs',
        replace: provide a dictionary for the renumbering, e.g. {9:0, 11:1, 13:2, 15:3}
        showatm: overlay atmospheric transmission
        scan: limit the result to this single scan
+       verbose: if True, then print median for each spw/antenna
     Consider moving this to class CalTableExplorer someday
     Todd Hunter
     """
@@ -36866,13 +39118,13 @@ def plotTsys(vis='', antenna = '', spw='', xaxis='freq', gs='gs',
     median=plotTcal(vis=vis, antenna=antenna, spw=spw, xaxis=xaxis,t='tsys',gs=gs,
              buildpdf=buildpdf, interactive=interactive,figfile=figfile,
              overlay=overlay, plotrange=plotrange, pol=pol, renumber=renumber,
-             replace=replace, showatm=showatm, scan=scan)
+             replace=replace, showatm=showatm, scan=scan, verbose=verbose, fontsize=fontsize)
     return(median)
 
 def plotTrx(vis='', antenna = '', spw='', xaxis='freq', gs='gs',
             buildpdf=False, interactive=True, overlay='',
             plotrange=[0,0,0,0],pol='',figfile='', renumber=False, replace={},
-            showatm=False, scan=''):
+            showatm=False, scan='', verbose=False, fontsize=12):
     """
     Plot the Trx from the SYSCAL table of the specified ms.  
     Produce a multi-page pdf.
@@ -36890,6 +39142,7 @@ def plotTrx(vis='', antenna = '', spw='', xaxis='freq', gs='gs',
        replace: provide a dictionary for the renumbering, e.g. {9:0, 11:1, 13:2, 15:3}
        showatm: overlay atmospheric transmission
        scan: limit the result to this single scan
+       verbose: if True, then print median for each spw/antenna
     Consider moving this to class CalTableExplorer someday
     Todd Hunter
     """
@@ -36898,13 +39151,13 @@ def plotTrx(vis='', antenna = '', spw='', xaxis='freq', gs='gs',
     median=plotTcal(vis=vis, antenna=antenna, spw=spw, xaxis=xaxis,t='trx',gs=gs,
              buildpdf=buildpdf, interactive=interactive,figfile=figfile,
              overlay=overlay, plotrange=plotrange, pol=pol, renumber=renumber,
-             replace=replace, showatm=showatm, scan=scan)
+             replace=replace, showatm=showatm, scan=scan, verbose=verbose, fontsize=fontsize)
     return(median)
 
 def plotTsky(vis='', antenna = '', spw='', xaxis='freq', gs='gs',
              buildpdf=False, interactive=True, overlay='',
              plotrange=[0,0,0,0],pol='',figfile='',renumber=False, replace={},
-             showatm=False, scan=''):
+             showatm=False, scan='', verbose=False, fontsize=12):
     """
     Plot the Tsky from the SYSCAL table of the specified ms.  
     Produce a multi-page pdf.
@@ -36922,6 +39175,7 @@ def plotTsky(vis='', antenna = '', spw='', xaxis='freq', gs='gs',
        replace: provide a dictionary for the renumbering, e.g. {9:0, 11:1, 13:2, 15:3}
        showatm: overlay atmospheric transmission
        scan: limit the result to this single scan
+       verbose: if True, then print median for each spw/antenna
     Consider moving this to class CalTableExplorer someday
     Todd Hunter
     """
@@ -36930,13 +39184,97 @@ def plotTsky(vis='', antenna = '', spw='', xaxis='freq', gs='gs',
     median=plotTcal(vis=vis, antenna=antenna, spw=spw, xaxis=xaxis,t='tsky',gs=gs,
              buildpdf=buildpdf, interactive=interactive, figfile=figfile,
              overlay=overlay,plotrange=plotrange,pol=pol, renumber=renumber,
-             replace=replace, showatm=showatm, scan=scan)
+             replace=replace, showatm=showatm, scan=scan, verbose=verbose, fontsize=fontsize)
     return(median)
+
+def plotspws(vis, intents=['*ATMOS*', '*PHASE*', '*BANDPASS*', '*TARGET*'], tsystable='', plotfile=''):
+    """
+    Makes a plot summarizing the location of ALMA spws in a dataset.
+    -Todd Hunter
+    """
+    from recipes.almahelpers import tsysspwmap
+    mymsmd = createCasaTool(msmdtool)
+    mymsmd.open(vis)
+    almaspws = mymsmd.almaspws(tdm=True,fdm=True)
+    sciencespws = []
+    for intent in intents:
+        intentspws = mymsmd.spwsforintent(intent)
+        spws = np.intersect1d(intentspws,almaspws)
+        if (intent.find('TARGET')>=0):
+            sciencespws = spws
+    pb.clf()
+    pb.subplot(211)
+    pb.title('USB')
+    pb.ylabel('Spw')
+    pb.hold(True)
+    if (tsystable == ''):
+        tsystable = os.path.dirname(vis)+'/'+os.path.basename(vis)+'.tsys'
+    sciencetsys = []
+    if (os.path.exists(tsystable) and len(sciencespws) > 0):
+        try:
+            tsysmap = tsysspwmap(vis, tsystable)
+            print "Science spws: ", sciencespws
+            tsysmapstring = 'Tsys spw map: '
+            for spw in sciencespws:
+                tsysmapstring += '%d: %d,  ' % (spw,tsysmap[spw])
+            print tsysmapstring
+            sciencetsys = np.array(tsysmap)[sciencespws]
+        except:
+            tsysmap = []
+    else:
+        print "Could not open tsystable = ", tsystable
+        tsysmap = []
+    pb.subplot(212)
+    pb.xlabel('Frequency (GHz)')
+    pb.ylabel('Spw')
+    pb.title('LSB')
+    mysize = 7
+    for intent in intents:
+        print "Working on intent = ", intent
+        intentspws = mymsmd.spwsforintent(intent)
+        spws = np.intersect1d(intentspws,almaspws)
+        for spw in spws:
+            print "Working on spw = ", spw
+            freqs = mymsmd.chanfreqs(spw) * 1e-9
+            sideband = mymsmd.sideband(spw)
+            if (sideband == -1):
+                adesc = pb.subplot(211)
+            else:
+                bdesc = pb.subplot(212)
+            idx = np.where(tsysmap == spw)
+            color = 'k-'
+            if (spw in sciencetsys):
+                color = 'r' # color the Tsys windows chosen for science spws
+            pb.plot([np.min(freqs), np.max(freqs)], [spw,spw], color)
+            allintents = mymsmd.intentsforspw(spw)
+            titleString = ''
+            for allintent in allintents:
+                for myintent in intents:
+                    if (allintent.find(myintent.replace('*','')) >= 0):
+                        if (titleString.find(myintent.replace('*','')) < 0):
+                            titleString += myintent.replace('*','') + ','
+            titleString.rstrip(',')
+            pb.text(np.mean(freqs), spw+0.1, ' BB%d: %s'%(mymsmd.baseband(spw),titleString), size=mysize)
+    mymsmd.close()
+    pb.subplot(211)
+    pb.ylim([pb.ylim()[0], pb.ylim()[1]+1])
+    pb.subplot(212)
+    pb.ylim([pb.ylim()[0], pb.ylim()[1]+1])
+    adesc.yaxis.set_major_locator(MultipleLocator(2))
+    bdesc.yaxis.set_major_locator(MultipleLocator(2))
+    resizeFonts(adesc,mysize)
+    resizeFonts(bdesc,mysize)
+    pb.draw()
+    if (plotfile != ''):
+        if (plotfile == True):
+            plotfile = os.path.basename(vis.rstrip('/') + '.plotspws.png')
+        pb.savefig(plotfile)
+        print "Saved plot in ", plotfile
 
 def plotTcal(vis='', antenna = '', spw='', xaxis='freq', t='tsys', gs='gs',
              buildpdf=False, interactive=True, overlay='',
              plotrange=[0,0,0,0],pol='', figfile='', renumber=False, replace={},
-             showatm=False, scan=''):
+             showatm=False, scan='',verbose=False, fontsize=12):
     """
     Plot either the Tsys, Trx or Tsky from the SYSCAL table of the specified
     ms.  Can produce a multi-page pdf.
@@ -36954,7 +39292,8 @@ def plotTcal(vis='', antenna = '', spw='', xaxis='freq', t='tsys', gs='gs',
        renumber: renumbers the spws to start at 0, in the original order (9,11,13,15-->0,1,2,3)
        replace: provide a dictionary for the renumbering, e.g. {9:0, 11:1, 13:2, 15:3}
        showatm: overlay atmospheric transmission
-       scan: limit the results to a single scan 
+       scan: limit the results to a single scan
+       verbose: if True, then print median for each spw/antenna
     Consider moving this to class CalTableExplorer someday
     Todd Hunter
     """
@@ -36984,17 +39323,8 @@ def plotTcal(vis='', antenna = '', spw='', xaxis='freq', t='tsys', gs='gs',
         else:
             print "pol must be X or Y or '' or 0 or 1"
             return
-    if (type(antenna) == str):
-        if (len(antenna) > 0):
-            if (antenna.isdigit()==False):
-                antennaName = antenna
-                antenna = getAntennaIndex(vis, antennaName)
-                if (antenna < 0): return
-            else:
-                antenna = int(antenna)
-                antennaName = getAntennaName(vis, antenna)
-    else:
-        antennaName = getAntennaName(vis, antenna)
+    antenna = parseAntenna(vis,antenna)
+    print "Antennas to show = ", np.unique(antenna)
     if (casadef.casa_version >= '4.1.0'):
         mymsmd = createCasaTool(msmdtool)
         mymsmd.open(vis)
@@ -37009,7 +39339,7 @@ def plotTcal(vis='', antenna = '', spw='', xaxis='freq', t='tsys', gs='gs',
     if (len(antennas) < 1):
         print "The SYSCAL table is blank"
         return
-    print "Antennas = ", np.unique(antennas)
+    print "Antennas in data = ", np.unique(antennas)
     spws = tb.getcol('SPECTRAL_WINDOW_ID')
     if (renumber):
         if (replace == {}):
@@ -37032,10 +39362,10 @@ def plotTcal(vis='', antenna = '', spw='', xaxis='freq', t='tsys', gs='gs',
         print "Matching times to scans..."
         for i in range(len(times)):
             tol = 0
-            myscans = mymsmd.scansfortimes(times[i],tol=tol)
+            myscans = mymsmd.scansfortimes(times[i]+30,tol=tol)
             while (len(myscans) < 1):
                 tol += 1
-                myscans = mymsmd.scansfortimes(times[i],tol=tol)
+                myscans = mymsmd.scansfortimes(times[i]+30,tol=tol)
             scans.append(myscans[0])
         print "scans = ", np.unique(scans)
     pdfs = ''
@@ -37078,14 +39408,15 @@ def plotTcal(vis='', antenna = '', spw='', xaxis='freq', t='tsys', gs='gs',
       ctr = 0
       for i in range(len(antennas)):
           if (spws[i] == spw):
-              if (antenna == '' or antennas[i] == antenna):
+              if (antennas[i] in antenna):
                   ctr += 1
               
+      shownAtm = False
       for i in range(len(antennas)):
         if (antennas[0] == antennas[i]):
             colorctr = 0
         if (spws[i] == spw):
-          if (antenna == '' or antennas[i] == antenna):
+          if (antennas[i] in antenna):
             if (scan != ''):
                 scan = int(scan)
                 if (scan != scans[i]): continue
@@ -37122,13 +39453,15 @@ def plotTcal(vis='', antenna = '', spw='', xaxis='freq', t='tsys', gs='gs',
                             newIncrement =  (freq[-1]-freq[0])/(len(tsys[j])-1.0)
                             freq = np.mgrid[freq[0]:(freq[-1]+newIncrement):newIncrement]
                         pb.plot(freq,tsys[j],'-', color=mycolor, ls=lines[j])
-                        if (casadef.casa_version >= '4.1.0'):
-                            print "Scan %2d: Median for pol%d = %f" % (scans[i], j,np.median(tsys[j]))
-                        else:
-                            print "Median for pol%d = %f" % (j,np.median(tsys[j]))
+                        if (verbose):
+                            if (casadef.casa_version >= '4.1.0'):
+                                print "Scan %2d, spw %2d, ant %2d=%s: Median for pol%d = %f" % (scans[i], spws[i], antennas[i], antennaNames[antennas[i]], j, np.median(tsys[j]))
+                            else:
+                                print "Median for pol%d = %f" % (j,np.median(tsys[j]))
                     pb.hold(True)
-                pb.xlabel('Frequency (GHz)', size=12)
-                if (showatm):
+                pb.xlabel('Frequency (GHz)', size=fontsize)
+                if (showatm==True and (overlay=='' or not shownAtm)):
+                    shownAtm = True
                     pwv, pwvstd = getMedianPWV(vis)
                     P=563
                     H=20
@@ -37159,6 +39492,9 @@ def plotTcal(vis='', antenna = '', spw='', xaxis='freq', t='tsys', gs='gs',
                         myString = "median PWV = %.2f mm" % (pwv)
                         
                     pb.text(0.1,0.95,myString, transform=pb.gca().transAxes,color='m')
+                else:
+                    pass
+#                   print "showatm=%s, i=%d" % (showatm,i)
             else:
                 chan = range(len(freq))
                 for j in range(len(tsys)):
@@ -37173,14 +39509,15 @@ def plotTcal(vis='', antenna = '', spw='', xaxis='freq', t='tsys', gs='gs',
                 pb.hold(False)
             yFormat = matplotlib.ticker.ScalarFormatter(useOffset=False)
             adesc.yaxis.set_major_formatter(yFormat)
-            pb.ylabel(ylab,size=12)
+            pb.ylabel(ylab,size=fontsize)
             adesc.xaxis.grid(True,which='major')
             adesc.yaxis.grid(True,which='major')
             (mjd, utstring) = mjdSecondsToMJDandUT(times[i])
             if (plotrange[0] != 0 or plotrange[1] != 0):
                 pb.xlim([plotrange[0],plotrange[1]])
-            if (plotrange[2] != 0 or plotrange[3] != 0):
-                pb.ylim([plotrange[2],plotrange[3]])
+            if (len(plotrange) > 2):
+                if (plotrange[2] != 0 or plotrange[3] != 0):
+                    pb.ylim([plotrange[2],plotrange[3]])
                 
             if (casadef.casa_version >= '4.1.0'):
                 scanString = 'scan %d' % (myscans[0])
@@ -37206,7 +39543,8 @@ def plotTcal(vis='', antenna = '', spw='', xaxis='freq', t='tsys', gs='gs',
                 png = figfile
             if (os.access('.',os.W_OK) == False):
                 png = '/tmp/'+png
-            if (overlay==''):
+            if (overlay=='' or i==len(antennas)-1):
+                resizeFonts(adesc,fontsize)
                 if (figfile != ''):
                     print "Saving figure in %s" % (png)
                     pb.savefig(png)
@@ -37215,7 +39553,7 @@ def plotTcal(vis='', antenna = '', spw='', xaxis='freq', t='tsys', gs='gs',
                     pdfs += png + '.pdf '
                 if (interactive):
                     pb.draw()
-                    if (ctr > 1):
+                    if (ctr > 1 and i<len(antennas)-1):
                         myinput = raw_input("Press return for next page (q to quit): ")
                         if (myinput == 'q'):
                             break
@@ -38516,14 +40854,15 @@ def findChannelRanges(filename='', threshold=0.0, minwidth=1, startchan=0,
         print "Figured saved to %s" % (figfile)
     return(goodstring[1:-1],badstring[1:-1])
 
-def makeSimulatedImage(phasecenter ='J2000 16h25m46.98000s -25d27m38.3300s',
-              sourcecenter='J2000 16h25m46.891639s -25d27m38.326880s',
-              flux=1.0, freq=690, field='', pointingspacing=2.0,
-              configuration='alma.out10.cfg', bandwidth='1GHz', niter=100,
-              imsize=256, mapsize='', integration='10min',
-              totaltime='200min', cellsize='auto', threshold='10mJy/beam',
-              shape='point', majoraxis=0, minoraxis=0, positionangle=0,
-              refdate='2012/05/21', hourangle='transit', componentList=None
+def makeSimulatedImage(phasecenter='J2000 16h25m46.98000s -25d27m38.3300s',
+                       sourcecenter='',
+                       flux=1.0, freq=100, field='', pointingspacing=2.0,
+                       configuration='alma.out10.cfg', bandwidth='1GHz', niter=100,
+                       imsize=256, mapsize='', integration='10min',
+                       totaltime='200min', cellsize='auto', threshold='10mJy/beam',
+                       shape='point', majoraxis=0, minoraxis=0, positionangle=0,
+                       refdate='2012/05/21', hourangle='transit', componentList=None,
+                       writefits=False
               ):
     """
     Create a simulated ALMA image of a point source or uniform disk at a 
@@ -38550,6 +40889,7 @@ def makeSimulatedImage(phasecenter ='J2000 16h25m46.98000s -25d27m38.3300s',
     refdate:  'YYYY/MM/DD'
     hourangle: 'transit' or '-3h'
     componentList: use the componentList instead of phasecenter, shape & size
+    writefits: if True, then run exportfits to create a FITS image
     
     --Todd Hunter
     """
@@ -38558,6 +40898,8 @@ def makeSimulatedImage(phasecenter ='J2000 16h25m46.98000s -25d27m38.3300s',
         project = field
     else:
         project = field + '.makeimage'
+    phasecenter = phasecenter.replace(',',' ')
+    sourcecenter = sourcecenter.replace(',',' ')
     if (phasecenter.find(',') > 0):
         print "phasecenter must not have a comma"
         return
@@ -38594,9 +40936,8 @@ def makeSimulatedImage(phasecenter ='J2000 16h25m46.98000s -25d27m38.3300s',
         refdir = cl.getrefdir(0)
         cl.close()
         phasecenter = direction2radecForSimobserve(refdir)
-    version = casalog.version().split()[2]
     if (cellsize == 'auto'):
-        cellsize = 25.0/freq
+        cellsize = 25.0/freq  #0.25 arcsec at 100GHz * 256 = 64arcsec
     else:
         if (type(cellsize) == str):
             print "Cellsize must be 'auto' or a floating point value"
@@ -38606,29 +40947,40 @@ def makeSimulatedImage(phasecenter ='J2000 16h25m46.98000s -25d27m38.3300s',
     if (config.find('.cfg')>0):
         config = config[0:-4]
     imagename = '%s/%s.%s' % (project,project,config)
-    if (version == '3.3.0'):
-        halfpower = 0.4
+    if (casadef.casa_version <= '3.3.0'):
+        halfpower = 0.4  # 12m Airy pattern is too narrow, so go further out
         simobserve(project=project,complist=componentList,
-               antennalist=configuration, totaltime=totaltime,
-               mapsize=[mapsize,mapsize],graphics=graphics,
-               compwidth=bandwidth,overwrite=True,
-               direction=phasecenter, integration=integration,
-               pointingspacing='%.2fPB'%pointingspacing,
-               setpointings=True, hourangle=hourangle, refdate=refdate)
+                   antennalist=configuration, totaltime=totaltime,
+                   mapsize=[mapsize,mapsize],graphics=graphics,
+                   compwidth=bandwidth,overwrite=True,
+                   direction=phasecenter, integration=integration,
+                   pointingspacing='%.2fPB'%(pointingspacing),
+                   setpointings=True, hourangle=hourangle, refdate=refdate)
     else:
-        halfpower = 0.5
+        halfpower = 0.5 # 10.7m Airy pattern is now used in CASA for ALMA
         simobserve(project=project,complist=componentList,
-               antennalist=configuration, totaltime=totaltime,
-               mapsize=[mapsize,mapsize],graphics=graphics,
-               obsmode="int", compwidth=bandwidth,overwrite=True,
-               direction=phasecenter, integration=integration,
-               pointingspacing='%.2fPB'%pointingspacing,
-               setpointings=True, hourangle=hourangle, refdate=refdate)
+                   antennalist=configuration, totaltime=totaltime,
+                   mapsize=[mapsize,mapsize],graphics=graphics,
+                   obsmode="int", compwidth=bandwidth,overwrite=True,
+                   direction=phasecenter, integration=integration,
+                   pointingspacing='%.2fPB'%(pointingspacing),
+                   setpointings=True, hourangle=hourangle, refdate=refdate)
     vis = '%s.%s.ms'%(project,config)
+    if (os.path.exists(project+'/'+vis+'.listobs')):
+        os.remove(project+'/'+vis+'.listobs')
+    print "Running listobs(vis='%s/%s', listfile='%s/%s.listobs')" % (project,vis,project,vis)
+    listobs(vis=project+'/'+vis, listfile=project+'/'+vis+'.listobs')
+    print "Running simanalyze(project='%s',vis='%s',imsize=[%d,%d], imdirection='%s', cell='%.2farcsec',niter=%d,overwrite=True,analyze=False,threshold='%s',graphics='%s')" % (project,vis,imsize,imsize,phasecenter,cellsize,niter,threshold,graphics)
     simanalyze(project=project, vis=vis,
                imsize=[imsize,imsize], imdirection=phasecenter,
                cell='%.2farcsec'%(cellsize), niter=niter,overwrite=True,
                analyze=False, threshold=threshold,graphics=graphics)
+    if (writefits):
+        print "Calling exportfits('%s','%s',overwrite=True)" % (imagename+'.image', imagename+'.image.fits')
+        exportfits(imagename+'.image', imagename+'.image.fits',overwrite=True)
+        print "Calling exportfits('%s','%s',overwrite=True)" % (imagename+'.psf', imagename+'.psf.fits')
+        exportfits(imagename+'.psf', imagename+'.psf.fits',overwrite=True)
+        
     imview(raster={'file':'%s.image' % (imagename), 'colorwedge':True},
            out='%s.image.png' % (imagename)
 #          , contour={'file':'%s.flux.pbcoverage' % (imagename),
@@ -38641,6 +40993,8 @@ def makeSimulatedImage(phasecenter ='J2000 16h25m46.98000s -25d27m38.3300s',
            )
     print "Visibility data left in: %s/%s" % (project,vis)
     print "Images left in: %s.image and %s.psf" % (imagename,imagename)
+    if exportfits:
+        print "FITS Images left in: %s.image.fits and %s.psf.fits" % (imagename,imagename)
     print "Pngs left in: %s.image.png and %s.psf.png" % (imagename,imagename)
 
 def ds9regionToList(region):
@@ -38729,7 +41083,7 @@ def ispec(image, outfile=None, region='', sep=' ', format='%e',
     myrg.done()
     return(np.array(freqHz), pixels[0,0,0])
 
-def findRADec(image, radec='',round=False):
+def findRADec(image, radec='',round=False, getvalue=False, beam=None):
     """
     Takes an image and converts an RA/Dec into a pixel coordinate. It
     is the opposite of findPixel.
@@ -38738,6 +41092,9 @@ def findRADec(image, radec='',round=False):
            the Dec string can be either colon or period-delimited
            the RA string must be colon-delimited
     round: round the result to the nearest integral pixel
+    getvalue: if True, the return the pixel value here (see also au.ispec for cubes)
+    beam: if not None, then interpret this as the FWHM beam in arcsec, assume the
+          image is in MJy/sr, and compute the Jy for this pixel
     - Todd Hunter
     """
     if (os.path.exists(image) == False):
@@ -38786,6 +41143,16 @@ def findRADec(image, radec='',round=False):
     if (len(ypix) < 1):
         print "Dec Coordinate is not within the image"
         return
+    if (getvalue):
+        myrg = createCasaTool(rgtool)
+        blc = [int(np.round(xpix[0])), int(np.round(ypix[0]))]
+        region = myrg.box(blc=blc, trc=blc)
+        pixels = myia.getregion(region=region)
+        print "Pixel value = ", pixels[0][0]
+        if (beam != None):
+            jansky = pixels[0][0]*1e6*np.pi*0.25*(beam/206264.8)**2/np.log(2)
+            print "Assuming MJy/sr, the flux density is %f Jy" % (jansky)
+        myrg.done()
     myia.close()
     if (round):
         return([int(np.round(xpix[0])),int(np.round(ypix[0]))])
@@ -38794,7 +41161,7 @@ def findRADec(image, radec='',round=False):
 
 
 def findPixel(image, pixelfile='', pixel='', referencePosition=None, 
-              precision=2, outputfile=None):
+              precision=2, outputfile=None, getvalue=False, beam=None):
     """
     Takes an image and converts a pixel, or list of pixels read from a file into a list
     of RA,Decs, and (optionally) the separation from a reference position in arcseconds.
@@ -38806,6 +41173,9 @@ def findPixel(image, pixelfile='', pixel='', referencePosition=None,
     Pixels can be integers or floating point values.
     Ignores lines with '#' as the first character, and lines lacking a comma.
     Reference Position should be [RA,Dec] in degrees.
+    getvalue: if True, the return the pixel value here (see also au.ispec for cubes)
+    beam: if not None, then interpret this as the FWHM beam in arcsec, assume the
+          image is in MJy/sr, and compute the Jy for this pixel
     - Todd Hunter
     """
     if (os.path.exists(image) == False):
@@ -38882,6 +41252,16 @@ def findPixel(image, pixelfile='', pixel='', referencePosition=None,
     if (pixel == ''):
         outfile.close()
         print "Output file = ", outputfile
+    if (getvalue):
+        myrg = createCasaTool(rgtool)
+        blc = [int(pixel.split(',')[0]), int(pixel.split(',')[1])]
+        region = myrg.box(blc=blc, trc=blc)
+        pixels = myia.getregion(region=region)
+        print "Pixel value = ", pixels[0][0]
+        if (beam != None):
+            jansky = pixels[0][0]*1e6*np.pi*0.25*(beam/206264.8)**2/np.log(2)
+            print "Assuming MJy/sr, the flux density is %f Jy" % (jansky)
+        myrg.done()
     myia.close()
         
 def antposcorrmm(parameter=[], antenna='', sort=''):
@@ -39125,8 +41505,11 @@ def sensitivity(freq, bandwidth, etime, elevation=None, pwv=None,
     if (pwv==None and mode != 'tsys-manual'):
         print "You need to specify a PWV."
         return
+    if (antennalist == None):
+        print "For antennalist, you need to specify 'alma' or a configuration file, like alma.cycle1.1 or sma.compact"
+        return
     if (antennalist.lower() == 'alma' and tsys_only == False):
-        print "antennalist='%s' is only supported if tsys_only=True" % (antennalist)
+        print "antennalist='alma' is only supported if tsys_only=True"
         print "Otherwise, give a real configuration file, like alma.cycle1.1"
         return
     if (elevation==None and airmass==None):
@@ -39312,27 +41695,35 @@ def plotAtmosphere(frequency=[0,1000],pwv=None,bandwidth=None,telescope='ALMA',
                    temperature=None, altitude=None, latitudeClass=None,
                    pressure=None, humidity=None, numchan=1000, airmass=1.0,
                    elevation=0, figfile='', plotrange=None, 
-                   quantity='transmission', h0=None,
-                   drawRectangles=[], drawVerticalBars = []):
+                   quantity='transmissionPercent', h0=None,
+                   drawRectangles=[], drawVerticalBars = [], overlay=False,
+                   fontsize=12, showgrid=False, linewidth=[1,1,1],
+                   color=['b','b','b'], linestyle=['-','--',':']):
     """
     Simple plotter of atmospheric transmission. The units for input are:
     frequency in GHz (either a single value, or a tuple for the range)
-    pwv in mm
-    bandwidth in GHz (only used if frequency is a single value)
-    temperature in K
-    altitude in m
-    latitudeClass ('tropical', 'midLatitudeWinter'(default), or 'midLatitudeSummer')
-    pressure in mbar
-    humidity in percentage
-    elevation in degrees
-    plotrange (for y axis)
-    telescope (if not '', then apply nominal values for 'ALMA' or 'EVLA')
-    quantity ('transmission', 'opacity', or 'tsky')
+    pwv: in mm
+    bandwidth: in GHz (only used if frequency is a single value)
+    temperature: in K
+    altitude: in m
+    latitudeClass: 'tropical', 'midLatitudeWinter'(default), or 'midLatitudeSummer'
+    pressure: in mbar
+    humidity: in percentage
+    elevation: in degrees
+    plotrange: for y axis, e.g. [0,100]
+    telescope: if not '', then apply nominal values for 'ALMA' or 'EVLA'
+    quantity: 'transmission', 'transmissionPercent', 'opacity', or 'tsky'
     h0 (scale height of H2O in km)
     drawRectangles ([[x0,x1],[x2,x3],...])
     drawVerticalBars ([x0,x1,...])
-    Note: uses the global constants: h and k
-    Todd Hunter
+    overlay: if True, the show wet component, dry component and their sum (transmission or opacity only)
+    fontsize: of tick labels and axis labels
+    showgrid: if True, show dotted lines on major ticks
+    linewidth: list of linewidths for each component: [sum, dry, wet]
+    colors: list of pylab colors for each component 
+    linestyle: list of pylab linestyles for each component
+    Note: uses the global physical constants: h and k
+    --Todd Hunter
     """
     if (elevation > 0):
         airmass = 1/np.sin(elevation*np.pi/180.)
@@ -39437,44 +41828,69 @@ def plotAtmosphere(frequency=[0,1000],pwv=None,bandwidth=None,telescope='ALMA',
     at.initSpectralWindow(nbands,fCenter,fWidth,fResolution)
     at.setUserWH2O(create_casa_quantity(myqa,pwv,'mm'))
     dry, wet, TebbSky, rf, cs = getAtmDetails(at)
+    if (overlay):
+        dryOpacity = airmass*dry
+        wetOpacity = airmass*wet
+        dryTransmission = np.exp(-dryOpacity)
+        wetTransmission = np.exp(-wetOpacity)
+        if (quantity == 'transmissionPercent'):
+            wetTransmission *= 100
+            dryTransmission *= 100
     opacity = airmass*(wet+dry)
     transmission = np.exp(-opacity)
+    if (quantity == 'transmissionPercent'):
+        transmission *= 100
     TebbSky *= (1-np.exp(-airmass*(wet+dry)))/(1-np.exp(-wet-dry))
     pb.clf()
     desc = pb.subplot(111)
+    if (type(linewidth) != list):
+        linewidth = [linewidth]
+    if (type(color) != list):
+        color = [color]
     if (quantity == 'opacity'):
         if (numchan > 1):
-            pb.plot(freqs, opacity)
+            pb.plot(freqs, opacity, ls=linestyle[0], lw=linewidth[0], color=color[0])
+            if (overlay):
+                pb.hold(True)
+                pb.plot(freqs, dryOpacity, ls=linestyle[1], lw=linewidth[1], color=color[1])
+                pb.plot(freqs, wetOpacity, ls=linestyle[2], lw=linewidth[2], color=color[2])
         else:
             pb.plot(freqs, opacity, 'bo')
-        pb.ylabel('Opacity')
+        pb.ylabel('Opacity', size=fontsize)
         if (plotrange != None):
             pb.ylim(plotrange) 
-        else:
-            pb.plot(freqs, opacity, 'bo')
-    elif (quantity == 'transmission'):
+    elif (quantity.find('transmission') >= 0):
         if (numchan > 1):
-            pb.plot(freqs, transmission)
+            pb.plot(freqs, transmission, ls=linestyle[0], lw=linewidth[0], color=color[0])
+            if (overlay):
+                pb.hold(True)
+                pb.plot(freqs, dryTransmission, ls=linestyle[1], lw=linewidth[1], color=color[1])
+                pb.plot(freqs, wetTransmission, ls=linestyle[2], lw=linewidth[2], color=color[2])
         else:
             pb.plot(freqs, transmission, 'bo')
-        pb.ylabel('Transmission')
+        pb.ylabel('Transmission', size=fontsize)
         if (plotrange == None):
-            plotrange = [0,1]
+            if (quantity == 'transmissionPercent'):
+                plotrange = [0,105]
+            else:
+                plotrange = [0,1.05]
         pb.ylim(plotrange)
     elif (quantity == 'tsky'):
         if (numchan > 1):
             pb.plot(freqs, TebbSky)
         else:
             pb.plot(freqs, TebbSky, 'bo')
-        pb.ylabel('Sky temperature (K)')
+        pb.ylabel('Sky temperature (K)', size=fontsize)
         if (plotrange != None):
             pb.ylim(plotrange)
     else:
         print "Unrecognized quantity: %s" % (quantity)
         return
-    pb.xlabel('Frequency (GHz)')
-    desc.xaxis.grid(True,which='major')
-    desc.yaxis.grid(True,which='major')
+    pb.xlabel('Frequency (GHz)', size=fontsize)
+    resizeFonts(desc, fontsize)
+    if (showgrid):
+        desc.xaxis.grid(True,which='major')
+        desc.yaxis.grid(True,which='major')
     title = ''
     y0,y1 = pb.ylim()
     gca = pb.gca()
@@ -39671,8 +42087,10 @@ def overlayCuts(img1, img2, img3=None, row1=None, row2=None, row3=None,
     if (os.path.exists(img1) == False):
         ticraDir = os.path.dirname(__file__) + '/TicraImages/'
         if (os.path.exists(ticraDir+img1) == False):
-            print "First image = %s does not exist" % (img1)
-            return
+            ticraDir = os.getenv("CASAPATH").split()[0]+"/data/alma/responses/"
+            if (not os.path.exists(ticraDir+img1)):
+                print "First image = %s does not exist" % (img1)
+                return
         img1 = ticraDir + img1
     if (os.path.exists(img2) == False):
         holoDir = '/lustre/naasc/thunter/alma/SD/holography/'
@@ -40280,6 +42698,116 @@ def extractCutFromImage(myimage, row=None, column=None, stokes='XX', channel=0,
         return(myxaxis,myfunction,row,column,imgfreq)
     else:
         return(xaxis,cut,row,column,imgfreq)
+
+def numberOfChannelsInCube(img):
+    """
+    Finds the number of channels in a CASA image cube.
+    -Todd Hunter
+    """
+    header = imhead(img,mode='list')
+    nchan = 1
+    for axis in range(3,5):
+        if ('ctype'+str(axis) in header.keys()):
+            if (header['ctype'+str(axis)] in ['Frequency','Velocity']):
+                nchan = header['shape'][axis-1]
+                break
+    return(nchan)
+    
+def imstatCube(img, box, startchan=None, maxwidth=None, minwidth=2, 
+               plotfile='', mJy=True, plotrange=[0,0,0,0], mark11=None):
+    """
+    This function uses the CASA imstat task to compute the rms and standard deviation
+    of chunks of a CASA image cube, and plots the result vs. the width of the chunk (in
+    channel space).
+    img: CASA image cube to analyze
+    box: 'x0,y0,x1,y1'
+    startchan: center of range of channels to analyze
+    minwidth: narrowest group of channels to analyze
+    maxwidth: widest group of channels to analyze
+    mjy: if True, then scale the statistical values up by 1000 (from Jy/beam to mJy/beam)
+    -Todd Hunter
+    """
+    if (mJy): 
+        scale = 1000
+    else: 
+        scale = 1
+    if (type(img) == list):
+        nimages = len(img)
+    else:
+        nimages = 1
+        img = [img]
+    nrows = int(np.sqrt(nimages))
+    ncols = nimages/nrows
+    pb.clf()
+    for i,myimg in enumerate(img):
+        if (not os.path.exists(myimg)): 
+            print "Could not find image = ", myimg
+            return
+        nchan = numberOfChannelsInCube(myimg)
+        if startchan == None:
+            startchan = nchan/2
+        if maxwidth == None:
+            maxwidth = nchan-1
+        sigmas = []
+        rmss = []
+        for chan in range(minwidth,maxwidth+1,minwidth):
+            ch = startchan-maxwidth/2+chan
+            chans = '%d~%d' % (ch,ch+minwidth-1)
+            center = imstat(myimg, box=box, chans=chans)
+            sigmas.append(center['sigma']*scale)
+            rmss.append(center['rms']*scale)
+        # Take the median of all the single-channel measurements
+        minwidthSigmaMean = np.mean(sigmas)
+        minwidthRmsMean = np.mean(rmss)
+        minwidthRmsMax = np.max(rmss)
+        minwidthRmsMin = np.min(rmss)
+        minwidthSigmaMedian = np.median(sigmas)
+        minwidthRmsMedian = np.median(rmss)
+        sigmas = []
+        rmss = []
+        channels = np.arange(minwidth,maxwidth+1,minwidth)
+        for chan in channels:
+            chans = '%d~%d' % (startchan-chan/2, startchan-chan/2+chan-1)
+            center = imstat(myimg, box=box, chans=chans)
+            sigmas.append(center['sigma']*scale)
+            rmss.append(center['rms']*scale)
+        desc = pb.subplot(nrows,ncols,i+1)
+        pb.plot(channels, sigmas, 'k.-', channels, rmss, 'b.-',
+                [minwidth], [minwidthSigmaMean], 'ko',
+                [minwidth], [minwidthRmsMean], 'bo',
+                [minwidth,minwidth], [minwidthRmsMin,minwidthRmsMax], 'b-')
+        pb.hold(True)
+        pb.plot([minwidth], [minwidthSigmaMedian], 'ko', mfc='w')
+        pb.plot([minwidth], [minwidthRmsMedian], 'bo', mfc='w')
+        if (nrows == 1 or i >= ncols):
+            pb.xlabel('Number of channels')
+        if (i%ncols == 0):
+            pb.ylabel('Statistic')
+        pb.title(os.path.basename(myimg), size=12-nrows)
+        pb.text(0.1, 0.93, 'blue=rms, black=sigma (standard deviation)', 
+                transform=desc.transAxes, size=12-nrows)
+        if (mark11 != None):
+            if (i==0):
+                pb.plot([1],[mark11],'b+')
+                meanRms11 = minwidthRmsMean
+            else:
+                pb.text(0.1,0.2,'MeanRms/Mark(panel_1) = %.2f'%(minwidthRmsMean/mark11),
+                        transform=desc.transAxes, size=12-nrows)
+                pb.text(0.1,0.1,'MeanRms/MeanRms(panel_1) = %.2f'%(minwidthRmsMean/meanRms11),
+                        transform=desc.transAxes, size=12-nrows)
+        if (plotrange == [0,0,0,0]):
+            pb.xlim([0,pb.xlim()[1]])
+        else:
+            pb.xlim(plotrange[:2])
+            pb.ylim(plotrange[2:])
+        pb.draw()
+    if (plotfile == ''):
+        if (nimages == 1):
+            plotfile = img[0]+'.imstatCube.png'
+        else:
+            plotfile = 'imstatCube.png'
+    pb.savefig(plotfile)
+    print "Plot left in ", plotfile
 
 def extractAzimuthalAverageFromImage(image1,image2=None,image3=None,center=None,
                                      binsize=1.0, xlimits=[0,0], panels=1,
@@ -41110,7 +43638,7 @@ class checkDelays:
                 print "Available intents = %s" % str(mymsmd.intents())
                 return
         if (spw == ''):
-            if (casadef.casa_version >= '4.2.0'):
+            if (casadef.subversion_revision >= casaRevisionWithAlmaspws):
                 spwlist = mymsmd.almaspws(fdm=True,tdm=True)
             else:
                 spwlist = np.setdiff1d(np.union1d(mymsmd.tdmspws(),mymsmd.fdmspws()), mymsmd.chanavgspws())

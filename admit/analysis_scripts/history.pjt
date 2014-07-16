@@ -1,0 +1,176 @@
+This file is normally to be found at:
+     ftp://ftp.cv.nrao.edu/pub/casaguides/history
+
+Notes: 
+1) For documentation, please see:
+   http://casaguides.nrao.edu/index.php?title=Analysis_Utilities
+2) To determine which version of analysisUtils that you are running, from 
+   within casa you may do the following: 
+     import analysisUtils as au
+     au.version()
+
+Dec 18 2011: Initial version
+Jan 20 2012: Modified plotbandpass to allow overlay of solutions derived 
+	     from different calibrators.
+Feb 08 2012: Applied cos(dec) factor to the RA axis of plotmosaic(). 
+	     Restrict the calculation of nearest field to center of region
+             to specified source ID.
+Feb 23 2012: Fix minor bug in timeOnSource when final observation of 
+             science target has a CAL intent.
+Mar 01 2012: Simutil has fixed a typo in a function name (irtf2loc --> 
+             itrf2loc), so check for both possible names in plotconfig().
+             Return sorted baseline length list in plotconfig().
+Mar 05 2012: Prevent crash of listscans or readscans if the final scan of
+             the ASDM is incomplete.
+Mar 07 2012: Added the class linfit, which includes the spectralindex method.
+Mar 13 2012: Spectralindex now ignores spws with insufficient data from 
+             fluxscale, and accepts new arguments: plotdir, labelspw
+Mar 14 2012: Spectralindex accepts new argument: referenceFrame. Removed the
+             latency in contacting JPL horizons server in the planet function.
+Mar 15 2012: Sped up timeOnSource. Added GBT as possible telescope to specify
+             by name in planet(). Proper date checking in buildMinorPlanetPlot.
+Mar 16 2012: Added the beam option to planet().
+Mar 21 2012: In buildMinorPlanetPlot(), do not query JPL for major planets, as 
+             gildas already knows about them.  In spectralindex(), use the 
+             sqrt of the covariance matrix to estimate sigma, by default.
+Mar 27 2012: In plotbandpass(), add ms='' option to be used in case the parent
+	     ms name does not match the value in the caltable.  Add the mjd
+	     option to sun(), the useJPL=T and standard='' options to planet 
+             and buildMinorPlanetPlot().
+Mar 30 2012: Add spline curve display & automatic outlier clipping to plotPWV.
+Apr 04 2012: Added showtsky option to plotbandpass, and made many other minor
+	     improvements and bug fixes related to labeling and zooming with
+             the chanrange option.
+Apr 17 2012: Added plotbandpass2 to support the new caltable format of casa3.4.
+Apr 23 2012: Various fixes for plotbandpass. 
+Apr 25 2012: Various fixes for plotbandpass. 
+Apr 26 2012: Various fixes for plotWVRSolutions.
+Apr 27 2012: Added the version() command to report the CVS revision string, and
+             changed the xaxis in plotWVRSolutions() to convenient units of 
+             HH:MM.  Added interactive=False option to plotWVRSolutions()
+Apr 30 2012: Improved the field parameter and x-axis display of short time
+             intervals in plotWVRSolutions.
+May 03 2012: v1.672: Added new default parameter to smoothbandpass called
+             "avoidflags=True" which replaces flagged channels with the 
+             nearest unflagged channel prior to the smooth algorithm.  
+             Added "range rate" (topocentric velocity) to the list of values 
+             returned by planet(useJPL=True).
+May 03 2012: v1.676: Fixed bug in smoothbandpass for spws that are completely
+             flagged.  Added the optional log parameter. Added CVS ID to the
+             tarfile README file.
+May 04 2012: v1.679: Fixed bug in atmospheric transmission curve labeling.
+May 11 2012: v1.686: Plotbandpass changes: Added showatmfield option for
+             overlay='time'.  Allow yaxis='tsys' to force label for casa 3.3
+             caltables. Assume caltabl is tsys only if file ends in '.tsys' or
+	     '.tsys.fdm' or '.tsys_fdm', case insensitive.  Other changes:
+	     improve time axis labeling in plotPWV, plotWeather, 
+             plotPWVFromASDM and plotWeatherFromASDM.  Plot data from 
+	     different weather stations in different colors in plotWeather.
+	     Add "range" (in AU) to the list of values returned by planet.
+             Add "ms" option to plotWVRSolutions.
+May 17 2012: v1.692: Fix bug in plotbandpass(showfdm=True). Prevent overwriting
+             the showatm legend by the showatm curve.
+May 26 2012: v1.704: Fix bug in plotbandpass when overlaying time with a chanrange
+             to set the ylimit and there are flagged antennas.  Added
+             detectNegativeTsys.
+Jun 11 2012: V1.719: Add new functions: getCOFA,findChannelRanges,timeDifference,
+             rad2radec.  Added overlay='antenna,time' option to plotbandpass.
+Jun 15 2012: V1.734: Add bottom legend to plotbandpass for BPOLY solutions.
+             Improvements to findChannelRanges, plotTcal, estimateOpacity.
+Jul 24 2012: V1.754: Add parameters lo1, showimage, showatmPoints to 
+             plotbandpass (v.174) and plotbandpass2 (v.48).  Augment the
+             return values of getLOs.
+Jul 25 2012: plotbandpass (v.177) and plotbandpass2 (v.51): now support
+             multi-band solutions.  Also fixed crash of atmospheric plot when
+             most channels (but not all) were flagged.
+Aug 13 2012: Fixed minor issues in the plotbandpass and packager script. Add 
+             the outputname parameter to smoothbandpass().
+Aug 20 2012: Add the 'apparent' parameter to au.planet().  Add several optional
+             parameters to makeSimulatedImage().  Add an optional 'forceremove'
+             parameter to checkCalTable(). Add buildConfigurationFile(). 
+Aug 29 2012: Add the 'mjd' parameter to planet().  Add planetFlux().  Removed
+             calls to casac.homefinder and added wrapper function call_qa_time 
+             to support various functions in casa 4.0.0.
+Sep 12 2012: Many minor improvements. Plotbandpass skips any single-channel 
+             spws.
+Sep 24 2012: V1.794: Improvements to QA2 scripts.  Added function frames().
+Oct 02 2012: V1.802: Improvements to QA2 scripts.  Added function visibleSky().
+             Plotbandpass consolidated into plotbandpass3 supporting mixed 
+             modes and both old and new calibration table formats, and minor 
+             bug fixes.
+Oct 04 2012: V1.810: In planet(), add vis option and make compatible with casa
+             4.0. Plotbandpass now supports atmospheric curve overlay in casa 
+             4.0.
+Oct 10 2012: V1.815: Add the parentms option to plotbandpass to support 
+             showimage=T for tables generated from datasets that have been 
+             split. Removed obsolete class getNearestFlux.  Restored 
+             getSpwsFromASDM.  Added planetPlots(). Small plotbandpass fixes.
+Oct 12 2012: V1.818: Fix plotbandpass in case of first pol of first antenna of
+             first spw being flagged.
+Oct 16 2012: V1.819: Include missing files in tar file, remove obsolete ones.
+Oct 17 2012: V1.821: Add pdftk option to plotbandpass3.
+Oct 22 2012: V1.823: Add vm and sciencespws options to plotmosaic.
+Oct 29 2012: V1.824: Add support for single polarization data in QA2.
+Nov 13 2012: V1.841: Some improvements to script generator.
+Nov 15 2012: V1.844: Plotbandpass showFDM labels moved to the right of the spw
+Jan 17 2013: V1.875: Modifications to QA2 to support analyzemscal and casa 4.0
+Jan 26 2013: V1.883: Added plotSunDuringTrack & angularSeparationBetweenFields
+Feb 08 2013: V1.894: Added getSubscanTimesFromASDM, getBaselineStats, findNull,
+             printBaselineAngularScale. planetFlux now works in casa4.0. Added
+             3 parameters to generateQA2Report to specify alternative caltable
+             names
+Mar 03 2013: V1.908: Added flagTsysTable, fixed minor bugs in plotbandpass for
+             overlay='time'.
+Mar 28 2013: V1.933: Added statistics option in plotbandpass, other improvements
+Apr 08 2013: V1.940: Add 'n' option in checkCalTable. Add scanintent and solint
+             parameters to es.wvr_stat. Add the elvstime parameter to 
+             plotSunDuringTrack.  Add avgchannel parameter to target_spectrum.
+Apr 11 2013: V1.952: Add ALMA cycle 1 to plotconfig, show antenna size correctly
+Apr 18 2013: V1.966: Improve interface to editIntents, add mjdsecToUTHM. Report
+             min/max opacity and transmission in plotAtmosphere.  Add SPW and 
+             scan number to es.wvr_stat plot. Add the vis and bodyForScan
+             options to angularSeparationOfPlanets. Update planet for new JPL
+	     Horizons telnet interface change.
+May 07 2013: V1.994: Add imfitparse and imstatparse.  Add platformingThreshold
+             to plotbandpass.
+Jun 05 2013: V1.1032: plotbandpass now uses msmdtool when available, fix bug in
+             editIntents.  Add angularSeparationOfScans, fixScanNumbers.
+Jun 13 2013: V1.1057: Add scan option to planet, and several options to
+             getBaselineLengths.  Fix QA2 report for casa 4.1.0. Added file
+             for ALMA pad locations AOS_Pads_XYZ_ENU.txt.
+Jun 16 2013: V1.1063: Update searchFlux for use without ssh tunneling.
+Jun 19 2013: V1.1076: Fix bug in plotmosaic for datasets that have been split
+             with a subset of antennas. Add plaintext option to spectralindex.
+Jun 27 2013: V1.1108: Add gjinc class, gjincBeam function and getTPSampling 
+             function for the M100 feathering guide.
+Jul 02 2013: V1.1114: Add sfBeam function. Fix table cache in plotbandpass.
+Jul 29 2013: V1.1157: Fix overlay=time in plotbandpass; fix editIntents for
+             scan lists; improve spectralindex; add angularScaleBaseline and
+             provide option to call it from planet; fix the apparent option
+             of planet for a change in JPL Horizons.
+Aug 06 2013: V1.1164: Add overlay='spw', overlay='baseband', basebands, and
+             showBasebandNumber options to plotbandpass.  Fix showatm=T for
+             overlay='antenna,time'.  Use scan numbers (when present in the
+             cal table) as the time indexing agent. Fix errors in showing
+	     bpoly solutions, and old-style tables.
+Aug 08 2013: V1.1176: Improve the default plotstyle in spectralindex.
+Aug 09 2013: V1.1183: Fix plotbandpass bug in overlay='time', 'antenna'.
+Aug 11 2013: V1.1184: Fix plotbandpass bug in overlay='' for multi-field.
+Aug 15 2013: V1.1189: Fix plotbandpass bug when field is specified. Add the
+             scans parameter to select solutions by scan number. Add au.help.
+Aug 21 2013: V1.1195: Add copyweights, tunnel functions.  In plotbandpass,
+             do not stop if spw is not in the solution but in the ms.
+Aug 30 2013: V1.1205: Add renumber and replace options to plotTcal(). Added
+             getfwhm(), plotObservatories(), and fixed au.help().
+Nov 13 2013: V1.1470: Many updates
+Jan 02 2014: V1.1564: Many updates
+Feb 20 2014: V1.1605: Added square and squareroot options to scaleweights.
+Apr 04 2014: V1.1685: Several fixes to plotbandpass, improvements to 
+             getTPSampling and others.  TICRA beam model image subdirectory.
+Apr 11 2014: V1.1695: Final fixes to plotbandpass for casa 4.2.2.  Intent
+             parameter added to plotmosaic
+May 08 2014: V1.1726: Added repairAtmcalStateIDs, plotspws, compUtils,
+             plotantsFromASDM, getScanNumbersFromASDM, and class SQLD.
+May 15 2014: V1.1743: Added compUtils.py to tarball, spw option to scaleweights
+May 23 2014: V1.1770: class SQLD added, markeredgecolor set in wvr_stat
+Jun 26 2014: V1.1807: Add support for mixed VLA/EVLA datasets to buildConfigurationFile

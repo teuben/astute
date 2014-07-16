@@ -1,0 +1,27 @@
+See README what version this is.
+More info on:               http://casaguides.nrao.edu/index.php?title=Analysis_Utilities
+Download the latest from:   ftp://ftp.cv.nrao.edu/pub/casaguides/analysis_scripts.tar
+be sure to check this:      ftp://ftp.cv.nrao.edu/pub/casaguides/history
+
+Within this 'astute/admit' package you then install it as follows:
+
+      
+cd astute/admit
+make build                  # this creates the ADMIT egg with the new analysis_scripts
+sudo make install_local     # this will install the egg within your local python
+
+
+The old of using can be:
+
+  wget ftp://ftp.cv.nrao.edu/pub/casaguides/analysis_scripts.tar
+  tar zxf analysis_scripts.tar
+
+in $HOME/.casa/init.py add this code
+
+  import sys
+  sys.path.append("/PATH_TO_ANALYSIS_SCRIPTS")
+  import analysis_scripts.analysisUtils as au
+
+the new style egg can be tried as follows:
+
+  sudo easy_install http://www.astro.umd.edu/~teuben/admit/dist/admit-0.0.2-py2.7.egg

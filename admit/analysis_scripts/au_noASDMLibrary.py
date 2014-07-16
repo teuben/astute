@@ -30,10 +30,45 @@ def readSoftwareVersionFromASDM_minidom(asdm):
         print "%s: %s" % (issue,details)
     return
 
-def readStationFromASDM_minidom(sdmfile, station):
+def readStationFromASDM_minidom(sdmfile):
     """
-    Translates a station number into the station name and position from the
-    Station.xml file.  Useful for finding this information for weather stations.
+    Reads the Station.xml file and returns a dictionary of all stations
+    of the following format:
+    mydict[0] = {'name': 'A085', position=[x,y,z]}
+    -Todd Hunter
+    """
+    if (os.path.exists(sdmfile) == False):
+        print "readStationFromASDM(): Could not find file = ", sdmfile
+        return(None)
+    xmlscans = minidom.parse(sdmfile+'/Station.xml')
+    scandict = {}
+    rowlist = xmlscans.getElementsByTagName("row")
+    fid = 0
+    stationName = 'unknown'
+    mydict = {}
+    for rownode in rowlist:
+        stationPosition = []
+        scandict[fid] = {}
+        row = rownode.getElementsByTagName("stationId")
+        stationId = int(str(row[0].childNodes[0].nodeValue).split('_')[-1])
+        row = rownode.getElementsByTagName("name")
+        stationName = str(row[0].childNodes[0].nodeValue)
+        row = rownode.getElementsByTagName("position")
+        r = filter(None,(row[0].childNodes[0].nodeValue).split(' '))
+        for i in range(2,len(r)):
+            stationPosition.append(float(r[i]))
+        mydict[stationId] = {'name': stationName, 'position': stationPosition}
+        fid +=1
+    return(mydict)
+    
+def readStationsFromASDM_minidom(sdmfile, station=None):
+    """
+    Translates a station number (which start from 0) into the station name and
+    position from the Station.xml file.  Useful for finding this information
+    for weather stations.
+    If station==None, then it builds and returns a dictionary where the key is
+    the station name and the value is the geocentric [X,Y,Z] position.
+    e.g. {'A001': [x,y,z]}
     - Todd Hunter
     """
     if (os.path.exists(sdmfile) == False):
@@ -43,23 +78,29 @@ def readStationFromASDM_minidom(sdmfile, station):
     scandict = {}
     rowlist = xmlscans.getElementsByTagName("row")
     fid = 0
-    stationPosition = []
     stationName = 'unknown'
+    if (station == None):
+        mydict = {}
     for rownode in rowlist:
+        stationPosition = []
         scandict[fid] = {}
         row = rownode.getElementsByTagName("stationId")
         stationId = int(str(row[0].childNodes[0].nodeValue).split('_')[-1])
+        row = rownode.getElementsByTagName("name")
+        stationName = str(row[0].childNodes[0].nodeValue)
+        row = rownode.getElementsByTagName("position")
+        r = filter(None,(row[0].childNodes[0].nodeValue).split(' '))
+        for i in range(2,len(r)):
+            stationPosition.append(float(r[i]))
         if (stationId == station):
-            row = rownode.getElementsByTagName("name")
-            stationName = str(row[0].childNodes[0].nodeValue)
-
-            row = rownode.getElementsByTagName("position")
-            r = filter(None,(row[0].childNodes[0].nodeValue).split(' '))
-            for i in range(2,len(r)):
-                stationPosition.append(float(r[i]))
             break
+        elif (station == None):
+            mydict[stationName] = stationPosition
         fid +=1
-    return(stationName,stationPosition)
+    if (station == None):
+        return(mydict)
+    else:
+        return(stationName,stationPosition)
 
 def getSubscanTimesFromASDM_minidom(asdm, field=''):
     """

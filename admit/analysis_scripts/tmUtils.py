@@ -128,7 +128,7 @@ def get_available_monitorpoints_in_device_on_date(date, antenna, device):
     for line in furl:
         mount = re.search(regexp, line)
         if mount != None:
-            monpoint_name=mount.group(0).split('.txt')[0].split('="')[1]
+            monpoint_name=mount.group(0).split('.txt')[0].split('download=')[1]
             result.append(monpoint_name)
 
     if len(result) > 0:
@@ -159,7 +159,7 @@ def retrieve_daily_tmc_data_file(antenna, device, monitorpoint, date, outpath='.
     rooturl = get_root_url_for_curl(date)
 
     today = datetime.datetime.today()
-    twentydaysago = today + datetime.timedelta(days=-20)
+    twentydaysago = today + datetime.timedelta(days=-30)
 
     if inputdate < twentydaysago:
         unzip = 1
@@ -167,10 +167,10 @@ def retrieve_daily_tmc_data_file(antenna, device, monitorpoint, date, outpath='.
     else:
         unzip = 0
         extension = 'txt'
-
+        
     targeturl = 'CONTROL_%s_%s/%s.%s' % (antenna, device, monitorpoint, extension)
     completeurl = '%s/%s' % (rooturl, targeturl)
-    print completeurl
+    print rooturl,targeturl,completeurl
     outfile = '%s%s_%s_%s_%s.%s' % (outpath,isodate, antenna, device, monitorpoint, extension)
     print "Retrieving %s/%s" % (date, targeturl)
 
@@ -186,7 +186,8 @@ def retrieve_daily_tmc_data_file(antenna, device, monitorpoint, date, outpath='.
         return '_CURL_FAILED_'
 
 
-def retrieve_daily_tmc_data_file_name_only(antenna, device, monitorpoint, date, outpath='./'):
+def retrieve_daily_tmc_data_file_name_only(antenna, device, monitorpoint, 
+                                           date, outpath='./'):
     """
     Retrieve name of file that would be created by retrieve_daily_tmc_data_file()
 
@@ -207,7 +208,6 @@ def retrieve_daily_tmc_data_file_name_only(antenna, device, monitorpoint, date, 
     extension = 'txt'
     targeturl = 'CONTROL_%s_%s/%s.%s' % (antenna, device, monitorpoint, extension)
     completeurl = '%s/%s' % (rooturl, targeturl)
-#    print completeurl
     outfile = '%s%s_%s_%s_%s.%s' % (outpath,isodate, antenna, device, monitorpoint, extension)
     return(outfile)
 
@@ -230,7 +230,8 @@ def get_datetime_from_isodatetime(isodatetime):
     else:
         print "Date %s is invalid." % isodatetime
         return datetime.date(1, 1, 1)
-
+    
+    
     if (len(datelist) == 3) and (len(timelist) == 3):
         microsec = int(1e6 * (float(timelist[2]) - int(float(timelist[2]))))
         timelist[2] = int(float(timelist[2]))
@@ -304,9 +305,13 @@ def read_tmc_data_file(filename, removefile=False):
             continue
 #        (strdatetime, value) = line.split()
         tokens = line.split()
+        dt = get_datetime_from_isodatetime(tokens[0])
+        # check that the date was valid
+        if dt == datetime.date(1,1,1):
+            continue
         datetimelist.append(get_datetime_from_isodatetime(tokens[0]))
         valuelist.append([float(x) for x in tokens[1:]])
-
+            
     if removefile:
         os.system('rm %s' % filename)
 
@@ -347,7 +352,7 @@ def get_tmc_data(antenna, device, monitorpoint, startdate, enddate, \
 
 
 def show_time_series_in_subplot(subpl, datetimelist, datalist, \
-    startdatetime, enddatetime=None, yrange=None, ylabel=None, label=None, \
+    startdatetime, enddatetime=None, yrange=None, ylabel=None, tickmark='.',label=None, \
     title=None, showxticklabels=True, col='b', removediscontinuity=False, \
     removeoutlier=False, index=0):
     """
@@ -404,7 +409,7 @@ def show_time_series_in_subplot(subpl, datetimelist, datalist, \
         thedata = remove_outlier(thedata)
 
     subpl.plot_date(datetimearray[timeinrange], thedata, \
-        '.', ms=2.4, label=label, color=col)
+        tickmark, ms=2.4, label=label, color=col)
 
     if title != None:
         subpl.set_title(title)
@@ -440,7 +445,7 @@ def show_time_series_in_subplot(subpl, datetimelist, datalist, \
 
 
 def show_monitor_data_in_subplot(subpl, antenna, device, monitorpoint, \
-    startdatetime, enddatetime=None, yrange=None, ylabel=None, label=None, \
+    startdatetime, enddatetime=None, yrange=None, ylabel=None, tickmark='.',label=None, \
     title=None, showxticklabels=True, col='b', removediscontinuity=False, \
     removeoutlier=False, index=0):
 
@@ -494,11 +499,12 @@ def show_monitor_data_in_subplot(subpl, antenna, device, monitorpoint, \
         ylabel = '%s' % (monitorpoint)
     show_time_series_in_subplot(subpl, \
         tmcdata['datetime'], tmcdata['value'], \
-        startdatetime, enddatetime, yrange, ylabel, label, title, \
+        startdatetime, enddatetime, yrange, ylabel, tickmark,label, title, \
         showxticklabels, col,removediscontinuity, removeoutlier, index)
 
-def check_for_time_gaps(antenna='DV01', device='IFProc0', monitorpoint='GAINS', startdate=None, enddate=None,
-                        sigma=5,showFirstGap=False, outpath='./',removefile=True):
+def check_for_time_gaps(antenna='DV01', device='IFProc0', monitorpoint='GAINS',
+                        startdate=None, enddate=None, sigma=5,
+                        showFirstGap=False, outpath='./',removefile=True):
     """
     Check for gaps in the time series data for a specific monitor point
     Parameters are something like:
@@ -565,10 +571,11 @@ def plot_monitor_data_to_png(antenna, device, monitorpoint, \
                 (sdate, antenna, device)
     else :
         monitorpointlist = [monitorpoint]
-        
+
+    
     outfiles = []
     for mp in monitorpointlist:
-        
+        print mp
         plf = pl.figure()
         subpl = plf.add_subplot(1, 1, 1)
 
@@ -945,14 +952,17 @@ def remove_outlier(value, sigma_th=100., width=200, ntrim=20):
     niter = int(ndata/width)+1
 
     result = value[:]
-
+    #pl.clf()
     for i in range(niter):
+        #pl.clf()
         idx = width*i
         if (idx+width) >= ndata:
             idx = ndata-width-1
 
         subarr = pl.array(value[idx:idx+width])
         tsubarr = pl.sort(subarr)[ntrim:width-ntrim]
+        #pl.plot(abs((subarr-tsubarr.mean())/tsubarr.std()),'.')
+        #raw_input()
 
         subarr[abs(subarr-tsubarr.mean()) > sigma_th*tsubarr.std()] = pl.nan
         result[idx:idx+width] = subarr
