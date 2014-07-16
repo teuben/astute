@@ -36,7 +36,7 @@ print "ARGV: ",sys.argv
 os.system('ln -s %s %s' % (a_fits,f_fits))
 
 #    do work
-if False:
+if True:
     print "casa::importfits ",f_fits
     importfits(a_fits, f_im, overwrite=True)
 
