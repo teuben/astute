@@ -55,9 +55,13 @@ astropy:
 As of version 0.4 we will attempt to align admit with astropy, 
 if astropy was not installed with your version of CASA.
 
-Best is to use a distro source code install,untar this within
-the casapy-XXX root directory, make sure you have `which python`
-from the CASA/.../bin tree, and use the standard
-    python setup.py build
-    python setup.py install
-technique from within the astropy source tree.
+Best is to use a distro source code install, untar this within
+the casapy-XXX root directory, so you know which one you used
+later on (after all, both CASA and ASTROPY change often).
+From the casapy prompt and from within the astropy source root,
+you can simply use
+    !python setup.py build
+    !python setup.py install
+You will then need to exit from casapy for the command
+    import astropy 
+to work.
