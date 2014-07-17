@@ -47,3 +47,17 @@ distutils:
 	C-header HOME/include/python/<distname>
 
 3) 	python setup.py install --prefix=/usr/local
+
+
+
+astropy:
+
+As of version 0.4 we will attempt to align admit with astropy, 
+if astropy was not installed with your version of CASA.
+
+Best is to use a distro source code install,untar this within
+the casapy-XXX root directory, make sure you have `which python`
+from the CASA/.../bin tree, and use the standard
+    python setup.py build
+    python setup.py install
+technique from within the astropy source tree.
