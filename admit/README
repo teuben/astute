@@ -60,8 +60,10 @@ the casapy-XXX root directory, so you know which one you used
 later on (after all, both CASA and ASTROPY change often).
 From the casapy prompt and from within the astropy source root,
 you can simply use
+    casapy --nogui
     !python setup.py build
     !python setup.py install
-You will then need to exit from casapy for the command
+You will then need to exit from casapy and re-enter for the command
     import astropy 
-to work.
+to work. Don't do this from the astropy source tree root, it is
+protected against working there.
