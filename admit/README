@@ -67,3 +67,26 @@ You will then need to exit from casapy and re-enter for the command
     import astropy 
 to work. Don't do this from the astropy source tree root, it is
 protected against working there.
+
+There's a flaw with this approach: the install silently assumes
+that python and casa's python are the same version, which is actually
+a bug in the installation procedure of astropy.
+
+One way to solve this is the approach in  https://github.com/radio-astro-tools/casa-python
+The drawback is that only one version of casa can be done this way, others will be able
+to live with this version (which may be ok on the short term).  The 'astroload' or
+'modules' approach needs to be dealt with a different way. Here's the recipe:
+[and please note the creation of ~/.casa/{bin,lib}  : use with caution]
+
+git clone https://github.com/radio-astro-tools/casa-python
+cd casa-python
+/usr/bin/python setup_casapy_pip.py
+   -> this will do a lot of install (needs internet too for pip, setuptools etc.)
+   -> tells to add /home/teuben/.casa/bin to your PATH, or really $HOME/.casa/bin
+   -> TODO: should have an option to write into the CASA tree, this would enable
+            multiple casapy installs
+set path = ($HOME/.casa/bin $path); rehash
+   -> "casa-python setup.py install"  is now the way how to install packages
+   -> "casa-pip" to do it the easy pip way
+casa-pip install astropy
+
