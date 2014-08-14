@@ -5,35 +5,78 @@ After having obtained this via CVS, e.g.
   cvs -d :pserver:anonymous@cvs.astro.umd.edu:/home/cvsroot  login              [needed only once]
   cvs -d :pserver:anonymous@cvs.astro.umd.edu:/home/cvsroot  checkout astute
 
-you should prepare it for your shell:
+If you have a CVS account, use that instead of anonymous, so you can 
+commit changes as well.
+
+You should next prepare ASTUTE for your shell:
 
   cd astute
   ./configure
   source astute_start.csh
 
+Your PATH and PYTHONPATH have been modified to include the appropriate locations
+from ASTUTE. You may also need MIRIAD and NEMO, but we'll try and keep those 
+dependancies to a minimum. Eventually, ADMIT should run without any of those.
+
 
 0) make sure you have python with astropy, ATpy, asciitable etc. installed.
    see opt/README for optional things you might like to borrow to get some of
-   the components to work.
+   the components to work.  E.g.
+
+   python -c "import astropy"
 
 
 1) prepare a miriad version of the small benchmark cube (you need MIRIAD for this)
 
-   cd data
+   cd data/ros13co
    fits in=ros13co.fits out=ros13co.mir op=xyin
 
 
-2) cd $ASTUTE/lib
+2) Test some clumpfinding on this ros13co cube
+
+   cd $ASTUTE/lib
    ./clumpfind.py mir    (needs MIRIAD)
    ./clumpfind.py idl    (only runs under GDL now, although known to run in idl)
    ./clumpfind.py den    (you'll need to install dendro-core via $ASTUTE/opt)
 
-3) Splatalogue things:
+3) [opt] Splatalogue things:
 
-   http://www.cv.nrao.edu/~bkent/computing/datasplat/     (about 450MB)
+   cd $ASTUTE
+   git clone https://bitbucket.org/brkent/datasplat.git
+   (warning: this downloads 450MB)
+
+   See also:
+   http://www.cv.nrao.edu/~bkent/computing/datasplat/
 
 
-4) CASA Analysis Scripts
+4) [opt] vla pipeline
+
+5) [opt] "pr" pipeline for TADPOL
+
+6) [opt] pyprops, the new python version of cprops:
+
+   cd $ASTUTE/lib
+   git clone https://github.com/akleroy/pyprops/
+
+   now you can do:
+
+       import pyprops
+
+
+7) pyds9 (needs ds9) - pyds9 seems to include xpa
+   radio-tools/pvextractor
+   radio-tools/spectral-cube
+
+
+*) how to expose CASA's python:
+
+   1) virtualenv (useful if you cannot write into $CASA)
+      but this can be done via ~/.casa/init.py but is complicated
+      if you have an environment with multiple casa's 
+      (e.g. Maryland's "astroload" system, or linux' "module" system)
+
+
+8) CASA Analysis Scripts
 
    http://casaguides.nrao.edu/index.php?title=Analysis_Utilities
 
