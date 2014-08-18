@@ -26,17 +26,27 @@ p = parfile.ParFile()
 
 #    set parameters
 a_fits = a.resolve(p.get('fits'))
-f_fits = 'im.fits'
-f_im   = 'im'
+im     = 'im'
+f_im   = 'im/fits'
+c_im   = 'im/cim'
+n_im   = 'im/nemo'
+m_im   = 'im/mir'
 
 #    debug
 print "ARGV: ",sys.argv
 
-#    we like to keep/fake the fits file locally
-os.system('ln -s %s %s' % (a_fits,f_fits))
+os.system('rm -rf %s ; mkdir %s' % (im,im))
 
-#    do work
+#  Symbolic link for fits
 if True:
-    print "casa::importfits ",f_fits
-    importfits(a_fits, f_im, overwrite=True)
+   os.system('ln -s %s %s' % (a_fits, f_im))
 
+if True:
+   print "casa::importfits ",a_fits
+   importfits(a_fits, c_im, overwrite=True)
+
+if True:
+   os.system('fitsccd in=%s out=%s' % (a_fits, n_im))
+
+if True:
+   os.system('fits in=%s out=%s op=xyin' % (a_fits, m_im))
