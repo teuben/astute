@@ -16,6 +16,9 @@ import numpy  as np
 
 from astropy.table import Table
 
+#    local keywords
+cen    = 0
+#    packages
 
 #    report
 print "@ASTUTE: getdata"
@@ -23,6 +26,7 @@ print "@ASTUTE: getdata"
 #    setup, grab parameters
 a = astute.Astute()
 p = parfile.ParFile()
+p.argv(sys.argv)
 
 #    set parameters
 a_fits = a.resolve(p.get('fits'))
@@ -32,21 +36,53 @@ c_im   = 'im/cim'
 n_im   = 'im/nemo'
 m_im   = 'im/mir'
 
+cen    = p.geti('cen')
+
+
+#    process packages; normally we really don't want to allow that, just today here we do
+use_nemo       = 1
+use_casa       = 1
+use_miriad     = 1
+if p.has('nemo'):   use_nemo   = p.geti('nemo')
+if p.has('casa'):   use_casa   = p.geti('casa')
+if p.has('miriad'): use_miriad = p.geti('miriad')
+
+
 #    debug
 print "ARGV: ",sys.argv
 
+
+#    FITS file existence check
+if not os.path.isfile(a_fits):
+    sys.exit(1)
+
+
+
+print "@ASTUTE: getdata: image cubes in %s" % im
 os.system('rm -rf %s ; mkdir %s' % (im,im))
 
 #  Symbolic link for fits
 if True:
+   print "@ASTUTE: getdata: creating %s (symlink to %s)" % (f_im,a_fits)
    os.system('ln -s %s %s' % (a_fits, f_im))
 
-if True:
-   print "casa::importfits ",a_fits
+if a.have['CASA'] and use_casa:
+   print "@ASTUTE: getdata: creating %s" % c_im
+   print "casa::importfits "
    importfits(a_fits, c_im, overwrite=True)
 
-if True:
+if a.have['NEMO'] and use_nemo:
+   print "@ASTUTE: getdata: creating %s" % n_im
+   print "nemo::fitsccd "
    os.system('fitsccd in=%s out=%s' % (a_fits, n_im))
 
-if True:
+if a.have['MIRIAD'] and use_miriad:
+   print "@ASTUTE: getdata: creating %s" % m_im
+   print "miriad::fits "
    os.system('fits in=%s out=%s op=xyin' % (a_fits, m_im))
+   if cen:
+      # only for n253 data
+      m_imc = m_im + 'cen'
+      os.system('imsub in=%s out=%s region="box(221,221,420,420)"' % (m_im,m_imc))
+      os.system('fits  in=%s out=%s op=xyout' % (m_imc,m_imc+'.fits'))
+
