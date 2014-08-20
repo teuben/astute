@@ -1,0 +1,61 @@
+#! /usr/bin/env casarun
+#
+# casapy script
+#
+# To run this:
+#     casapy --nogui -c $ASTUTE/bin/getdata
+#
+# it would be useful to find out if there is some "import casa" style,
+# so you don't have to run this from within casapy?
+#
+
+#   from astute
+import astute, alines, parfile
+import sys, os
+import numpy  as np   
+
+from astropy.table import Table
+
+import atable
+
+
+#    report
+print "@ASTUTE: getdata"
+
+#    setup, grab parameters
+a = astute.Astute()
+p = parfile.ParFile()
+
+#    set parameters
+c_im   = 'im/cim'
+
+#    debug
+print "ARGV: ",sys.argv
+
+c1 = 'max'
+c2 = 'sigma'
+c3 = 'medabsdevmed'
+s  = '|'
+new1 = '\n#|int|double|real|real|\n#||Ghz|Jy/beam|Jy/beam|'
+
+print "casa::imstat"
+stats = imstat(c_im,axes=[0,1],logfile='imstat.logfile',append=False)
+if True:
+   # strange we need to do it this way.. imstat::s doesn't have them, the logfile does
+   h = imhead(c_im,mode='list')
+   n = h['shape'][2]
+   p = h['crpix3']
+   d = h['cdelt3']
+   v = h['crval3']
+   ch = np.arange(n) + 1
+   fr = (ch-p-1)*d + v
+   col_names = (s+'channel',s+'frequency',s+c1,s+c2,s+c3+s+new1)
+   col_data = [ ch, fr, stats[c1], stats[c2], stats[c3]] 
+   t = Table(col_data, names=col_names, copy=True)
+   # t.write('imstat.astropy.tab',format='ascii')
+   t.write('imstat.astropy.tab',format='ascii.commented_header')
+   a = atable.ATable(col_data, col_names)
+   a.psave('cubestats.bin')
+
+# ascii.commented_header
+# header_start
