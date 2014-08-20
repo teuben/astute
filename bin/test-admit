@@ -2,7 +2,7 @@
 #
 #   command to test some future admit 
 
-import adm
+import adm, parfile
 
 if __name__ == "__main__":
     print "Testing ADMIT"
@@ -12,4 +12,7 @@ if __name__ == "__main__":
         print "Warning: no ADMIT directories found here"
     else:
         for d in dlist:
-            print d
+            pname = d+'/tas.def'
+            p = parfile.ParFile(pname)
+            project = p.get('project')
+            print d,':',project

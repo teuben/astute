@@ -1,5 +1,8 @@
+cen=0
+fits0=$TAS/rawdata/n253/ngc253_fullcube_compact_SPW_1_contsub_clean.fits
+fits1=$TAS/rawdata/n253/ngc253_fullcube_compact_SPW_1_contsub_clean.fits
 fits=$TAS/rawdata/n253/ngc253_fullcube_compact_SPW_1_contsub_clean.fits
-project=./w_1_c
+project=w_1_c
 pvslice=239,369,419,260
 step=pipesave
 vlsr=236.0
