@@ -6,7 +6,7 @@
 set fits=silly.fits
 set tab=ccdstat.tab
 set clean=0
-set robust=f
+set robust=t
 #           pipeline can override them
 pipeset -s csh > tmp$$.par;  source tmp$$.par;  rm tmp$$.par
 
@@ -19,16 +19,9 @@ end
 
 echo @ASTUTE:  cubestats_nemo 
 
-set fits=`tasfn $fits`
+set n_im = im/nemo
 
-if (! -e $fits) then
-  echo Warning: fits=$fits does not seem to exist
-  exit 1
-endif
+ccdstat in=$n_im bad=0 robust=$robust planes=0 > $tab
 
-rm -f nemo
-fitsccd in=$fits out=nemo
-ccdstat in=nemo bad=0 robust=$robust planes=0 > $tab
-
-if ($clean) rm -f nemo
+if ($clean) rm -f $n_im
 
