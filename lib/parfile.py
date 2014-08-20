@@ -1,8 +1,11 @@
 #! /usr/bin/env python
 #
+#
+#   A simple key=val parameter file processor, also deals with commandline
+#
 import os
 
-__version__ = "ParFile 1711"
+__version__ = "ParFile 1229"
 
 class ParFile(object):
     """
@@ -14,6 +17,7 @@ class ParFile(object):
         self.quote = quote
         if file == None: return
         self.load(file)
+        self.debug = False
     def load(self,file):
         self.file = file
         if os.path.exists(file):
@@ -29,11 +33,14 @@ class ParFile(object):
             if idx<1: continue
             self.pars[line0[0:idx]] = line0[idx+1:]
     def argv(self,keyvals):
-        """merge in key=val, usually from the command line """
+        """merge in key=val, usually from the command line
+           silently skips arguments that have no =
+        """
         for kv in keyvals:
             idx = kv.find('=')
             if idx<1: continue
             self.pars[kv[0:idx]] = kv[idx+1:]
+        if self.debug: print "PARS: ",self.pars
     def keys(self):
         return self.pars.keys()
     def has(self,par):
