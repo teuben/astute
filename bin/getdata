@@ -66,17 +66,17 @@ if True:
    print "@ASTUTE: getdata: creating %s (symlink to %s)" % (f_im,a_fits)
    os.system('ln -s %s %s' % (a_fits, f_im))
 
-if a.have['CASA'] and use_casa:
+if a.has('CASA') and use_casa:
    print "@ASTUTE: getdata: creating %s" % c_im
    print "casa::importfits "
    importfits(a_fits, c_im, overwrite=True)
 
-if a.have['NEMO'] and use_nemo:
+if a.has('NEMO') and use_nemo:
    print "@ASTUTE: getdata: creating %s" % n_im
    print "nemo::fitsccd "
    os.system('fitsccd in=%s out=%s' % (a_fits, n_im))
 
-if a.have['MIRIAD'] and use_miriad:
+if a.has('MIRIAD') and use_miriad:
    print "@ASTUTE: getdata: creating %s" % m_im
    print "miriad::fits "
    os.system('fits in=%s out=%s op=xyin' % (a_fits, m_im))
