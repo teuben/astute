@@ -1,0 +1,31 @@
+#! /bin/csh -f
+#
+#   cubestats, the MIRIAD way
+
+
+set fits=silly.fits
+set tab=imstat.tab
+set clean=0
+set robust=t
+#           pipeline can override them
+pipeset -s csh > tmp$$.par;  source tmp$$.par;  rm tmp$$.par
+
+
+#           command line overrides (just a cute CSH trick)
+foreach _arg ($*)
+  set $_arg
+end
+
+
+echo @ASTUTE:  cubestats_nemo 
+
+set m_im = im/miriad
+
+# 'noheader'
+# 'eformat'     Always use format 'e' instead of 'g' to write results
+# 'guaranteespaces'
+
+imstat in=$m_im log=imstat.log options=eformat,guaranteespaces
+
+if ($clean) rm -f $n_im
+
