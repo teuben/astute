@@ -1,0 +1,21 @@
+#! /usr/bin/env python
+#
+#  read the BDP's that test1 produced
+
+
+import admit0 as admit
+
+
+def try1a(do_show=True, do_dep=True):
+    _debug = True
+    print "TRY1a"
+    #  start a new ADMIT
+    a0 = admit.ADMIT()
+    a = a0.pload("TRY1a.p")
+    print "Found %d BDP's" % len(a.bdps)
+    for b in a.bdps:
+        print "%-20s  %s :  %s" % (b.name,b.filename,b.data.keys())
+
+
+if __name__ == "__main__":
+    try1a()
