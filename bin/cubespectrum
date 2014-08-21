@@ -1,0 +1,70 @@
+#! /usr/bin/env casarun
+#
+# casapy script
+#
+# To run this:
+#     casapy --nogui -c $ASTUTE/bin/getdata
+#
+# it would be useful to find out if there is some "import casa" style,
+# so you don't have to run this from within casapy?
+#
+
+#   from astute
+import astute, parfile
+import sys, os
+import numpy as np   
+#
+from astropy.table import Table
+
+import atable
+
+
+#    report
+print "@ASTUTE: getdata"
+
+#    setup, grab parameters
+a = astute.Astute()
+p = parfile.ParFile()
+
+#    set parameters
+
+if p.has('in'):
+    c_im = p.get('in')
+else:
+    c_im = 'im/cim'
+point = p.get('point')
+
+#    debug
+print "ARGV: ",sys.argv
+
+use_astropy = False
+use_pickle  = True
+
+c1 = 'max'
+c2 = 'sigma'
+c3 = 'medabsdevmed'
+s  = '|'
+new1 = '\n#|int|double|real|real|\n#||Ghz|Jy/beam|Jy/beam|'
+
+
+box = '%s,%s' % (point,point)
+
+print "casa::imval(%s,%s)" % (c_im,box)
+vals = imval(c_im,box=box)
+data = vals['data']
+
+print 'Datamin/max: ',data.min(), data.max()
+
+# grab the X coords again
+h = imhead(c_im,mode='list')
+n = h['shape'][2]
+p = h['crpix3']
+d = h['cdelt3']
+v = h['crval3']
+ch = np.arange(n) + 1
+fr = (ch-p-1)*d + v
+
+if use_pickle:
+    at = atable.ATable([fr,data], ['frequency','data'])
+    at.pdump('cubespectrum.bin')
+    # at.plotter(fr,[data],'CubeSpectrum')
