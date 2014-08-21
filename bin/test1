@@ -12,7 +12,7 @@
 #      test1                                      (ideally just this script)
 #      /usr/bin/python $ASTUTE/bin/test1          (currently needed [sic] unless you fix tcl/tk link)
 #
-#      in $CASAPATH/lib/casapy/lib  :   ln -s ../../../share/tcl8.4 ; ln -s ../../../share/tk8.4
+#      in "mkcd $CASAPATH/lib/casapy/lib"  :   ln -s ../../../share/tcl8.4 ; ln -s ../../../share/tk8.4
 #                               
 
 
