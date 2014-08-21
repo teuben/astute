@@ -7,6 +7,8 @@
 
 import admit0 as admit
 
+re_run = False
+
 
 def try1a(do_show=True, do_dep=True):
     _debug = True
@@ -20,6 +22,10 @@ def try1a(do_show=True, do_dep=True):
         if b.data.has_key('table'):
             t = b.data['table']
             print '    TABLE: ',t.names
+        if re_run:
+            t = b.task[0]
+            t.set('pi=3.14')    # fake an update
+            t.run()
 
 
 if __name__ == "__main__":
