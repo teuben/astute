@@ -1,6 +1,8 @@
 #! /usr/bin/env python
 #
-#  read the BDP's that test1 produced
+#  read the BDP's that test1 produced 
+#  report a few interesting things
+#  rerun?
 
 
 import admit0 as admit
@@ -15,6 +17,9 @@ def try1a(do_show=True, do_dep=True):
     print "Found %d BDP's" % len(a.bdps)
     for b in a.bdps:
         print "%-20s  %s :  %s" % (b.name,b.filename,b.data.keys())
+        if b.data.has_key('table'):
+            t = b.data['table']
+            print '    TABLE: ',t.names
 
 
 if __name__ == "__main__":
