@@ -48,26 +48,27 @@ new1 = '\n#|int|double|real|real|\n#||Ghz|Jy/beam|Jy/beam|'
 
 print "casa::imstat(%s)" % c_im
 stats = imstat(c_im,axes=[0,1],logfile='imstat.logfile',append=False)
-if True:
-   # strange we need to do it this way.. imstat::s doesn't have them, the logfile does
-   h = imhead(c_im,mode='list')
-   n = h['shape'][2]
-   p = h['crpix3']
-   d = h['cdelt3']
-   v = h['crval3']
-   ch = np.arange(n) + 1
-   fr = (ch-p-1)*d + v
-   col_names = (s+'channel',s+'frequency',s+c1,s+c2,s+c3+s+new1)
-   col_data = [ ch, fr, stats[c1], stats[c2], stats[c3]] 
-   if use_astropy:
-     t = Table(col_data, names=col_names, copy=True)
-     # t.write('imstat.astropy.tab',format='ascii')
-     t.write('imstat.astropy.tab',format='ascii.commented_header')
-     # now read the logfile as a table
-   if use_pickle:
-     at = atable.ATable(col_data, ['channel','frequency',c1,c2,c3])
-     at.pdump('cubestats.bin')
 
+# strange we need to do it this way.. imstat::s doesn't have them, the logfile does
+# instead, we'll grab it from imhead()
+h = imhead(c_im,mode='list')
+n = h['shape'][2]
+p = h['crpix3']
+d = h['cdelt3']
+v = h['crval3']
+ch = np.arange(n) + 1
+fr = (ch-p-1)*d + v
+col_names = (s+'channel',s+'frequency',s+c1,s+c2,s+c3+s+new1)
+col_data = [ ch, fr, stats[c1], stats[c2], stats[c3]] 
+if use_astropy:
+    t = Table(col_data, names=col_names, copy=True)
+    # t.write('imstat.astropy.tab',format='ascii')
+    t.write('imstat.astropy.tab',format='ascii.commented_header')
+    # now read the logfile as a table
+if use_pickle:
+    at = atable.ATable(col_data, ['channel','frequency',c1,c2,c3])
+    at.pdump('cubestats.bin')
+    # at.plotter(fr/1e9,[stats[c2]],'CubeStats')
 
 # ascii.commented_header
 # header_start
