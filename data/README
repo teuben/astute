@@ -285,3 +285,14 @@ total 6010160
       4 viewer.last*
 
 ===
+
+
+benchmark bench2:
+
+   cd $ASTUTE/data
+   mkdir bench2
+   pipesetup project=w_1_c
+   getdata
+   pipeset cen=0 point=312,312
+   test1
+   test1a
