@@ -1,9 +1,7 @@
 #! /usr/bin/env python
 #
-#  Initialize various useful tihngs for ASTUTE
+#  simple table class
 #
-#  1) find out what environment we have and what packages we have
-#  2) provide easy interfaces to run alien packages (shell, idl)
 
 
 import sys, os
@@ -13,20 +11,24 @@ import cPickle as pickle
 
 class ATable(object):
     """
-    admit table
+    simple admit table
     """
-    def __init__(self,cols,names):
+    def __init__(self,cols=[],names=[],types=[],units=[]):
         self.n       = 0
-        self.version = "19-aug-2014"
+        self.version = "20-aug-2014"
         self.cols    = cols
         self.names   = names
+        self.types   = types
+        self.units   = units
     def show(self):
-        print self.names
+        print 'names: ',self.names
+        print 'types: ',self.types
+        print 'units: ',self.units
     def get(self,name):
         for i in range(len(self.cols)):
             if name == self.names[i]:
                 return self.cols[i]
-    def psave(self,filename):
+    def pdump(self,filename):
         pickle.dump(self,open(filename,"wb"))
     def pload(self,filename):
         return pickle.load(open(filename,"rb"))
@@ -42,8 +44,7 @@ if __name__ == "__main__":
     a.get('y')[0] = -1.0
     print x[0],y[0],z[0]
     print a.get('x')[0],a.get('y')[0],a.get('z')[0]
-    pickle.dump(a,open("a.bin","wb"))
-    b = pickle.load(open( "a.bin", "rb" ))
+    a.pdump("a.bin")
+    b = a.pload("a.bin")
     print b.get('x')[0],b.get('y')[0],b.get('z')[0]
-
 
