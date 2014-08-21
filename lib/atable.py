@@ -6,6 +6,7 @@
 
 import sys, os
 import numpy as np
+import matplotlib.pyplot as plt
 #import pickle
 import cPickle as pickle
 
@@ -15,7 +16,7 @@ class ATable(object):
     """
     def __init__(self,cols=[],names=[],types=[],units=[]):
         self.n       = 0
-        self.version = "20-aug-2014"
+        self.version = "21-aug-2014"
         self.cols    = cols
         self.names   = names
         self.types   = types
@@ -28,6 +29,16 @@ class ATable(object):
         for i in range(len(self.cols)):
             if name == self.names[i]:
                 return self.cols[i]
+    def plotter(self,x,y,title=None,filename=None):
+        """simple plotter of multiple columns against one column"""
+        # if filename: plt.ion()
+        fig = plt.figure()
+        ax1 = fig.add_subplot(1,1,1)
+        for yi in y:
+            ax1.plot(x,yi)
+        if title:    ax1.set_title(title)
+        if filename: fig.savefig(filename)
+        plt.show()
     def pdump(self,filename):
         pickle.dump(self,open(filename,"wb"))
     def pload(self,filename):
