@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 #
 #
+#    simple container to put all of the ADMIT, BDP and AT in one file for testing
 #
 import sys, os
 import copy
@@ -210,6 +211,12 @@ class AT_cubestats(AT):
         a1 = a0.pload('cubestats.bin')
         print a1.names
         self.bdp_out[0].table = a1
+        freq = a1.get('frequency')/1e9
+        noise = a1.get('medabsdevmed')*1000
+        signal = a1.get('max')*1000
+        print "Freq range : %g %g GHz" % (freq.min(), freq.max())
+        print "Noise range : %g %g mJy/beam" % (noise.min(), noise.max())
+        print "Peak Signal range : %g %g mJy/beam" % (signal.min(), signal.max())
         if self.dop:
             pname = self.bdp_out[0].filename + ".pb"
             print "AT_cubestats: writing ",pname
