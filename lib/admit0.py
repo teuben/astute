@@ -35,6 +35,10 @@ class ADMIT(object):
         """
         print "ADMIT: set" 
         if a != None:  print 'a: ',a
+    def check(self):
+        """ check all the BDP's in this admit, and see if they have name collisions
+        of their BDPs, and identify orphaned branches of the tree
+        """
     def get(self,key):
         """get a global ADMIT parameter"""
         print "ADMIT: get=%s" % key
@@ -74,11 +78,12 @@ class BDP(object):
     def __init__(self, name='none', filename='foobar'):
         self.name     = name
         self.filename = filename
+        self.data     = {}
+        #
         self.updated  = False
         self.deps     = []
         self.derv     = []
         self.task     = []
-        self.data     = {}
         if _debug: print "BDP(%s) " % name
     def show(self):
         return self.name
