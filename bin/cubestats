@@ -10,10 +10,10 @@
 #
 
 #   from astute
-import astute, alines, parfile
+import astute, parfile
 import sys, os
-import numpy  as np   
-
+import numpy as np   
+#
 from astropy.table import Table
 
 import atable
@@ -27,10 +27,18 @@ a = astute.Astute()
 p = parfile.ParFile()
 
 #    set parameters
-c_im   = 'im/cim'
+
+if p.has('in'):
+    c_im = p.get('in')
+else:
+    c_im = 'im/cim'
+
 
 #    debug
 print "ARGV: ",sys.argv
+
+use_astropy = False
+use_pickle  = True
 
 c1 = 'max'
 c2 = 'sigma'
@@ -38,7 +46,7 @@ c3 = 'medabsdevmed'
 s  = '|'
 new1 = '\n#|int|double|real|real|\n#||Ghz|Jy/beam|Jy/beam|'
 
-print "casa::imstat"
+print "casa::imstat(%s)" % c_im
 stats = imstat(c_im,axes=[0,1],logfile='imstat.logfile',append=False)
 if True:
    # strange we need to do it this way.. imstat::s doesn't have them, the logfile does
@@ -51,11 +59,15 @@ if True:
    fr = (ch-p-1)*d + v
    col_names = (s+'channel',s+'frequency',s+c1,s+c2,s+c3+s+new1)
    col_data = [ ch, fr, stats[c1], stats[c2], stats[c3]] 
-   t = Table(col_data, names=col_names, copy=True)
-   # t.write('imstat.astropy.tab',format='ascii')
-   t.write('imstat.astropy.tab',format='ascii.commented_header')
-   a = atable.ATable(col_data, col_names)
-   a.psave('cubestats.bin')
+   if use_astropy:
+     t = Table(col_data, names=col_names, copy=True)
+     # t.write('imstat.astropy.tab',format='ascii')
+     t.write('imstat.astropy.tab',format='ascii.commented_header')
+     # now read the logfile as a table
+   if use_pickle:
+     at = atable.ATable(col_data, ['channel','frequency',c1,c2,c3])
+     at.pdump('cubestats.bin')
+
 
 # ascii.commented_header
 # header_start
