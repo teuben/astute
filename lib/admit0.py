@@ -7,6 +7,8 @@ import sys, os
 import copy
 import cPickle as pickle
 import atable
+import matplotlib.pyplot as plt
+import numpy as np
 
 _debug = False
 _debug = True
@@ -24,6 +26,7 @@ class ADMIT(object):
         return isinstance(other, ADMIT) and vars(self) == vars(other)
     def add(self, b):
         """Add a BDP to the stack of BDP's this ADMIT pipeline contains"""
+        # note there needs to be a cleanup/delete/pop option here
         b1 = copy.deepcopy(b)
         self.bdps.append(b1)
     def set(self,a=None, b=1, c=[]):
@@ -120,10 +123,11 @@ class AT(object):
     keys    = ['alpha', 'beta', 'gamma']
     def __init__(self,name='none',bdp_in=[],bdp_out=[]):
         if _debug: print "AT.init(%s)" % name
-        self.name    = name
-        self.dop     = True
-        self.bdp_in  = bdp_in
-        self.bdp_out = bdp_out
+        self.name      = name
+        self.do_pickle = True
+        self.do_plot   = True
+        self.bdp_in    = bdp_in
+        self.bdp_out   = bdp_out
         for b2 in bdp_out:
             b2.task.append(self)
             for b1 in bdp_in:
@@ -174,7 +178,7 @@ class AT_ingest(AT):
             print "AT_ingest: no BDP_in expected"
         if len(self.bdp_out) != 1:
             print "AT_ingest: only one BPD_out expected"
-        if self.dop:
+        if self.do_pickle:
             pname = self.bdp_out[0].filename + ".pb"
             print "AT_ingest: writing ",pname
             pickle.dump(self.bdp_out[0],open(pname,"wb")) 
@@ -202,6 +206,22 @@ class AT_cubestats(AT):
         AT.__init__(self,self.name,bdp_in,bdp_out)
         if _debug: print "AT_cubestats.init"
     def run(self):
+        def plotter(x,y,dy,filename=None):
+            print 'plotter:',x.dtype
+            plt.ion()
+            fig = plt.figure()
+            ax1 = fig.add_subplot(1,1,1)
+            x0 = np.log(x)
+            y1 = np.log(y)
+            y2 = np.log(dy)
+            ax1.plot(x,y1)
+            ax1.plot(x,y2)
+            ax1.set_title('CubeStats')
+            plt.show()
+            if not filename:
+                fig.savefig('cubestats.png')
+            else:
+                fig.savefig(filename)
         if _debug: print "AT_cubestats.run"
         if not AT.run(self):
             return False
@@ -211,18 +231,21 @@ class AT_cubestats(AT):
         a1 = a0.pload('cubestats.bin')
         print a1.names
         self.bdp_out[0].table = a1
-        freq = a1.get('frequency')/1e9
-        noise = a1.get('medabsdevmed')*1000
-        signal = a1.get('max')*1000
+        freq   = a1.get('frequency')/1e9        # in GHz now
+        noise  = a1.get('medabsdevmed')*1000    # in mJy/beam now
+        signal = a1.get('max')*1000             # in mJy/beam now
+        print 'freq type ',freq.dtype
         print "Freq range : %g %g GHz" % (freq.min(), freq.max())
         print "Noise range : %g %g mJy/beam" % (noise.min(), noise.max())
         print "Peak Signal range : %g %g mJy/beam" % (signal.min(), signal.max())
-        if self.dop:
-            pname = self.bdp_out[0].filename + ".pb"
+        filename = self.bdp_out[0].filename 
+        if self.do_pickle:
+            pname = filename + ".pb"
             print "AT_cubestats: writing ",pname
             pickle.dump(self.bdp_out[0],open(pname,"wb")) 
-
-
+        if self.do_plot:
+            plotter(freq,signal,noise,filename+'.png')
+            
 
 class AT_combine(AT):
     name = 'COMBINE'
@@ -261,7 +284,7 @@ class AT_flow(AT):
         # specialized work can commence here
         print "  work_flow: %d -> %d" % (len(self.bdp_in),len(self.bdp_out))
         #
-        if self.dop:
+        if self.do_pickle:
             pname = self.bdp_out[0].filename + ".pb"
             print "AT_ingest: writing ",pname
             pickle.dump(self.bdp_out[0],open(pname,"wb")) 
