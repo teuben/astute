@@ -75,6 +75,7 @@ class BDP(object):
         self.deps     = []
         self.derv     = []
         self.task     = []
+        self.data     = {}
         if _debug: print "BDP(%s) " % name
     def show(self):
         return self.name
@@ -230,7 +231,7 @@ class AT_cubestats(AT):
         a0 = atable.ATable()
         a1 = a0.pload('cubestats.bin')
         print a1.names
-        self.bdp_out[0].table = a1
+        self.bdp_out[0].data['table'] = a1
         freq   = a1.get('frequency')/1e9        # in GHz now
         noise  = a1.get('medabsdevmed')*1000    # in mJy/beam now
         signal = a1.get('max')*1000             # in mJy/beam now
@@ -244,8 +245,38 @@ class AT_cubestats(AT):
             print "AT_cubestats: writing ",pname
             pickle.dump(self.bdp_out[0],open(pname,"wb")) 
         if self.do_plot:
-            plotter(freq,signal,noise,filename+'.png')
+            # plotter(freq,signal,noise,filename+'.png')
+            a1.plotter(freq,[np.log(signal),np.log(noise)],'CubeStats',filename+'.png')
             
+class AT_cubespectrum(AT):
+    name = 'CUBESPECTRUM'
+    version = '1.0'
+    keys = []
+    def __init__(self,bdp_in=[],bdp_out=[]):
+        AT.__init__(self,self.name,bdp_in,bdp_out)
+        if _debug: print "AT_cubespectrum.init"
+    def run(self):
+        if _debug: print "AT_cubespectrum.run"
+        if not AT.run(self):
+            return False
+        # specialized work can commence here
+        os.system('cubespectrum in=%s')
+        a0 = atable.ATable()
+        a1 = a0.pload('cubespectrum.bin')
+        print a1.names
+        self.bdp_out[0].data['table'] = a1
+        freq   = a1.get('frequency')/1e9        # in GHz now
+        data   = a1.get('data')*1000            # in mJy/beam now
+        print 'freq type ',freq.dtype
+        print "Freq range : %g %g GHz" % (freq.min(), freq.max())
+        print "Data range : %g %g mJy/beam" % (data.min(), data.max())
+        filename = self.bdp_out[0].filename 
+        if self.do_pickle:
+            pname = filename + ".pb"
+            print "AT_cubespectrum: writing ",pname
+            pickle.dump(self.bdp_out[0],open(pname,"wb")) 
+        if self.do_plot:
+            a1.plotter(freq,[data],'CubeSpectrum',filename+'.png')
 
 class AT_combine(AT):
     name = 'COMBINE'
@@ -320,26 +351,5 @@ def pipeline(bdps):
     for b in bdps:
         b.run()
 
-def try1a(do_show=True, do_dep=True):
-    _debug = True
-    print "TRY1a"
-    #  start a new ADMIT
-    a = ADMIT("TRY1a")
-
-    #  b0 is the BDP that simply contains the FITS file we're working on
-    b0 = BDP('fits','im/fits')               ; a.add(b0)
-    a1 = AT_ingest([],[b0])      
-    a1.run()
-
-    b1 = BDP('cube','im/cim')                ; a.add(b1)
-    a2 = AT_flow([b0],[b1])
-    a2.run()
-
-    b2 = BDP('cubestats','im/cubestats')
-    a3 = AT_cubestats([b1],[b2])             ; a.add(b2)
-    a3.run()
-
-    a.pdump()
-
 if __name__ == "__main__":
-    a = try1a()
+    print "No __main__ here"
