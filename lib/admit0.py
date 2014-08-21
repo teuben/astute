@@ -65,6 +65,9 @@ class ADMIT(object):
             pname = name
         print "ADMIT: pickle saving %s" % pname
         pickle.dump(self,open(pname,"wb"))
+    def pload(self,pname):
+        print "ADMIT: pickle loading %s" % pname
+        return pickle.load(open(pname,"rb"))
 
 
 class BDP(object):
