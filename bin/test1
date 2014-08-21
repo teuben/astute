@@ -1,0 +1,31 @@
+#! /usr/bin/env python
+#
+#  testing a piece of an ADMIT pipeline
+#
+
+import admit0 as admit
+
+
+def try1a(do_show=True, do_dep=True):
+    _debug = True
+    print "TRY1a"
+    #  start a new ADMIT
+    a = admit.ADMIT("TRY1a")
+
+    #  b0 is the BDP that simply contains the FITS file we're working on
+    b0 = admit.BDP('fits','im/fits')               ; a.add(b0)
+    a1 = admit.AT_ingest([],[b0])      
+    a1.run()
+
+    b1 = admit.BDP('cube','im/cim')                ; a.add(b1)
+    a2 = admit.AT_flow([b0],[b1])
+    a2.run()
+
+    b2 = admit.BDP('cubestats','im/cubestats')
+    a3 = admit.AT_cubestats([b1],[b2])             ; a.add(b2)
+    a3.run()
+
+    a.pdump()
+
+if __name__ == "__main__":
+    try1a()
