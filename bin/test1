@@ -1,3 +1,4 @@
+#! /usr/bin/env casarun
 #! /usr/bin/env python
 #
 #  testing a piece of an ADMIT pipeline
@@ -14,7 +15,7 @@
 #
 #      in "mkcd $CASAPATH/lib/casapy/lib"  :   ln -s ../../../share/tcl8.4 ; ln -s ../../../share/tk8.4
 #                               
-
+#      Running it via 'casarun' solves this problem.
 
 import admit0 as admit
 
@@ -29,22 +30,25 @@ def try1a(do_show=True, do_dep=True):
     b1 = admit.BDP('fits','im/fits')               
     a1 = admit.AT_ingest([],[b1])      
     a1.run()
-    a.add(b1)
 
     b2 = admit.BDP('cube','im/cim')                
     a2 = admit.AT_flow([b1],[b2])
+    a2.set(a=1)
     a2.run()
-    a.add(b2)
 
     b3 = admit.BDP('cubestats','im/cubestats')
     a3 = admit.AT_cubestats([b2],[b3])             
     a3.run()
-    a.add(b3)
 
     b4 = admit.BDP('cubespectrum','im/cubespectrum')
     a4 = admit.AT_cubespectrum([b2],[b4])
     a4.run()
+
+    # add them reverse order to be funny
     a.add(b4)
+    a.add(b3)
+    a.add(b2)
+    a.add(b1)
 
     a.pdump()
 
