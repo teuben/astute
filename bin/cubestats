@@ -14,7 +14,10 @@ import astute, parfile
 import sys, os
 import numpy as np   
 #
-from astropy.table import Table
+try:
+    from astropy.table import Table
+except:
+    print "no astropy"
 
 import atable
 
