@@ -1,7 +1,20 @@
 #! /usr/bin/env python
 #
 #  testing a piece of an ADMIT pipeline
+#  it depends on having run 'getdata' in for example 'w_1_c'  (n253 benchmark)
 #
+#  e.g.
+#      cd $ASTUTE/data
+#      mkdir w_1_c  
+#      cd w_1_c
+#      pipesetup project=w_1_c
+#      getdata
+#      test1                                      (ideally just this script)
+#      /usr/bin/python $ASTUTE/bin/test1          (currently needed [sic] unless you fix tcl/tk link)
+#
+#      in $CASAPATH/lib/casapy/lib  :   ln -s ../../../share/tcl8.4 ; ln -s ../../../share/tk8.4
+#                               
+
 
 import admit0 as admit
 
@@ -13,17 +26,20 @@ def try1a(do_show=True, do_dep=True):
     a = admit.ADMIT("TRY1a")
 
     #  b0 is the BDP that simply contains the FITS file we're working on
-    b0 = admit.BDP('fits','im/fits')               ; a.add(b0)
+    b0 = admit.BDP('fits','im/fits')               
     a1 = admit.AT_ingest([],[b0])      
     a1.run()
+    a.add(b0)
 
-    b1 = admit.BDP('cube','im/cim')                ; a.add(b1)
+    b1 = admit.BDP('cube','im/cim')                
     a2 = admit.AT_flow([b0],[b1])
     a2.run()
+    a.add(b1)
 
     b2 = admit.BDP('cubestats','im/cubestats')
-    a3 = admit.AT_cubestats([b1],[b2])             ; a.add(b2)
+    a3 = admit.AT_cubestats([b1],[b2])             
     a3.run()
+    a.add(b2)
 
     a.pdump()
 
