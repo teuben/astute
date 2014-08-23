@@ -142,19 +142,26 @@ class BDP_file(BDP):
     def __init__(self, filename=None, filetype=None):
         BDP.__init__(self,"FILE", filename, filetype)
 
-
+class BDP_table(BDP):
+    """
+    Contains a reference to a file
+    """
+    def __init__(self, filename=None, filetype=None):
+        BDP.__init__(self,"FILE", filename, filetype)
+        self.table = []
 
 class AT(object):
     name    = 'generic'
     version = '1.0'
-    keys    = ['alpha', 'beta', 'gamma']
+    keys    = []
     def __init__(self,name='none',bdp_in=[],bdp_out=[]):
-        if _debug: print "AT.init(%s)" % name
+        if _debug: print "AT(%s,[%d],[%d])" % (name,len(bdp_in),len(bdp_out))
         self.name      = name
         self.do_pickle = True
         self.do_plot   = True
         self.bdp_in    = bdp_in
         self.bdp_out   = bdp_out
+        self.keyvals   = {}
         for b2 in bdp_out:
             b2.task.append(self)
             for b1 in bdp_in:
@@ -163,7 +170,11 @@ class AT(object):
     def show(self):
         return self.name
     def run(self):
-        if _debug: print "AT.run(%s)" % self.name
+        """ run the task, but the only thing this returns is a True or False
+        to designate if the BDP's were up to date.  Returns True if the real
+        AT_xxx needs to run.
+        """
+        # if _debug: print "AT.run(%s)" % self.name
         do_nothing = True
         for b2 in self.bdp_out:
             if not b2.updated: do_nothing = False
@@ -173,10 +184,21 @@ class AT(object):
         for b2 in self.bdp_out:
             b2.updated = True
         return True
-    def set(self,keyval):
+    def set(self,keyvals):
+        kv = keyvals.split('=')
+        self.setkv({ kv[0] : kv[1] })
+    def setkv(self,keyvals):
+        """set a task parameter"""
+        # store them, but should also check if valid
+        print "set keys: ",self.keys
+        for k in keyvals.keys():
+            self.keyvals[k] = keyvals[k]
+        # mark all bdp's that they have changed information
         for b2 in self.bdp_out:
             if b2.updated:
                 b2.update(False)
+    def get(self, key):
+        return self.keyvals[key]
     def rerun(self):
         if _debug: print "AT.rerun(%s)" % self.name
     def report(self):
@@ -187,13 +209,43 @@ class AT(object):
         if len(self.bdp_out) > 0:
             print "  BDP_OUT:"
             for b in self.bdp_out:  print "    ",b.show()
+    def pdump(self, ext='p'):
+        for b in self.bdp_out:
+            pname = b.filename + "." + ext
+            print "writing %s" % pname
+            pickle.dump(b,open(pname,"wb"))
+    def pload(self, ext='p', filename=None):
+        """ is this sane? """
+        if filename:
+            self.bdp_in[0] = pickle.load(open(filename,"rb"))
+            return self.bdp_in[0]
+        else:
+            for b in self.bdp_in:
+                pname = b.filename + '.' + ext
+                print "reading ",pname
+                b = pickle.load(open(pname,"rb"))
 
+
+class AT_simple(AT):
+    """
+    A simple AT_xxx class with only the basic things present
+    """
+    name    = 'SIMPLE'
+    version = '1.0'
+    keys    = []
+    def __init__(self,bdp_in=[],bdp_out=[]):
+        AT.__init__(self,self.name,bdp_in,bdp_out)
+    def run(self):
+        if not AT.run(self): return False
+        # do your work:
+        #     self.bdp_in[] and self.bdp_out[] contain BDP's 
+        #     ... contain parameters
 
 class AT_file(AT):
     """ Create a simple container for a file"""
-    name = 'FILE'
+    name    = 'FILE'
     version = '1.0'
-    keys = ['type']
+    keys    = ['type']
     def __init__(self,bdp_in=[],bdp_out=[]):
         AT.__init__(self,self.name,bdp_in,bdp_out)
         if _debug: print "AT_file.init"
@@ -207,14 +259,12 @@ class AT_file(AT):
         if len(self.bdp_out) != 1:
             print "AT_file: only one BPD_out expected, only first one saved"
         if self.do_pickle:
-            pname = self.bdp_out[0].filename + ".pb"
-            print "AT_file: writing ",pname
-            pickle.dump(self.bdp_out[0],open(pname,"wb")) 
+            self.pdump()
 
 class AT_ingest(AT):
-    name = 'INGEST'
+    name    = 'INGEST'
     version = '1.0'
-    keys = []
+    keys    = []
     def __init__(self,bdp_in=[],bdp_out=[]):
         AT.__init__(self,self.name,bdp_in,bdp_out)
         if _debug: print "AT_ingest.init"
@@ -223,20 +273,18 @@ class AT_ingest(AT):
         if not AT.run(self):
             return False
         # specialized work can commence here
-        if len(self.bdp_in) > 0:
-            print "AT_ingest: no BDP_in expected"
+        if len(self.bdp_in) != 1:
+            print "AT_ingest: only one BDP_in expected"
         if len(self.bdp_out) != 1:
             print "AT_ingest: only one BPD_out expected"
         if self.do_pickle:
-            pname = self.bdp_out[0].filename + ".pb"
-            print "AT_ingest: writing ",pname
-            pickle.dump(self.bdp_out[0],open(pname,"wb")) 
+            self.pdump()
 
 
 class AT_cube(AT):
-    name = 'CUBE'
+    name    = 'CUBE'
     version = '1.0'
-    keys = []
+    keys    = []
     def __init__(self,bdp_in=[],bdp_out=[]):
         AT.__init__(self,self.name,bdp_in,bdp_out)
         if _debug: print "AT_cube.init"
@@ -256,22 +304,6 @@ class AT_cubestats(AT):
         AT.__init__(self,self.name,bdp_in,bdp_out)
         if _debug: print "AT_cubestats.init"
     def run(self):
-        def plotter(x,y,dy,filename=None):
-            print 'plotter:',x.dtype
-            plt.ion()
-            fig = plt.figure()
-            ax1 = fig.add_subplot(1,1,1)
-            x0 = np.log(x)
-            y1 = np.log(y)
-            y2 = np.log(dy)
-            ax1.plot(x,y1)
-            ax1.plot(x,y2)
-            ax1.set_title('CubeStats')
-            plt.show()
-            if not filename:
-                fig.savefig('cubestats.png')
-            else:
-                fig.savefig(filename)
         if _debug: print "AT_cubestats.run"
         if not AT.run(self):
             return False
@@ -281,6 +313,7 @@ class AT_cubestats(AT):
         a1 = a0.pload('cubestats.bin')
         print a1.names
         self.bdp_out[0].data['table'] = a1
+        self.table = a1
         freq   = a1.get('frequency')/1e9        # in GHz now
         noise  = a1.get('medabsdevmed')*1000    # in mJy/beam now
         signal = a1.get('max')*1000             # in mJy/beam now
@@ -290,11 +323,8 @@ class AT_cubestats(AT):
         print "Peak Signal range : %g %g mJy/beam" % (signal.min(), signal.max())
         filename = self.bdp_out[0].filename 
         if self.do_pickle:
-            pname = filename + ".pb"
-            print "AT_cubestats: writing ",pname
-            pickle.dump(self.bdp_out[0],open(pname,"wb")) 
+            self.pdump()
         if self.do_plot:
-            # plotter(freq,signal,noise,filename+'.png')
             a1.plotter(freq,[np.log(signal),np.log(noise)],'CubeStats',filename+'.png')
             
 class AT_cubespectrum(AT):
@@ -321,9 +351,7 @@ class AT_cubespectrum(AT):
         print "Data range : %g %g mJy/beam" % (data.min(), data.max())
         filename = self.bdp_out[0].filename 
         if self.do_pickle:
-            pname = filename + ".pb"
-            print "AT_cubespectrum: writing ",pname
-            pickle.dump(self.bdp_out[0],open(pname,"wb")) 
+            self.pdump()
         if self.do_plot:
             a1.plotter(freq,[data],'CubeSpectrum',filename+'.png')
 
@@ -358,7 +386,6 @@ class AT_flow(AT):
         set_vals=self.set.im_func.func_defaults
         print 'keys:',set_keys
         print 'vals:',set_vals
-    # note the deliberate bug to not implement the .run() here
     def run(self):
         if _debug: print "AT_flow.run"
         if not AT.run(self):
@@ -367,9 +394,7 @@ class AT_flow(AT):
         print "  work_flow: %d -> %d" % (len(self.bdp_in),len(self.bdp_out))
         #
         if self.do_pickle:
-            pname = self.bdp_out[0].filename + ".pb"
-            print "AT_ingest: writing ",pname
-            pickle.dump(self.bdp_out[0],open(pname,"wb")) 
+            self.pdump()
     def set(self,a=None, b=1, c=[], d='d'):
         """AT.set() is the way parameters are passed"""
         print "AT.set"
@@ -426,17 +451,28 @@ if __name__ == "__main__":
     #
     b0 = BDP_file("test0","fits")
     a0 = AT_file([],[b0])
+    a0.set('a=1')
     a0.run()
+    a.add(b0)
     #
-    if True:
+    Q1 = True
+    #Q1 = False
+    Q2 = False
+    Q2 = True
+    if Q1:
         b1 = BDP_buckett("test1","cube")
         a1 = AT_ingest([b0],[b1])
         a1.run()
+        a.add(b1)
         #
-        if True:
+        if Q2:
             n = 10
             b2 = range(n)
             for i in range(n):
                 id = "linecube_%d" % i
                 b2[i] = BDP_buckett(id,"cube")
             a2 = AT_flowN([b1],b2)
+            a2.run()
+            for i in range(n):
+                a.add(b2[i])
+    a.pdump('admit1.p')
