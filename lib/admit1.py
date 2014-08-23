@@ -3,6 +3,8 @@
 #
 #    simple container to put all of the ADMIT, BDP and AT in one file for testing
 #
+#  no 'import casa' or so allowed here. All package specific work needs to be delegated
+#
 import sys, os
 import copy
 import cPickle as pickle
@@ -75,18 +77,19 @@ class ADMIT(object):
 
 
 class BDP(object):
-    def __init__(self, name='none', filename='foobar'):
+    def __init__(self, name='none',filename=None, filetype=None):
         self.name     = name
         self.filename = filename
+        self.filetype = filetype
         self.data     = {}
         #
         self.updated  = False
         self.deps     = []
         self.derv     = []
         self.task     = []
-        if _debug: print "BDP(%s) " % name
+        if _debug: print "BDP(%s,%s,%s) " % (name,filename,filetype)
     def show(self):
-        return self.name
+        return self.filename
     def update(self,new_state):
         if _debug: print "UPDATE: %s" % self.name
         self.updated = new_state
@@ -94,7 +97,7 @@ class BDP(object):
             d.update(new_state)
     def depends_on(self,other):
         if other == None: return
-        if _debug: print 'BDP %s depends on %s' % (self.name,other.show())
+        if _debug: print 'BDP %s depends on %s' % (self.filename,other.show())
         self.deps.append(other)
         other.derv.append(self)
     def report(self):
@@ -122,9 +125,24 @@ class BDP(object):
         self.updated = True
         return True
 
-def DependsOn(a,b):
-    """ b depends on a """
-    b.depends_on(a)
+class BDP_buckett(BDP):
+    """
+    This BDP is a random collection of things you find useful. Less rigurous testing
+    and verfication on valid data is done here, and gets you going quickly for
+    using is.
+    """
+    def __init__(self, filename=None, filetype=None):
+        BDP.__init__(self,"BUCKETT",filename,filetype)
+
+
+class BDP_file(BDP):
+    """
+    Contains a reference to a file
+    """
+    def __init__(self, filename=None, filetype=None):
+        BDP.__init__(self,"FILE", filename, filetype)
+
+
 
 class AT(object):
     name    = 'generic'
@@ -171,6 +189,28 @@ class AT(object):
             for b in self.bdp_out:  print "    ",b.show()
 
 
+class AT_file(AT):
+    """ Create a simple container for a file"""
+    name = 'FILE'
+    version = '1.0'
+    keys = ['type']
+    def __init__(self,bdp_in=[],bdp_out=[]):
+        AT.__init__(self,self.name,bdp_in,bdp_out)
+        if _debug: print "AT_file.init"
+    def run(self):
+        if _debug: print "AT_file.run"
+        if not AT.run(self):
+            return False
+        # specialized work can commence here
+        if len(self.bdp_in) > 0:
+            print "AT_file: no BDP_in expected, ignored"
+        if len(self.bdp_out) != 1:
+            print "AT_file: only one BPD_out expected, only first one saved"
+        if self.do_pickle:
+            pname = self.bdp_out[0].filename + ".pb"
+            print "AT_file: writing ",pname
+            pickle.dump(self.bdp_out[0],open(pname,"wb")) 
+
 class AT_ingest(AT):
     name = 'INGEST'
     version = '1.0'
@@ -191,6 +231,7 @@ class AT_ingest(AT):
             pname = self.bdp_out[0].filename + ".pb"
             print "AT_ingest: writing ",pname
             pickle.dump(self.bdp_out[0],open(pname,"wb")) 
+
 
 class AT_cube(AT):
     name = 'CUBE'
@@ -287,6 +328,7 @@ class AT_cubespectrum(AT):
             a1.plotter(freq,[data],'CubeSpectrum',filename+'.png')
 
 class AT_combine(AT):
+    """ combine two BDPs into one"""
     name = 'COMBINE'
     version = '1.0'
     keys = []
@@ -305,6 +347,7 @@ class AT_combine(AT):
 
 
 class AT_flow(AT):
+    """ change one BDP into another one"""
     name = 'FLOW'
     version = '1.0'
     keys = []
@@ -335,6 +378,7 @@ class AT_flow(AT):
         print "AT.get"
 
 class AT_flow2(AT):
+    """ split one BDP into two """
     name = 'FLOW2'
     version = '2.0'
     keys = []
@@ -349,6 +393,22 @@ class AT_flow2(AT):
         # specialized work can commence here
         print "  work_flow2: %d -> %d" % (len(self.bdp_in),len(self.bdp_out))
 
+class AT_flowN(AT):
+    """Split one BDP into N BDPs"""
+    name = 'FLOWN'
+    version = '1.0'
+    keys = []
+    def __init__(self,bdp_in=[],bdp_out=[]):
+        if _debug: print "AT_flowN.init"
+        AT.__init__(self,self.name,bdp_in,bdp_out)
+    # note the deliberate bug to not implement the .run() here
+    def run(self):
+        if _debug: print "AT_flowN.run"
+        if not AT.run(self):
+            return False
+        # specialized work can commence here
+        print "  work_flowN: %d -> %d" % (len(self.bdp_in),len(self.bdp_out))
+
 
 # running a series of BDP's is not right if BDP's can have different state
 # but this is one way to run the pipeline.
@@ -360,4 +420,23 @@ def pipeline(bdps):
         b.run()
 
 if __name__ == "__main__":
-    print "No __main__ here"
+    print "TESTING admit1.py:"
+    #
+    a = ADMIT("TRY1a")
+    #
+    b0 = BDP_file("test0","fits")
+    a0 = AT_file([],[b0])
+    a0.run()
+    #
+    if True:
+        b1 = BDP_buckett("test1","cube")
+        a1 = AT_ingest([b0],[b1])
+        a1.run()
+        #
+        if True:
+            n = 10
+            b2 = range(n)
+            for i in range(n):
+                id = "linecube_%d" % i
+                b2[i] = BDP_buckett(id,"cube")
+            a2 = AT_flowN([b1],b2)
