@@ -85,7 +85,7 @@ antennaHorizontalSpacing = 0.05
 xstartTitle = 0.07
 ystartTitle = 0.955
 xstartPolLabel = 0.05
-ystartOverlayLegend = 0.933
+ystartOverlayLegend = 0.931
 opaqueSky = 270. # Kelvin, used for scaling TebbSky
 
 developerEmail = "thunter@nrao.edu"
@@ -150,8 +150,8 @@ def makeplot(figfile,msFound,msAnt,overlayAntennas,pages,pagectr,density,
               print "Making directory = ", directory
               os.system("mkdir -p %s" % directory)
   if (debug):
-      print "makeplot(%d): pagectr=%d, len(pages)=%d, len(spwsToPlot)=%d, pages(ANT,SPW,TIME,AP)=" % (locationCalledFrom,
-                                                            pagectr, len(pages),len(spwsToPlot)), pages
+      print "makeplot(%d): pagectr=%d, len(pages)=%d, len(spwsToPlot)=%d, len(figfile)=%d, figfileNumber=%d, pages(ANT,SPW,TIME,AP)=" % (locationCalledFrom,
+                                                            pagectr, len(pages),len(spwsToPlot), len(figfile), figfileNumber), pages
   if (pages[pagectr][PAGE_SPW] >= len(spwsToPlot)):
       # necessary for test86: overlay='spw' of spectral scan dataset.  to avoid indexing beyond the
       # end of the array in the the case that the final frame is of a baseband with n spw, and
@@ -463,19 +463,34 @@ def drawOverlayTimeLegends(xframe,firstFrame,xstartTitle,ystartTitle,caltable,ti
         # support multi-fields with overlay='time'
         uTPFPS = []  # stands for uniqueTimesPerFieldPerSpw
         uTPFPStimerange = []
+        # Find all timerange integers for all fields, not just the ones that were plotted
+        allTimeranges = []
+        for f in range(len(uniqueTimesPerFieldPerSpw[ispwInCalTable])):
+            for t in uniqueTimesPerFieldPerSpw[ispwInCalTable][f]:
+                if (t in timerangeListTimes):
+                    allTimeranges.append(list(timerangeListTimes).index(t))
         for f in fieldIndicesToPlot:
+#            print "uniqueTimesPerFieldPerSpw[spw=%d][field=%d] = " % (ispwInCalTable,f), uniqueTimesPerFieldPerSpw[ispwInCalTable][f]
             for t in uniqueTimesPerFieldPerSpw[ispwInCalTable][f]:
                 matched, mymatch = sloppyMatch(t, timerangeListTimes, solutionTimeThresholdSeconds,
                                                myprint=debugSloppyMatch, whichone=True)
-#                matched, mymatch = sloppyMatch(t, timerangeListTimes, solutionTimeThresholdSeconds,
-#                                               mytime, scansToPlot, scansForUniqueTimes,
-#                                               myprint=debugSloppyMatch, whichone=True)
                 if (matched):
                     uTPFPS.append(t)
                     uTPFPStimerange.append(mymatch)
+
+        allTimeranges = list(np.sort(np.unique(allTimeranges)))
         idx = np.argsort(uTPFPS)
         uTPFPStimerange = np.array(uTPFPStimerange)[idx]
         uTPFPS = np.sort(uTPFPS)
+        if (debug):
+            print "uTPFPS = ", np.array(uTPFPS, dtype='int')
+            print "uTPFPStimerange = ", np.array(uTPFPStimerange, dtype='int')
+            print "scansForUniqueTimes = ", scansForUniqueTimes
+            print "timerangeList = ", timerangeList
+            print "allTimeranges = ", allTimeranges
+            print "fieldsToPlot = ", fieldsToPlot
+            print "fieldIndex = ", fieldIndex
+            print "fieldsIndicesToPlot = ", fieldIndicesToPlot
         timeFormat = 3  # HH:MM:SS
         maxTimesAcross = maxTimesAcrossTheTop
         if (firstFrame == 111):
@@ -483,9 +498,9 @@ def drawOverlayTimeLegends(xframe,firstFrame,xstartTitle,ystartTitle,caltable,ti
 
         for a in range(len(uTPFPS)):
             legendString = utstring(uTPFPS[a],timeFormat)
-            if (debug): print "----> Defined legendString: %s" % (legendString)
+            if (debug): print "----> %d: Defined legendString: %s" % (a,legendString)
             if (a==0):
-                pb.text(xstartTitle-0.02, ystartOverlayLegend, 'UT',color='k',fontsize=mysize,
+                pb.text(xstartTitle-0.03, ystartOverlayLegend, 'UT',color='k',fontsize=mysize,
                         transform=pb.gcf().transFigure)
             if (a < maxTimesAcross):
                 x0 = xstartTitle + (a*timeHorizontalSpacing)
@@ -494,7 +509,6 @@ def drawOverlayTimeLegends(xframe,firstFrame,xstartTitle,ystartTitle,caltable,ti
                 # start going down the righthand side
                 x0 = xstartTitle + (maxTimesAcross*timeHorizontalSpacing)
                 y0 = ystartOverlayLegend-(a-maxTimesAcross)*antennaVerticalSpacing
-#            for tlt in timerangeListTimes:
             if (True):
                 if (debug):
                     print "3)checking time %d" % (a)
@@ -508,10 +522,17 @@ def drawOverlayTimeLegends(xframe,firstFrame,xstartTitle,ystartTitle,caltable,ti
             if ((len(fieldsToPlot) > 1 or len(timerangeList) > 1) and overlayAntennas==False):
                 # having overlayAntennas==False here will force all time labels to be black (as desired)
                 if (debug):
-                    print "len(uTPFPS)=%d, a=%d, len(myUniqueColor)=%d, overlayColors[%d]=%s" % (len(uTPFPS),a,len(myUniqueColor),timerangeList[uTPFPStimerange[a]],str(overlayColors[timerangeList[uTPFPStimerange[a]]]))
-                pb.text(x0, y0, legendString,color=overlayColors[timerangeList[uTPFPStimerange[a]]],fontsize=mysize,
+                    print "allTimeranges.index(%d) = %d" % (a,allTimeranges.index(uTPFPStimerange[a]))
+# old method
+#                    print "len(uTPFPS)=%d, a=%d, len(myUniqueColor)=%d, overlayColors[%d]=%s" % (len(uTPFPS),a,len(myUniqueColor),timerangeList[uTPFPStimerange[a]],str(overlayColors[timerangeList[uTPFPStimerange[a]]]))
+#                pb.text(x0, y0, legendString,color=overlayColors[timerangeList[uTPFPStimerange[a]]],fontsize=mysize,
+#                        transform=pb.gcf().transFigure)
+                    print "len(uTPFPS)=%d, a=%d, len(myUniqueColor)=%d, overlayColors[%d]=%s" % (len(uTPFPS),a,len(myUniqueColor),timerangeList[allTimeranges.index(uTPFPStimerange[a])],str(overlayColors[timerangeList[allTimeranges.index(uTPFPStimerange[a])]]))
+# old method
+#                pb.text(x0, y0, legendString,color=overlayColors[timerangeList[a]],fontsize=mysize,
+#                        transform=pb.gcf().transFigure)
+                pb.text(x0, y0, legendString,color=overlayColors[timerangeList[allTimeranges.index(uTPFPStimerange[a])]],fontsize=mysize,
                         transform=pb.gcf().transFigure)
-
             else:
                 pb.text(x0, y0, legendString,fontsize=mysize, transform=pb.gcf().transFigure)
 
@@ -702,7 +723,8 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
       print " help: print this message"
       print " interactive: if False, then figfile will run to completion automatically"
       print " lo1: specify the LO1 setting (in GHz) for the observation (used if showimage=T)"
-      print " overlay: 'antenna' or 'time', make 1 plot with different items in colors"
+      print " overlay: 'antenna','time','antenna,time','spw', or 'baseband'"
+      print "         makes 1 plot with different items in different colors"
       print " showflagged:  show the values of data, even if flagged"
       print " markersize: size of points (default=3)"
       print " ms: name of the ms for this table, in case it does not match the string in the caltable"
@@ -728,7 +750,7 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
       print " showpoints: draw points for the data (default=F for amp, T for phase)"
       print " solutionTimeThresholdSeconds: consider 2 solutions simultaneous if within this interval (default=30)"
       print " spw: must be single ID or list or range (e.g. 0~4, not the original ID)"
-      print " subplot: 11,22,32 or 42 for RowsxColumns (default=22), any 3rd digit is ignored"
+      print " subplot: 11..81,22,32 or 42 for RowsxColumns (default=22), any 3rd digit is ignored"
       print " timeranges: show only these timeranges, the first timerange being 0"
       print " vm: the result from ValueMapping('my.ms'), or as returned from a previous call to plotbandpass"
       print " xaxis: 'chan' or 'freq'"
@@ -947,7 +969,7 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
      print "Unrecognized option for overlay: only 'antenna', 'spw', 'baseband', 'time' and 'antenna,time' are supported."
      return(vm)
      
-  allowedFrames = [11,22,32,42]
+  allowedFrames = [11,21,31,41,51,61,71,81,22,32,42] # [11,22,32,42]
   if (int(subplot) > 100):
       # This will accept 111, 221, 321, 421, etc.
       subplot /= 10
@@ -956,7 +978,7 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
     print "(with an optional trailing digit that is ignored)."
     return(vm)
 
-  if (subplot == 11):
+  if ((int(subplot) % 2) == 1):
       timeHorizontalSpacing = 0.06*1.3  # *1.3 is for HH:MM:SS
   else:
       timeHorizontalSpacing = 0.05*1.3  # *1.3 is for HH:MM:SS
@@ -984,7 +1006,7 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
   # Plotting settings
   minPhaseRange = 0.2
   plotfiles = []
-  if (int(subplot) == 11):
+  if (int(subplot) % 2 == 1):
     mysize = '10'
     titlesize = 10
   elif (int(subplot) == 22 or int(subplot) == 32):
@@ -997,16 +1019,17 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
   
   if (type(subplot) == str):
       subplot = int(subplot)
-  validSubplots = [11,22,32,42]
-  if (subplot in validSubplots == False):
-      print "Invalid subplot = %d.  Valid options are: " % (subplot), validSubplots
+  if (subplot in allowedFrames == False):
+      print "Invalid subplot = %d.  Valid options are: " % (subplot), allowedFrames
       return(vm)
   xframeStart = int(subplot)*10  # i.e. 110 or 220 or 420
   firstFrame = xframeStart + 1
   lastFrame = xframeStart + (subplot/10)*(subplot%10)
-  bottomRowFrames = [111,223,224,325,326,427,428]  # try to make this more general
-  leftColumnFrames = [111,221,223,321,323,325,421,423,425,427]
-  rightColumnFrames = [111,222,224,322,324,326,422,424,426,428]
+  bottomRowFrames = [111,212,313,414,515,616,717,818,223,224,325,326,427,428]  # try to make this more general
+  leftColumnFrames = [111,211,212,311,312,313,411,412,413,414,511,512,513,514,515,611,612,613,614,615,616,
+                      711,712,713,714,715,716,717,811,812,813,814,815,816,817,818,221,223,321,323,325,421,423,425,427]
+  rightColumnFrames = [111,211,212,311,312,313,411,412,413,414,511,512,513,514,515,611,612,613,614,615,616,
+                       711,712,713,714,715,716,717,811,812,813,814,815,816,817,818,222,224,322,324,326,422,424,426,428]
   subplotCols = subplot % 10
   subplotRows = subplot/10
   ystartPolLabel = 1.0-0.04*subplotRows
@@ -1136,6 +1159,9 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
   else:
       caltableTitle = caltable
   names = tb.colnames()
+  if ('UVW' in names):
+      print "This appears to be a measurement set, not a caltable. Aborting."
+      return(vm)
   casalog.post(cmd)
   ant = tb.getcol('ANTENNA1')
   fields = tb.getcol('FIELD_ID')
@@ -1459,10 +1485,11 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
       print "%d spws in the solution = " % (len(uniqueSpwsInCalTable)), uniqueSpwsInCalTable
   else:
       print "%d spw in the solution = " % (len(uniqueSpwsInCalTable)), uniqueSpwsInCalTable
+  keepSpwsToPlot = spwsToPlot[:]
   for myspw in spwsToPlot:
       if (myspw not in uniqueSpwsInCalTable):
           print "WARNING: spw %d is not in the solution. Removing it from the list to plot." % (myspw)
-          spwsToPlot.remove(myspw)
+          keepSpwsToPlot.remove(myspw)
           if (casadef.casa_version >= '4.1.0'):
 #              nonwvrspws = list(set(range(mymsmd.nspw())).difference(set(mymsmd.wvrspws())))
               if (myspw not in range(mymsmd.nspw())):
@@ -1471,6 +1498,7 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
               elif (myspw in mymsmd.wvrspws()):
                   print "WARNING: spw %d is a WVR spw." % (myspw)
                   return
+  spwsToPlot = keepSpwsToPlot[:]
   if (spwsToPlot == []):
       print "FATAL: no spws to plot"
       return
@@ -1551,7 +1579,7 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
                 polynomialAmplitude, timesBP, antennasBP, cal_desc_idBP, spwBP]) = openBpolyFile(caltable2, debug)
               print "Sorry, but you cannot overlay two BPOLY solutions (unless caltable is a B solution and caltable2 and 3 are BPOLYs)."
           except:
-              print "Sorry, but for overlays, caltable must be a B solution, whlie caltable2 and 3 can be either type."
+              print "Sorry, but for overlays, caltable must be a B solution, while caltable2 and 3 can be either type."
           return(vm)
   except:
       print "caltable: This is a %s solution." % (VisCal)
@@ -1864,9 +1892,9 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
               print "scans to plot for spw %d: %s" % (myspw, scansToPlotPerSpw[myspw])
           if (scansToPlotPerSpw[myspw] == []):
               indexDelete = np.where(spwsToPlot==myspw)[0]
+#              print "indexDelete = ", indexDelete
               if (len(indexDelete) > 0):
-                  indexDelete = [0]
-                  spwsToPlot = np.delete(spwsToPlot, indexDelete)
+                  spwsToPlot = np.delete(spwsToPlot, indexDelete[0])
       print "spwsToPlot = ", spwsToPlot
   print "UT times to plot:  ", timerangeListTimesString
   print "MJDSecond to plot: ", str([int(b) for b in timerangeListTimes])
@@ -2689,6 +2717,8 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
               basebandSpwsToPlot += myspws
           spwsToPlot = np.intersect1d(basebandSpwsToPlot, spwsToPlot)
           print "selected basebands %s have spwsToPlot = %s" % (str(basebands),str(spwsToPlot))
+      else:
+          if (debug): print "No spws or basebands selected, will overlay all spws from all basebands."
       spwsToPlotInBaseband = [spwsToPlot]
       frequencyRangeToPlotInBaseband = [callFrequencyRangeForSpws(mymsmd, spwsToPlot, vm, debug, caltable)]
       basebands = [0]
@@ -2706,6 +2736,7 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
           spwsToPlotInBaseband.append(myspwlist)
           frequencyRangeToPlotInBaseband.append(callFrequencyRangeForSpws(mymsmd, myspwlist,vm, debug, caltable))
       print "basebands to plot = %s" % (str(basebands))
+
   firstTimeMatch = -1    # Aug 5, 2013
   if (overlaySpws or overlayBasebands):
       groupByBaseband = True
@@ -2801,6 +2832,7 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
       
       firstTimeMatch = -1
       while (mytime < nUniqueTimes):
+        finalTimerangeFlagged = False  # 04-Aug-2014
         if (debug):
             print "at top of mytime loop: mytime = %d < %d" % (mytime,nUniqueTimes)
             print "timerangeList = %s" % (str(timerangeList))
@@ -2817,6 +2849,7 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
             if (debug):
                 print "Skipping mytime %d because it is not in %s, or scan %d is not in %s" % (mytime, str(timerangeList),scansForUniqueTimes[mytime],scansToPlotPerSpw[ispw])
             mytime += 1
+            print "  0006  incrementing mytime to ", mytime
             if (mytime == nUniqueTimes and overlayTimes and overlayAntennas):
                 # added March 14, 2013 to support the case when final timerange is flagged
                 doneOverlayTime = False
@@ -2857,6 +2890,11 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
 #                if (overlaySpws):               # commented out on 2014-04-04 to match task for task01 regression
 #                    spwctr = currentSpwctr      # commented out on 2014-04-04 to match task for task01 regression
 #                break  # added on Sep 23, 2013 so that mytime gets incremented # commented out on 2014-04-04 to match task for task01 regression
+                if (overlayBasebands):
+                    # Added on 7/29/2014 to fix infinite loop in uid___A002_X652932_X20fb bandpass
+                    if (mytime == nUniqueTimes):   # +0 fixes  regression 1
+                        spwctr = len(spwsToPlot)
+                        break
             ispw = spwsToPlot[spwctr]
             if (ispw not in uniqueSpwsInCalTable):
                 print "spw %d is not in caltable=%s" % (ispw,uniqueSpwsInCalTable)
@@ -3147,6 +3185,7 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
                 (overlayAntennas and xctr+1 >= len(antennasToPlot)) or
                 ((overlaySpws or overlayBasebands) and spwctr+1 >= len(spwsToPlot))):
                 mytime += 1
+#                print "  0005  incrementing mytime to ", mytime
                 if (debug):
                     print "a) xctr=%d, Incrementing mytime to %d/%d because NO MATCH FOUND ============" % (xctr, mytime,nUniqueTimes)
             continue
@@ -3231,6 +3270,7 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
                                 )):
                     if (overlayAntennas == False or xant==antennasToPlot[-1]):  # 11-Mar-2014
                         doneOverlayTime = True  # 08-Nov-2012
+                        finalTimerangeFlagged =  True
                     if (debug):
                         print "###### set doneOverlayTime = True, xant=%d, lastUnflaggedAntennaToPlot=%d" % (xant,lastUnflaggedAntennaToPlot)
                     # draw labels
@@ -3276,19 +3316,21 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
                     finalSpwWasFlagged =  True  # inserted on 22-Apr-2014 for g25.27
                 if (myinput == 'b'):
                     redisplay = False # This prevents infinite loop when hitting 'b' on first screen when ant0 flagged. 2013-03-08
-            if (overlayAntennas==False):
+            if (overlayAntennas==False and overlayBasebands==False): # 07/30/2014  added  overlayBasebands==False
                 if (doneOverlayTime==False or overlayTimes==False):  # added on 08-Nov-2012
                     finalSpwWasFlagged = False # Added on 23-Apr-2014 for regression61
                     mytime += 1
+#                    print " 0003  incrementing mytime to ", mytime
                     if (debug):
                         print "F) all solutions flagged --> incrementing mytime to %d" % mytime
-            if (overlayAntennas):
+            if (overlayAntennas): 
                 if (xctr == firstUnflaggedAntennaToPlot):
                     firstUnflaggedAntennaToPlot += 1
                     if (firstUnflaggedAntennaToPlot >= len(antennasToPlot)):
                         firstUnflaggedAntennaToPlot = 0
-                        if not finalSpwWasFlagged: # Added on 23-Apr-2014 for regression61
+                        if not finalSpwWasFlagged: # Added first test on 23-Apr-2014 for regression61
                             mytime += 1
+#                            print " 0002  incrementing mytime to ", mytime
                     if (debug):
                         print "                     A) incrementing mytime to ", mytime
                         print "----- Resetting firstUnflaggedAntennaToPlot from %d to %d" % (firstUnflaggedAntennaToPlot-1, firstUnflaggedAntennaToPlot)
@@ -3300,7 +3342,9 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
                     if (firstUnflaggedAntennaToPlot >= len(antennasToPlot)):
                         firstUnflaggedAntennaToPlot = 0
                         if not finalSpwWasFlagged: # Added on 22-Apr-2014 for g25.27 dataset antenna='4'
-                            mytime += 1
+                            if (overlayBasebands == False or spwctr>len(spwsToPlot)):  # Added on 7/30/2014 for regression 96
+                                mytime += 1
+#                                print " 0001  incrementing mytime to ", mytime
                     if (debug):
                         print "                     B) incrementing mytime to ", mytime
                         print "----- Resetting firstUnflaggedAntennaToPlot from %d to %d" % (firstUnflaggedAntennaToPlot-1, firstUnflaggedAntennaToPlot)
@@ -3308,7 +3352,9 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
                     if (not finalSpwWasFlagged): # add this test on Apr 22, 2014 to prevent crash on g25.27 dataset with antenna='4,5'
                         continue # Try this 'continue' on Apr 2, 2012 to fix bug -- works.
             if (overlayAntennas==False and subplot==11 
-                and not finalSpwWasFlagged): # inserted on 22-Apr-2014 for g25.27
+                and not finalSpwWasFlagged    # inserted on 22-Apr-2014 for g25.27
+                and not finalTimerangeFlagged # inserted on 04-Aug-2014 for CAS-6812
+                ): 
                   # added the case (subplot==11) on April 22, 2012 to prevent crash
                   # on multi-antenna subplot=421
                   if (debug):
@@ -4969,7 +5015,7 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
 
             # added len(pages)>0 on July 30, 2013 to prevent crash when called with single
             # antenna and subplot=11 and all solutions flagged.
-            if (len(figfile) > 0 and len(pages)>0):
+            if (len(figfile) > 0 and len(pages) > 0):
                 plotfiles.append(makeplot(figfile,msFound,msAnt,
                                           overlayAntennas,pages,pagectr,
                                           density,interactive,antennasToPlot,
@@ -4977,6 +5023,7 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
                                           debug,
                                           figfileSequential,figfileNumber))
                 figfileNumber += 1
+
             myinput = ''
             donetime = timeUtilities.time()
             if (interactive):
@@ -5032,8 +5079,9 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
         if (redisplay == False):
             if ((overlayAntennas and xctr+1 >= len(antennasToPlot)) or
                 ((overlaySpws or overlayBasebands) and spwctr+1 >= len(spwsToPlot)) or                
-                (overlayAntennas==False and overlaySpws==False and overlayBasebands==False)): 
+                (overlayAntennas==False and overlaySpws==False and overlayBasebands==False)):
                 mytime += 1
+#                print " 0004  incrementing mytime to ", mytime
                 if (debug):
                     print "AT BOTTOM OF LOOP: Incrementing mytime to %d (nUniqueTimes=%d), setting firstUnflaggedAntennaToPlot to 0" % (mytime,nUniqueTimes)
                 firstUnflaggedAntennaToPlot = 0  # try this
