@@ -42,6 +42,7 @@ print "ARGV: ",sys.argv
 
 use_astropy = False
 use_pickle  = True
+use_ppp     = True
 
 c1 = 'max'
 c2 = 'sigma'
@@ -69,9 +70,25 @@ if use_astropy:
     t.write('imstat.astropy.tab',format='ascii.commented_header')
     # now read the logfile as a table
 if use_pickle:
-    at = atable.ATable(col_data, ['channel','frequency',c1,c2,c3])
+    colnames = ['channel','frequency'] + [c1,c2,c3]
+    at = atable.ATable(col_data, col_names)
     at.pdump('cubestats.bin')
     # at.plotter(fr/1e9,[stats[c2]],'CubeStats')
 
 # ascii.commented_header
 # header_start
+
+
+#   this is an expensive operation, since maxpos in not computed per
+#   plane in casa, only whole cube, do the work ourselves
+if use_ppp:
+    # n= number of channels
+    xpos = np.arange(n)
+    ypos = np.arange(n)
+    for i in range(n):
+	if i%10==0: print i
+	s = imstat(c_im,chans='%d'%i)
+	xpos[i] = s['maxpos'][0]
+	ypos[i] = s['maxpos'][1]
+    at = atable.ATable([ch,fr,xpos,ypos,stats[c1]],['channel','frequency','maxposx','maxposy','max'])
+    at.pdump('peakpospoint.bin')
