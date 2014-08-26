@@ -3,6 +3,9 @@
 #
 #    example to present the peak positions of each channel in a cube
 #    in a plot that scales the intensity at each peak with a circle
+#    Right now depends on either cubestats (so the .bin is created)
+#    or a new cubestats_nemo, so the new ccdstat has written the
+#    new column 
 #
 import numpy as np
 import matplotlib.pyplot as plt
@@ -39,10 +42,18 @@ else:
     print "Using ccdstat.tab"
     #  from maxpos=t
     t = Table.read('ccdstat.tab',format='ascii')
-    i = t['col4']
-    c = t['col1']
-    x = t['col12'] 
-    y = t['col13']
+    if True:
+        # if properly labeled
+	i = t['max']
+	c = t['iz']
+	x = t['maxposx']
+	y = t['maxposy']
+    else:
+        # only maxpos=t is allowed here
+	i = t['col4']
+	c = t['col1']
+	x = t['col12'] 
+	y = t['col13']
 
 z1 = i/i.max()
 z2 = np.sqrt(z1)
