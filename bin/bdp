@@ -1,6 +1,8 @@
 #! /usr/bin/env python
 #
 #   show what's inside a BDP
+#   
+#   for now only for cPickle'd versions
 #
 
 # file = 'test00.p'
@@ -17,18 +19,19 @@ if __name__ == "__main__":
     a = admit.ADMIT()
     b = a.pload(file)
     #
-    print 'BDP ',b.name
-    print 'filename: ',b.filename
+    print 'BDP %s(%s)' % (b.name,b.filename)
     if len(b.deps)==0:
 	print 'deps: -'
     else:
-	print 'deps: ',b.deps
+	print 'deps: '
+	for bi in b.deps:
+	    print '    : %s(%s)' % (bi.name, bi.filename)
     if len(b.derv)==0:
 	print 'derv: -'
     else:
 	print 'derv:'
 	for bi in b.derv:
-	    print '    : ',bi.name
+	    print '    : %s(%s)' % (bi.name, bi.filename)
     t = b.task[0]
     print 'TASK ',t.name
     print '     ',t.keys
