@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 #
 #
-#    simple container to put all of the ADMIT, BDP and AT in one file for testing
+#  simple container to put all of the ADMIT, BDP and AT in one file for testing
 #
 #  no 'import casa' or so allowed here. All package specific work needs to be delegated
 #
@@ -147,8 +147,32 @@ class BDP_table(BDP):
     Contains a reference to a file
     """
     def __init__(self, filename=None, filetype=None):
-        BDP.__init__(self,"FILE", filename, filetype)
+        BDP.__init__(self,"TABLE", filename, filetype)
         self.table = []
+
+class BDP_cubestats(BDP):
+    """
+    Contains a reference to a file
+    """
+    def __init__(self, filename=None, filetype=None):
+        BDP.__init__(self,"CUBESTATS", filename, filetype)
+        self.table = []
+    def set_table(self,t):
+        self.table = t
+    def get_table(self):
+        return self.table
+
+class BDP_cubespectrum(BDP):
+    """
+    Contains a reference to a file
+    """
+    def __init__(self, filename=None, filetype=None):
+        BDP.__init__(self,"CUBESPECTRUM", filename, filetype)
+        self.table = []
+    def set_table(self,t):
+        self.table = t
+    def get_table(self):
+        return self.table
 
 class AT(object):
     name    = 'generic'
@@ -445,23 +469,28 @@ def pipeline(bdps):
         b.run()
 
 if __name__ == "__main__":
-    print "TESTING admit1.py:"
-    #
-    a = ADMIT("TRY1a")
-    #
-    b0 = BDP_file("test0","fits")
-    a0 = AT_file([],[b0])
-    a0.set('a=1')
-    a0.run()
-    a.add(b0)
-    #
+
+    # pickle files store the module name, so keep that here
+    import admit1 as admit
+
+    #  silly stuff to limit the flow of the pipeline
     Q1 = True
     #Q1 = False
     Q2 = False
     Q2 = True
+    #
+    print "TESTING admit1.py:"
+    #
+    a = admit.ADMIT("TRY1a")
+    #                                                     setting the FITS file BDP
+    b0 = admit.BDP_file("test0","fits")
+    a0 = admit.AT_file([],[b0])
+    a0.set('a=1')
+    a0.run()
+    a.add(b0)
     if Q1:
-        b1 = BDP_buckett("test1","cube")
-        a1 = AT_ingest([b0],[b1])
+        b1 = admit.BDP_buckett("test1","cube")
+        a1 = admit.AT_ingest([b0],[b1])
         a1.run()
         a.add(b1)
         #
@@ -470,9 +499,10 @@ if __name__ == "__main__":
             b2 = range(n)
             for i in range(n):
                 id = "linecube_%d" % i
-                b2[i] = BDP_buckett(id,"cube")
-            a2 = AT_flowN([b1],b2)
+                b2[i] = admit.BDP_buckett(id,"cube")
+            a2 = admit.AT_flowN([b1],b2)
             a2.run()
             for i in range(n):
                 a.add(b2[i])
+    a0.pdump('test00.p')
     a.pdump('admit1.p')
