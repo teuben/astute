@@ -27,6 +27,7 @@ gamma = 0.75
 rmax  = 5
 
 Qbin = True
+#Qbin = False
 
 if Qbin:
     print "Using peakpospoint.bin"
