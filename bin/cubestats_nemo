@@ -21,7 +21,7 @@ echo @ASTUTE:  cubestats_nemo
 
 set n_im = im/nemo
 
-ccdstat in=$n_im bad=0 robust=$robust planes=0 > $tab
+ccdstat in=$n_im bad=0 robust=$robust planes=0 maxpos=t > $tab
 
 if ($clean) rm -f $n_im
 
