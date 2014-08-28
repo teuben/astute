@@ -1,0 +1,56 @@
+#! /usr/bin/env casarun
+#! /usr/bin/env python
+#
+#  testing a piece of an ADMIT pipeline
+#  it depends on having run 'getdata' in for example 'w_1_c'  (n253 benchmark)
+#
+#  e.g.
+#      cd $ASTUTE/data
+#      mkdir w_1_c  
+#      cd w_1_c
+#      pipesetup project=w_1_c
+#      getdata
+#      test1                                      (ideally just this script)
+#      /usr/bin/python $ASTUTE/bin/test1          (currently needed [sic] unless you fix tcl/tk link)
+#
+#      in "mkcd $CASAPATH/lib/casapy/lib"  :   ln -s ../../../share/tcl8.4 ; ln -s ../../../share/tk8.4
+#                               
+#      Running it via 'casarun' solves this problem.
+
+import admit0 as admit
+
+
+def try1a(do_show=True, do_dep=True):
+    _debug = True
+    print "TRY1a"
+    #  start a new ADMIT
+    a = admit.ADMIT("TRY1a")
+
+    #  b0 is the BDP that simply contains the FITS file we're working on
+    b1 = admit.BDP('fits','im/fits')               
+    a1 = admit.AT_ingest([],[b1])      
+    a1.run()
+
+    b2 = admit.BDP('cube','im/cim')                
+    a2 = admit.AT_flow([b1],[b2])
+    a2.set(a=1)
+    a2.run()
+
+    b3 = admit.BDP('cubestats','im/cubestats')
+    a3 = admit.AT_cubestats([b2],[b3])             
+    a3.run()
+
+    b4 = admit.BDP('cubespectrum','im/cubespectrum')
+    a4 = admit.AT_cubespectrum([b2],[b4])
+    a4.run()
+
+    # add them reverse order to be funny
+    a.add(b4)
+    a.add(b3)
+    a.add(b2)
+    a.add(b1)
+
+    a.pdump()
+
+if __name__ == "__main__":
+    try1a()
