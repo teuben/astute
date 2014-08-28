@@ -1,0 +1,31 @@
+#! /usr/bin/env python
+#
+#  read the BDP's that test1 produced 
+#  report a few interesting things
+#  rerun?
+
+
+import admit0 as admit
+
+re_run = False
+
+def try1a(do_show=True, do_dep=True):
+    _debug = True
+    print "TRY1a"
+    #  start a new ADMIT
+    a0 = admit.ADMIT()
+    a = a0.pload("TRY1a.p")
+    print "Found %d BDP's" % len(a.bdps)
+    for b in a.bdps:
+        print "%-20s  %s :  %s" % (b.name,b.filename,b.data.keys())
+        if b.data.has_key('table'):
+            t = b.data['table']
+            print '    TABLE: ',t.names
+        if re_run:
+            t = b.task[0]
+            t.set('pi=3.14')    # fake an update
+            t.run()
+
+
+if __name__ == "__main__":
+    try1a()
