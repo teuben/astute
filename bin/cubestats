@@ -23,7 +23,7 @@ import atable
 
 
 #    report
-print "@ASTUTE: getdata"
+print "@ASTUTE: cubestats"
 
 #    setup, grab parameters
 a = astute.Astute()
@@ -42,7 +42,7 @@ print "ARGV: ",sys.argv
 
 use_astropy = False
 use_pickle  = True
-use_ppp     = True
+use_ppp     = False
 
 c1 = 'max'
 c2 = 'sigma'
@@ -70,7 +70,7 @@ if use_astropy:
     t.write('imstat.astropy.tab',format='ascii.commented_header')
     # now read the logfile as a table
 if use_pickle:
-    colnames = ['channel','frequency'] + [c1,c2,c3]
+    col_names = ['channel','frequency'] + [c1,c2,c3]
     at = atable.ATable(col_data, col_names)
     at.pdump('cubestats.bin')
     # at.plotter(fr/1e9,[stats[c2]],'CubeStats')
