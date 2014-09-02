@@ -17,7 +17,7 @@ class Astute(object):
     def __init__(self,verbose=False):
         self.n = 0
         self.have={}
-        self.version="2-jun-2013"
+        self.version="2-sep-2014"
         if os.environ.has_key('ASTUTE'):
             self.have['ASTUTE'] = os.environ['ASTUTE']
         if os.environ.has_key('TAS'):

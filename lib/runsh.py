@@ -12,7 +12,7 @@ class shell(object):
         nothing needed here
         """
         self.name = name
-        print "SH(%s)" % name
+        # print "SH(%s)" % name
     def show(self):
         return self.name
     def run0(self,cmds):

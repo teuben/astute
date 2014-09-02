@@ -15,11 +15,11 @@ class IDL(object):
             # poor man's checker
             # check if /usr/bin/gdl exists, if not, use idl :-(
             if not os.path.exists("/usr/bin/gdl"):
-                print "Warning: gdl not available, switching to idl"
+                # print "Warning: gdl not available, switching to idl"
                 name = 'idl'
         self.name = name
         self.cmd = [name]
-        print "IDL(%s)" % name
+        # print "IDL(%s)" % name
     def show(self):
         return self.name
     def setcmd(self,cmd):
