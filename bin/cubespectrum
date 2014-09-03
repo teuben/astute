@@ -1,6 +1,5 @@
 #! /usr/bin/env casarun
-#
-# casapy script
+#-*- mode: python -*-
 #
 # To run this:
 #     casapy --nogui -c $ASTUTE/bin/getdata
@@ -28,6 +27,7 @@ print "@ASTUTE: getdata"
 #    setup, grab parameters
 a = astute.Astute()
 p = parfile.ParFile()
+p.argv(sys.argv)
 
 #    set parameters
 
@@ -35,10 +35,12 @@ if p.has('in'):
     c_im = p.get('in')
 else:
     c_im = 'im/cim'
-point = p.get('point')
+if p.has('point'):
+    point = p.get('point')
+print 'point=',point
 
 #    debug
-print "ARGV: ",sys.argv
+#print "ARGV: ",sys.argv
 
 use_astropy = False
 use_pickle  = True
@@ -50,13 +52,15 @@ s  = '|'
 new1 = '\n#|int|double|real|real|\n#||Ghz|Jy/beam|Jy/beam|'
 
 
+#  box represents one pixel only, i.e. blc=trc
+#  it needs to be the center point or
 box = '%s,%s' % (point,point)
 
 print "casa::imval(%s,%s)" % (c_im,box)
 vals = imval(c_im,box=box)
 data = vals['data']
 
-print 'Datamin/max: ',data.min(), data.max()
+print 'Datamin/max: %g %g mJy/beam' % (data.min()*1000, data.max()*1000)
 
 # grab the X coords again
 h = imhead(c_im,mode='list')
@@ -65,7 +69,7 @@ p = h['crpix3']
 d = h['cdelt3']
 v = h['crval3']
 ch = np.arange(n) + 1
-fr = (ch-p-1)*d + v
+fr = ((ch-p-1)*d + v)/1e9
 
 if use_pickle:
     at = atable.ATable([fr,data], ['frequency','data'])
