@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 #
-#  Simple data flow using flow + flow12
+#  Simple data flow using flow12
 #
 #  b0 -> [b11,b12]
 #
