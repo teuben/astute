@@ -14,22 +14,32 @@ class ATable(object):
     """
     simple admit table
     """
-    def __init__(self,cols=[],names=[],types=[],units=[]):
+    def __init__(self,cols=[],names=[],types=[],units=[],filename=None):
         self.n       = 0
-        self.version = "21-aug-2014"
+        self.version = "2-sep-2014"
         self.cols    = cols
         self.names   = names
         self.types   = types
         self.units   = units
+        if filename:
+            # horrible shortcut
+            # e.g.     atable.ATable(filename="cubestats.bin").show()
+            t = pickle.load(open(filename,"rb"))
+            self.cols  = t.cols
+            self.names = t.names
+            self.types = t.types
+            self.units = t.units
     def show(self):
-        print 'names: ',self.names
-        print 'types: ',self.types
-        print 'units: ',self.units
+        print 'table: %d cols x %d rows' % (len(self.names),len(self.cols[0]))
+        print 'col_names: ',self.names
+        print 'col_types: ',self.types
+        print 'col_units: ',self.units
+        
     def get(self,name):
         for i in range(len(self.cols)):
             if name == self.names[i]:
                 return self.cols[i]
-    def plotter(self,x,y,title=None,filename=None):
+    def plotter(self,x,y,title=None,filename=None,xlab=None,ylab=None):
         """simple plotter of multiple columns against one column"""
         # if filename: plt.ion()
         fig = plt.figure()
@@ -37,6 +47,23 @@ class ATable(object):
         for yi in y:
             ax1.plot(x,yi)
         if title:    ax1.set_title(title)
+        if xlab:     ax1.set_xlabel(xlab)
+        if ylab:     ax1.set_ylabel(ylab)
+        if filename: fig.savefig(filename)
+        plt.show()
+    def histogram(self,x,title=None,filename=None,xlab=None,range=None):
+        """simple histogram of one or more columns """
+        # if filename: plt.ion()
+        fig = plt.figure()
+        ax1 = fig.add_subplot(1,1,1)
+        for xi in x:
+            # range=[0,10])
+            if range:
+                ax1.hist(xi,bins=80,range=range)
+            else:
+                ax1.hist(xi,bins=80)
+        if title:    ax1.set_title(title)
+        if xlab:     ax1.set_xlabel(xlab)
         if filename: fig.savefig(filename)
         plt.show()
     def pdump(self,filename):
@@ -45,6 +72,9 @@ class ATable(object):
         return pickle.load(open(filename,"rb"))
             
 if __name__ == "__main__":
+    def try1(t):
+        x = np.arange(0,1,0.1)
+        y = x*x
     x = np.arange(0,1,0.1)
     y = x*x
     z = x + y
