@@ -5,12 +5,13 @@
 #
 #  no 'import casa' or so allowed here. All package specific work needs to be delegated
 #
-import sys, os
+import sys, os, errno, fnmatch
 import copy
 import cPickle as pickle
 import atable
 import matplotlib.pyplot as plt
 import numpy as np
+import parfile
 
 _debug = False
 _debug = True
@@ -22,7 +23,9 @@ nlines    = 100
 
 class ADMIT(object):
     def __init__(self, name='none'):
+        self.parfile = "tas.def"       #  relic of ASTUTE, keep it for now
         self.name    = name
+        self.debug   = False
         self.bdps    = []
     def __len__(self):
         return len(self.bdps)
@@ -37,6 +40,11 @@ class ADMIT(object):
             self.bdps.append(b1)
         else:
             self.bdps.append(b)
+    def run(self):
+        """from all the BDP's are known, and their relation ship,
+        this will run the whole pipeline, but not the orphans
+        """
+        print "no run in admit yet"
     def set(self,a=None, b=1, c=[]):
         """set a global ADMIT parameter
            The idea is that these are obtained through introspection
@@ -86,6 +94,69 @@ class ADMIT(object):
     def pload(self,pname):
         print "ADMIT: pickle loading %s" % pname
         return pickle.load(open(pname,"rb"))
+    def query_dir(self,here=None):
+        """
+        from here, drill down and find directories in which ADMIT exists
+        """
+        dlist = []
+        if here == None:
+            path = "."
+        else:
+            path = here
+        n = 0
+        for path, dirs, files in os.walk(path):
+            # better not to loop, but os.path() for existence
+            n = n + 1
+            for f in files:
+                if f == self.parfile: dlist.append(path)
+        if self.debug: print "Queried ",n," directories, found ",len(dlist), " with a parfile"
+        return dlist
+    def find_files(self, pattern="*.fits"):
+        """
+        Find files containing a wildcard pattern
+        """
+        flist = []
+        for file in os.listdir('.'):
+            if fnmatch.fnmatch(file,pattern):
+                flist.append(file)
+        return flist
+    def setdir(self,dirname, create=True):
+        """
+        change directory to dirname to work in. Assumed to contain parameter file
+        if the directory doesn't exist yet, create it
+        """
+        def mkdir_p(path):
+            #if not os.path.isdir(dirname):
+            #    os.makedirs(dirname)
+            #
+            try:
+                os.makedirs(path)
+            except OSError as exc: # Python >2.5
+                if exc.errno == errno.EEXIST and os.path.isdir(path):
+                    pass
+                else: raise
+        self.p = dirname
+        self.pwd = os.getcwd()
+        if create: mkdir_p(dirname)
+        os.chdir(dirname)
+        if self.debug: print "ADMIT::setdir %s" % dirname
+    def tesdir(self):
+        """
+        revert back from previous setdir (sorry, not recursive yet)
+        """
+        os.chdir(self.pwd)
+    def walkdir(self,dlist):
+        print "Walkdir ",dlist
+        for d in dlist:
+            self.setdir(d)
+            print "d: ",d
+            par = pp.ParFile()
+            print par.get('fits')
+            print par.keys()
+            self.tesdir()
+
+
+
 
 # ==============================================================================
 
@@ -116,6 +187,25 @@ class BDP(object):
         """
     def show(self):
         return self.filename
+    def info(self):
+        print 'BDP %s(%s)' % (self.name,self.filename)
+        if len(self.deps)==0:
+            print 'deps: -'
+        else:
+            print 'deps: '
+            for bi in self.deps:
+                print '    : %s(%s)' % (bi.name, bi.filename)
+        if len(self.derv)==0:
+            print 'derv: -'
+        else:
+            print 'derv:'
+            for bi in self.derv:
+                print '    : %s(%s)' % (bi.name, bi.filename)
+        t = self.task[0]
+        print 'TASK ',t.name
+        print '     ',t.keys
+        print '     ',t.keyvals
+
     def update(self,new_state):
         if _debug: print "UPDATE: %s" % self.name
         self.updated = new_state
@@ -275,6 +365,8 @@ class AT(object):
                 b2.update(False)
     def get(self, key):
         return self.keyvals[key]
+    def has(self, key):
+        return self.keyvals.has_key(key)
     def rerun(self):
         if _debug: print "AT.rerun(%s)" % self.name
     def report(self):
@@ -388,7 +480,7 @@ class AT_cube(AT):
 class AT_cubestats(AT):
     name = 'CUBESTATS'
     version = '1.0'
-    keys = []
+    keys = ['sigma']
     def __init__(self,bdp_in=[],bdp_out=[]):
         AT.__init__(self,self.name,bdp_in,bdp_out)
         if _debug: print "AT_cubestats.init"
@@ -397,29 +489,56 @@ class AT_cubestats(AT):
         if not AT.run(self):
             return False
         # specialized work can commence here
-        os.system('cubestats in=%s')
+        fname = self.bdp_in[0].filename
+        os.system('cubestats in=%s' % fname )
         a0 = atable.ATable()
         a1 = a0.pload('cubestats.bin')
         print a1.names
         self.bdp_out[0].data['table'] = a1
         self.table = a1
-        freq   = a1.get('frequency')/1e9        # in GHz now
-        noise  = a1.get('medabsdevmed')*1000    # in mJy/beam now
+        freq   = a1.get('frequency')            # in GHz 
+        noise  = a1.get('sigma')*1000           # in mJy/beam now
         signal = a1.get('max')*1000             # in mJy/beam now
         print 'freq type ',freq.dtype
         print "Freq range : %g %g GHz" % (freq.min(), freq.max())
         print "Noise range : %g %g mJy/beam" % (noise.min(), noise.max())
         print "Peak Signal range : %g %g mJy/beam" % (signal.min(), signal.max())
+
+        c1 = 'max'
+        c2 = 'sigma'
+        c3 = 'medabsdevmed'
+        c4 = 'mean'
+        imstat0 = pickle.load(open("imstat0.bin","rb"))
+        print "Cube Stats after pickle:"
+        print "  mean, sigma: %g %g  (%g) mJy/beam" % (imstat0[c4][0]*1000,imstat0[c3][0]*1000,imstat0[c2][0]*1000)
+        print "  max: ", imstat0[c1][0]*1000," mJy/beam  @: ",imstat0['maxpos']
+        self.bdp_out[0].mean  = imstat0[c4][0]
+        self.bdp_out[0].sigma = imstat0[c3][0]
+        self.bdp_out[0].max   = imstat0[c1][0]
+        self.bdp_out[0].maxpos = [ imstat0['maxpos'][0], imstat0['maxpos'][1], imstat0['maxpos'][2] ]
+
         filename = self.bdp_out[0].filename 
         if self.do_pickle:
             self.pdump()
         if self.do_plot:
-            a1.plotter(freq,[np.log(signal),np.log(noise)],'CubeStats',filename+'.png')
+            xlabel = 'Frequency (Ghz)'
+            ylabel = 'log(Peak,Noise[mJy/beam])'
+            if False:
+                # signal is green, noise is blue
+                ydata = [np.log(signal),np.log(noise)]
+            else:
+                # also add the plot (ratio is now red)
+                ratio = np.log(noise)-np.log(signal)
+                ydata = [np.log(signal),np.log(noise),ratio]
+            a1.plotter(freq,ydata,'CubeStats',filename+'.png',xlab=xlabel,ylab=ylabel)
+            a1.histogram(ydata,   'CubeStats-S,N,R')
+            a1.histogram([ratio], 'CubeStats-R',range=[0.2,0.8])
+
             
 class AT_cubespectrum(AT):
     name = 'CUBESPECTRUM'
     version = '1.0'
-    keys = []
+    keys = ['pos']
     def __init__(self,bdp_in=[],bdp_out=[]):
         AT.__init__(self,self.name,bdp_in,bdp_out)
         if _debug: print "AT_cubespectrum.init"
@@ -428,12 +547,30 @@ class AT_cubespectrum(AT):
         if not AT.run(self):
             return False
         # specialized work can commence here
-        os.system('cubespectrum in=%s')
+        if self.has('pos'):
+            print "cubespectrum pos=%s" % self.get('pos')
+        else:
+            print "cubespectrum pos=None"
+        #
+        fn = self.bdp_in[0].filename
+        if len(self.bdp_in) == 1:
+            os.system('cubespectrum in=%s' % fn)
+            pp = ""
+        elif len(self.bdp_in) == 2:
+            b = self.bdp_in[1]
+            if self.has('pos'):
+                pp = "%s" % self.get('pos')
+            else:
+                pp = "%d,%d" % (b.maxpos[0],b.maxpos[1])
+            os.system('cubespectrum in=%s point=%s' % (fn,pp))
+        else:
+            print "no case implemented for > 2 BDP's"
+            return
         a0 = atable.ATable()
         a1 = a0.pload('cubespectrum.bin')
         print a1.names
         self.bdp_out[0].data['table'] = a1
-        freq   = a1.get('frequency')/1e9        # in GHz now
+        freq   = a1.get('frequency')            # in GHz
         data   = a1.get('data')*1000            # in mJy/beam now
         print 'freq type ',freq.dtype
         print "Freq range : %g %g GHz" % (freq.min(), freq.max())
@@ -442,8 +579,36 @@ class AT_cubespectrum(AT):
         if self.do_pickle:
             self.pdump()
         if self.do_plot:
-            a1.plotter(freq,[data],'CubeSpectrum',filename+'.png')
+            title = 'CubeSpectrum(%s)' % pp
+            a1.plotter(freq,[data],title,filename+'.png')
 
+class AT_moments(AT):
+    name = 'MOMENTS'
+    version = '1.0'
+    keys = ['moments']
+    def __init__(self,bdp_in=[],bdp_out=[]):
+        AT.__init__(self,self.name,bdp_in,bdp_out)
+    def run(self):
+        if not AT.run(self):
+            return False
+        # specialized work can commence here
+        if self.has('moments'):
+            self.moments = self.get('moments')
+        else:
+            self.moments = '0'
+        #
+        fni = self.bdp_in[0].filename
+        n1 = len(self.bdp_out)
+        n2 = len(self.moments.split(','))
+        if n1 != n2:
+            print "%d bdp's and %d moments. bad" % (n1,n2)
+            return
+        # includepix=
+        # immoments(fni,self.moments,outfile=
+        if self.do_pickle:
+            self.pdump()
+        if self.do_plot:
+            print "nothing to print here yet"
 
 # the classes below are for playing with pipelines, they do no real work.
 #
@@ -489,7 +654,6 @@ class AT_flow12(AT):
     def __init__(self,bdp_in=[],bdp_out=[]):
         if _debug: print "AT_flow2.init"
         AT.__init__(self,self.name,bdp_in,bdp_out)
-    # note the deliberate bug to not implement the .run() here
     def run(self):
         if _debug: print "AT_flow2.run"
         if not AT.run(self):
