@@ -94,6 +94,11 @@ class ADMIT(object):
     def pload(self,pname):
         print "ADMIT: pickle loading %s" % pname
         return pickle.load(open(pname,"rb"))
+    def discover(self,mode=None,rootdir='.'):
+        print "query_dir() and find_files() are the worker functions"
+        print "discover not implemented yet"
+        pp = []
+        return pp
     def query_dir(self,here=None):
         """
         from here, drill down and find directories in which ADMIT exists
@@ -282,6 +287,10 @@ class BDP_cubestats(BDP):
     def __init__(self, filename=None, filetype=None):
         BDP.__init__(self,"CUBESTATS", filename, filetype)
         self.table = []
+        self.mean  = None
+        self.sigma = None
+        self.max   = None
+        self.maxpos = []
     def set_table(self,t):
         self.table = t
     def get_table(self):
