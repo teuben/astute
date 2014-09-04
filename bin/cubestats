@@ -1,34 +1,41 @@
 #! /usr/bin/env casarun
+#-*- mode: python -*-
 #
-# casapy script
-#
-# To run this:
+# Alternatively run this as follows:
 #     casapy --nogui -c $ASTUTE/bin/getdata
 #
 # it would be useful to find out if there is some "import casa" style,
 # so you don't have to run this from within casapy?
-#
 
 #   from astute
 import astute, parfile
+import atable
+#
 import sys, os
 import numpy as np   
+import cPickle as pickle
 #
 try:
     from astropy.table import Table
 except:
     print "no astropy"
 
-import atable
-
-
 #    report
 print "@ASTUTE: cubestats"
+
+#   set some defaults
+use_astropy = False
+use_pickle  = True
+use_ppp     = False
+
+#    debug
+print "ARGV: ",sys.argv
+
 
 #    setup, grab parameters
 a = astute.Astute()
 p = parfile.ParFile()
-
+p.argv(sys.argv)
 #    set parameters
 
 if p.has('in'):
@@ -36,52 +43,61 @@ if p.has('in'):
 else:
     c_im = 'im/cim'
 
+if p.has('use_ppp'):
+    use_ppp = p.getb('use_ppp')
 
-#    debug
-print "ARGV: ",sys.argv
 
-use_astropy = False
-use_pickle  = True
-use_ppp     = False
 
 c1 = 'max'
 c2 = 'sigma'
 c3 = 'medabsdevmed'
+c4 = 'mean'
 s  = '|'
 new1 = '\n#|int|double|real|real|\n#||Ghz|Jy/beam|Jy/beam|'
 
 print "casa::imstat(%s)" % c_im
-stats = imstat(c_im,axes=[0,1],logfile='imstat.logfile',append=False)
+imstat1 = imstat(c_im,axes=[0,1],logfile='imstat1.logfile',append=False)
+imstat0 = imstat(c_im,logfile='imstat0.logfile',append=False)
 
-# strange we need to do it this way.. imstat::s doesn't have them, the logfile does
+# strange we need to do it this way.. imstat::s doesn't have them, 
+# but the logfile does. We don't want to parse that though.... so
 # instead, we'll grab it from imhead()
+print "casa::imhead(%s)" % c_im
 h = imhead(c_im,mode='list')
 n = h['shape'][2]
 p = h['crpix3']
 d = h['cdelt3']
 v = h['crval3']
-ch = np.arange(n) + 1
-fr = (ch-p-1)*d + v
-col_names = (s+'channel',s+'frequency',s+c1,s+c2,s+c3+s+new1)
-col_data = [ ch, fr, stats[c1], stats[c2], stats[c3]] 
+ch = np.arange(n) + 1        # 1-based channels
+fr = ((ch-p-1)*d + v)/1e9    # in GHz !!
+
+print "Cube Stats:"
+print "  mean, sigma: %g %g  (%g) mJy/beam" % (imstat0[c4][0]*1000,imstat0[c3][0]*1000,imstat0[c2][0]*1000)
+print "  max: ", imstat0[c1][0]*1000," mJy/beam  @: ",imstat0['maxpos']
+
+pickle.dump(imstat0,open("imstat0.bin","wb"))
+
+
+
 if use_astropy:
+    # don't use
+    col_names = (s+'channel',s+'frequency',s+c1,s+c2,s+c3+s+new1)
+    col_data = [ ch, fr, imstat1[c1], imstat1[c2], imstat1[c3]] 
     t = Table(col_data, names=col_names, copy=True)
     # t.write('imstat.astropy.tab',format='ascii')
     t.write('imstat.astropy.tab',format='ascii.commented_header')
     # now read the logfile as a table
 if use_pickle:
-    col_names = ['channel','frequency'] + [c1,c2,c3]
+    col_names = ['channel','frequency','mean','sigma','max']
+    col_data = [ ch, fr, imstat1[c1], imstat1[c2], imstat1[c3]] 
     at = atable.ATable(col_data, col_names)
     at.pdump('cubestats.bin')
-    # at.plotter(fr/1e9,[stats[c2]],'CubeStats')
-
-# ascii.commented_header
-# header_start
-
 
 #   this is an expensive operation, since maxpos in not computed per
 #   plane in casa, only whole cube, do the work ourselves
+#   w_1_c bench:  9" without, 67" with
 if use_ppp:
+    print "Creating PPP with peakpospoint.bin"
     # n= number of channels
     xpos = np.arange(n)
     ypos = np.arange(n)
@@ -90,5 +106,5 @@ if use_ppp:
 	s = imstat(c_im,chans='%d'%i)
 	xpos[i] = s['maxpos'][0]
 	ypos[i] = s['maxpos'][1]
-    at = atable.ATable([ch,fr,xpos,ypos,stats[c1]],['channel','frequency','maxposx','maxposy','max'])
+    at = atable.ATable([ch,fr,xpos,ypos,imstat[c1]],['channel','frequency','maxposx','maxposy','max'])
     at.pdump('peakpospoint.bin')
