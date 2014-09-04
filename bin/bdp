@@ -18,21 +18,4 @@ if __name__ == "__main__":
     file = sys.argv[1]
     a = admit.ADMIT()
     b = a.pload(file)
-    #
-    print 'BDP %s(%s)' % (b.name,b.filename)
-    if len(b.deps)==0:
-	print 'deps: -'
-    else:
-	print 'deps: '
-	for bi in b.deps:
-	    print '    : %s(%s)' % (bi.name, bi.filename)
-    if len(b.derv)==0:
-	print 'derv: -'
-    else:
-	print 'derv:'
-	for bi in b.derv:
-	    print '    : %s(%s)' % (bi.name, bi.filename)
-    t = b.task[0]
-    print 'TASK ',t.name
-    print '     ',t.keys
-    print '     ',t.keyvals
+    b.info()
