@@ -7,6 +7,7 @@
 # it would be useful to find out if there is some "import casa" style,
 # so you don't have to run this from within casapy?
 #
+#  NOTE: deprecated,the new AT_cubespectrum works.
 
 #   from astute
 import astute, parfile
@@ -22,7 +23,7 @@ import atable
 
 
 #    report
-print "@ASTUTE: getdata"
+print "@ASTUTE: cubespectrum"
 
 #    setup, grab parameters
 a = astute.Astute()
@@ -40,7 +41,7 @@ if p.has('point'):
 print 'point=',point
 
 #    debug
-#print "ARGV: ",sys.argv
+print "ARGV: ",sys.argv
 
 use_astropy = False
 use_pickle  = True

@@ -6,6 +6,8 @@
 #
 # it would be useful to find out if there is some "import casa" style,
 # so you don't have to run this from within casapy?
+#
+#   NOTE:  now deprecated, the new AT_cubestats works.
 
 #   from astute
 import astute, parfile
