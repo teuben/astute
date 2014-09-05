@@ -53,7 +53,7 @@ class AT_cubespectrum(admit.AT):
 
 
         a1 = atable.ATable([fr,data],['frequency','data'])
-        self.bdp_out[0].data['table'] = a1
+        self.bdp_out[0].table = a1
         data   = data * 1000              # in mJy/beam now
         print "Freq range : %g %g GHz" % (fr.min(), fr.max())
         print "Data range : %g %g mJy/beam" % (data.min(), data.max())
