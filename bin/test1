@@ -18,7 +18,9 @@
 #      Running it via 'casarun' solved this problem.
 
 import admit1 as admit
-import AT_cubestats as at1
+import AT_cubestats    as at1
+import AT_cubespectrum as at2
+import AT_moments      as at3
 
 
 def try1a(do_show=True, do_dep=True):
@@ -37,29 +39,45 @@ def try1a(do_show=True, do_dep=True):
     a1 = admit.AT_flow([b0],[b1])
     a1.run()
 
-    b2 = admit.BDP_cubestats('im/cubestats')
-    a2 = admit.AT_cubestats([b1],[b2])             
-    #a2 = at1.AT_cubestats([b1],[b2])             
-    a2.run()
+    if True:
+        b2 = admit.BDP_cubestats('im/cubestats')
+        #a2 = admit.AT_cubestats([b1],[b2])             
+        a2 = at1.AT_cubestats([b1],[b2])             
+        a2.run()
 
     if True:
         # for now, if you give 2 BDP's it has to be a cubestats
         # in which the mean,sigma,max,maxpos for the cube was recorded as well
 	b3 = admit.BDP_cubespectrum('im/cubespectrum')
-	a3 = admit.AT_cubespectrum([b1,b2],[b3])             
+	#a3 = admit.AT_cubespectrum([b1,b2],[b3])             
+        #a3 = at2.AT_cubespectrum([b1,b2],[b3])             
+        a3 = at2.AT_cubespectrum([b1],[b3])             
         a3.set('pos=310,310')
 	a3.run()
+
+    if True:
+        b40 = admit.BDP_file('im/mom0')
+        b41 = admit.BDP_file('im/mom1')
+        b42 = admit.BDP_file('im/mom2')
+        a4 = at3.AT_moments([b1],[b40,b41,b42])
+        a4.set('moments=0,1,2')
+        a4.run()
 
     if True:
 	a0.pdump()
 	a1.pdump()
 	a2.pdump()
 	a3.pdump()
+        a4.pdump()
 
-    a.add(b3)
-    a.add(b2) 
-    a.add(b1) 
-    a.add(b0) 
+    if True:
+        a.add(b3)
+        a.add(b2) 
+        a.add(b1) 
+        a.add(b0) 
+        a.add(b40)
+        a.add(b41)
+        a.add(b42)
 
     a.pdump()
 
