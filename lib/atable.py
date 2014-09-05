@@ -39,7 +39,7 @@ class ATable(object):
         for i in range(len(self.cols)):
             if name == self.names[i]:
                 return self.cols[i]
-    def plotter(self,x,y,title=None,filename=None,xlab=None,ylab=None):
+    def plotter(self,x,y,title=None,figname=None,xlab=None,ylab=None):
         """simple plotter of multiple columns against one column"""
         # if filename: plt.ion()
         fig = plt.figure()
@@ -49,22 +49,21 @@ class ATable(object):
         if title:    ax1.set_title(title)
         if xlab:     ax1.set_xlabel(xlab)
         if ylab:     ax1.set_ylabel(ylab)
-        if filename: fig.savefig(filename)
+        if figname: fig.savefig(figname)
         plt.show()
-    def histogram(self,x,title=None,filename=None,xlab=None,range=None):
+    def histogram(self,x,title=None,figname=None,xlab=None,range=None,bins=80):
         """simple histogram of one or more columns """
         # if filename: plt.ion()
         fig = plt.figure()
         ax1 = fig.add_subplot(1,1,1)
         for xi in x:
-            # range=[0,10])
             if range:
-                ax1.hist(xi,bins=80,range=range)
+                ax1.hist(xi,bins=bins,range=range)
             else:
-                ax1.hist(xi,bins=80)
+                ax1.hist(xi,bins=bins)
         if title:    ax1.set_title(title)
         if xlab:     ax1.set_xlabel(xlab)
-        if filename: fig.savefig(filename)
+        if figname: fig.savefig(figname)
         plt.show()
     def pdump(self,filename):
         pickle.dump(self,open(filename,"wb"))
