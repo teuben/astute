@@ -21,6 +21,7 @@ import admit1 as admit
 import AT_cubestats    as at1
 import AT_cubespectrum as at2
 import AT_moments      as at3
+import AT_linecube     as at4
 
 
 def try1a(do_show=True, do_dep=True):
@@ -50,12 +51,17 @@ def try1a(do_show=True, do_dep=True):
         # in which the mean,sigma,max,maxpos for the cube was recorded as well
 	b3 = admit.BDP_cubespectrum('im/cubespectrum')
 	#a3 = admit.AT_cubespectrum([b1,b2],[b3])             
-        #a3 = at2.AT_cubespectrum([b1,b2],[b3])             
-        a3 = at2.AT_cubespectrum([b1],[b3])             
+        a3 = at2.AT_cubespectrum([b1,b2],[b3])             
+        #a3 = at2.AT_cubespectrum([b1],[b3])             
         a3.set('pos=310,310')
 	a3.run()
-
+    
     if True:
+        b5 = admit.BDP_image('linecube')
+        a5 = at4.AT_linecube([b1,b2],[b5])
+        a5.run()
+
+    if False:
         b40 = admit.BDP_file('im/mom0')
         b41 = admit.BDP_file('im/mom1')
         b42 = admit.BDP_file('im/mom2')
@@ -63,14 +69,14 @@ def try1a(do_show=True, do_dep=True):
         a4.set('moments=0,1,2')
         a4.run()
 
-    if True:
+    if False:
 	a0.pdump()
 	a1.pdump()
 	a2.pdump()
 	a3.pdump()
         a4.pdump()
 
-    if True:
+    if False:
         a.add(b3)
         a.add(b2) 
         a.add(b1) 
