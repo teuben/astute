@@ -175,13 +175,12 @@ class BDP(object):
         self.id       = 0
         self.filename = filename
         self.filetype = filetype
-        self.data     = {}
-        #
-        self.updated  = False     # ???   this triggers a new run
-        self.output   = True      # True: triggers a new save(pdump/xwrite)
         self.deps     = []
         self.derv     = []
         self.task     = []
+        # below these are for runtime, not needed for persistence
+        self.updated  = False     # ???   this triggers a new run
+        self.output   = True      # True: triggers a new save(pdump/xwrite)
         if _debug: print "BDP(%s,%s,%s) " % (name,filename,filetype)
     def parse(self,doParse = True):
         """ Doug's XML parser, automatically invoked if
@@ -210,7 +209,6 @@ class BDP(object):
         print 'TASK ',t.name
         print '     ',t.keys
         print '     ',t.keyvals
-
     def update(self,new_state):
         if _debug: print "UPDATE: %s" % self.name
         self.updated = new_state
@@ -263,18 +261,32 @@ class BDP_buckett(BDP):
     """
     def __init__(self, filename=None, filetype=None):
         BDP.__init__(self,"BUCKETT",filename,filetype)
+        self.data     = {}
 
 
 class BDP_file(BDP):
     """
-    Contains a reference to a dataset (fits file, casa image, ...)
+    Contains a reference to a dataset with no further distinctive info,
+    just the filename. This makes it look like the baseclass BDP
     """
     def __init__(self, filename=None, filetype=None):
         BDP.__init__(self,"FILE", filename, filetype)
 
+class BDP_image(BDP):
+    """
+    Contains a reference to a single 'image' dataset, can be N-dimensional so
+    covers 1D spectra, as well as 3D cubes and 4D hypercubes .
+    The application should know the type (fits, casa image, miriad, nemo, ....)
+    """
+    def __init__(self, filename=None, filetype=None):
+        BDP.__init__(self,"FILE", filename, filetype)
+        # cubes are written as [nx,ny,nz]
+        # do we really need meta data here, isn't the filename enough?
+        self.dims=[]
+
 class BDP_table(BDP):
     """
-    Contains a reference to a table (shouldn't BDP_file suffice?)
+    Contains a reference to one or more tables
     """
     def __init__(self, filename=None, filetype=None):
         BDP.__init__(self,"TABLE", filename, filetype)
@@ -283,10 +295,11 @@ class BDP_table(BDP):
 class BDP_cubestats(BDP):
     """
     Contains a reference to a cubestats table
+    channel, frequency, mean, sigma, max, [maxposx, maxposy]
     """
     def __init__(self, filename=None, filetype=None):
         BDP.__init__(self,"CUBESTATS", filename, filetype)
-        self.table = []
+        self.table = None
         self.mean  = None
         self.sigma = None
         self.max   = None
@@ -299,6 +312,7 @@ class BDP_cubestats(BDP):
 class BDP_cubespectrum(BDP):
     """
     Contains a reference to a cubespectrum table
+    frequency, data
     """
     def __init__(self, filename=None, filetype=None):
         BDP.__init__(self,"CUBESPECTRUM", filename, filetype)
@@ -429,7 +443,8 @@ class AT_simple(AT):
         #     ... contain parameters
 
 class AT_file(AT):
-    """ Create a simple container for a file
+    """ Create a simple container for a file, with no further description
+        Generally used for FITS files.
         bdp_in:   none
         bdp_out:  one file
     """
