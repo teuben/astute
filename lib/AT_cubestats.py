@@ -16,18 +16,9 @@ class AT_cubestats(admit.AT):
         # specialized work can commence here
         use_ppp = False
         #
-        c1 = 'max'
-        c2 = 'sigma'
-        c3 = 'medabsdevmed'
-        c4 = 'mean'
-        c_im = self.bdp_in[0].filename
-        #
-        print "casa::imstat(%s)" % c_im
-        imstat1 = casa.imstat(c_im,axes=[0,1],logfile='imstat1.logfile',append=False)
-        imstat0 = casa.imstat(c_im,logfile='imstat0.logfile',append=False)
-        #
-        print "casa::imhead(%s)" % c_im
-        h = casa.imhead(c_im,mode='list')
+        fn = self.bdp_in[0].filename
+        print "casa::imhead(%s)" % fn
+        h = casa.imhead(fn,mode='list')
         n = h['shape'][2]
         p = h['crpix3']
         d = h['cdelt3']
@@ -35,31 +26,42 @@ class AT_cubestats(admit.AT):
         ch = np.arange(n) + 1        # 1-based channels
         fr = ((ch-p-1)*d + v)/1e9    # in GHz !!
         #
+        print "casa::imstat(%s)" % fn
+        imstat0 = casa.imstat(fn,           logfile='imstat0.logfile',append=False)
+        imstat1 = casa.imstat(fn,axes=[0,1],logfile='imstat1.logfile',append=False)
+        if use_ppp:
+            print "Creating PeakPosPoint"
+            # n= number of channels
+            xpos = np.arange(n)
+            ypos = np.arange(n)
+            for i in range(n):
+                s = casa.imstat(fn,chans='%d'%i)
+                xpos[i] = s['maxpos'][0]
+                ypos[i] = s['maxpos'][1]
+        #
+        c1 = 'max'
+        c2 = 'sigma'
+        c3 = 'medabsdevmed'
+        c4 = 'mean'
+        #
         print "Cube Stats:"
         print "  mean, sigma: %g %g  (%g) mJy/beam" % (imstat0[c4][0]*1000,imstat0[c3][0]*1000,imstat0[c2][0]*1000)
         print "  max: ", imstat0[c1][0]*1000," mJy/beam  @: ",imstat0['maxpos']
 
         col_names = ['channel','frequency','mean','sigma','max']
         col_data = [ ch, fr, imstat1[c1], imstat1[c2], imstat1[c3]] 
-        a1 = atable.ATable(col_data, col_names)
-        a1.pdump('cubestats.bin')
-
         if use_ppp:
-            print "Creating PPP with peakpospoint.bin"
-            # n= number of channels
-            xpos = np.arange(n)
-            ypos = np.arange(n)
-            for i in range(n):
-                if i%10==0: print i
-                s = casa.imstat(c_im,chans='%d'%i)
-                xpos[i] = s['maxpos'][0]
-                ypos[i] = s['maxpos'][1]
-            a2 = atable.ATable([ch,fr,xpos,ypos,imstat[c1]],['channel','frequency','maxposx','maxposy','max'])
-            a2.pdump('peakpospoint.bin')
+            col_names.append(['maxposx','maxposy'])
+            col_data.append([xpos,ypos])
+        a1 = atable.ATable(col_data, col_names)
            
 
-        self.bdp_out[0].data['table'] = a1
-        self.table = a1
+        self.bdp_out[0].table = a1
+        self.bdp_out[0].mean  = imstat0[c4][0]
+        self.bdp_out[0].sigma = imstat0[c3][0]
+        self.bdp_out[0].max   = imstat0[c1][0]
+        self.bdp_out[0].maxpos = [ imstat0['maxpos'][0], imstat0['maxpos'][1], imstat0['maxpos'][2] ]
+
         freq   = a1.get('frequency')            # in GHz 
         noise  = a1.get('sigma')*1000           # in mJy/beam now
         signal = a1.get('max')*1000             # in mJy/beam now
@@ -72,12 +74,8 @@ class AT_cubestats(admit.AT):
         print "Cube Stats after pickle:"
         print "  mean, sigma: %g %g  (%g) mJy/beam" % (imstat0[c4][0]*1000,imstat0[c3][0]*1000,imstat0[c2][0]*1000)
         print "  max: ", imstat0[c1][0]*1000," mJy/beam  @: ",imstat0['maxpos']
-        self.bdp_out[0].mean  = imstat0[c4][0]
-        self.bdp_out[0].sigma = imstat0[c3][0]
-        self.bdp_out[0].max   = imstat0[c1][0]
-        self.bdp_out[0].maxpos = [ imstat0['maxpos'][0], imstat0['maxpos'][1], imstat0['maxpos'][2] ]
 
-        filename = self.bdp_out[0].filename 
+        fno = self.bdp_out[0].filename 
         if self.do_pickle:
             self.pdump()
         if self.do_plot:
@@ -90,7 +88,7 @@ class AT_cubestats(admit.AT):
                 # also add the plot (ratio is now red)
                 ratio = np.log(noise)-np.log(signal)
                 ydata = [np.log(signal),np.log(noise),ratio]
-            a1.plotter(freq,ydata,'CubeStats',filename+'.png',xlab=xlabel,ylab=ylabel)
-            a1.histogram(ydata,   'CubeStats-S,N,R')
-            a1.histogram([ratio], 'CubeStats-R',range=[0.2,0.8])
+            a1.plotter(freq,ydata,'CubeStats',      fno+'.1.png',xlab=xlabel,ylab=ylabel)
+            a1.histogram(ydata,   'CubeStats-S,N,R',fno+'.2.png')
+            a1.histogram([ratio], 'CubeStats-R',    fno+'.3.png',range=[0.3,0.5])
             
