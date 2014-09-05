@@ -91,5 +91,6 @@ class AT_cubestats(admit.AT):
                 ratio = np.log(noise)-np.log(signal)
                 ydata = [np.log(signal),np.log(noise),ratio]
             a1.plotter(freq,ydata,'CubeStats',filename+'.png',xlab=xlabel,ylab=ylabel)
-
+            a1.histogram(ydata,   'CubeStats-S,N,R')
+            a1.histogram([ratio], 'CubeStats-R',range=[0.2,0.8])
             
