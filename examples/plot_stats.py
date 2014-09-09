@@ -1,5 +1,7 @@
 #! /usr/bin/env python
 #
+# reads a table produced with 
+#     ccdstat nemo bad=0 robust=t planes=0 > ccdstat.tab
 
 from astropy.io import ascii
 import matplotlib.pyplot as plt
@@ -15,6 +17,7 @@ def gettab(file):
 
 def plot1(data, label='',efactor=1,rmax=2):
     # iz z min  max  N  mean sigma skew kurt sum sum  robust[N mean sig med]
+    # iz z min  max  N  mean sigma skew kurt sum sumsov  robust[N mean sig med]
     ch   = data['col1']
     freq = data['col2']/1e9
     peak = data['col4']*1000
