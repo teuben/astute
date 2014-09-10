@@ -21,6 +21,7 @@ class ATable(object):
         self.names   = names
         self.types   = types
         self.units   = units
+        self.fign    = 0
         if filename:
             # horrible shortcut
             # e.g.     atable.ATable(filename="cubestats.bin").show()
@@ -42,19 +43,24 @@ class ATable(object):
     def plotter(self,x,y,title=None,figname=None,xlab=None,ylab=None):
         """simple plotter of multiple columns against one column"""
         # if filename: plt.ion()
-        fig = plt.figure()
+        #plt.ion()
+        plt.ioff()
+        self.fign = self.fign + 1
+        fig = plt.figure(self.fign)
         ax1 = fig.add_subplot(1,1,1)
         for yi in y:
             ax1.plot(x,yi)
         if title:    ax1.set_title(title)
         if xlab:     ax1.set_xlabel(xlab)
         if ylab:     ax1.set_ylabel(ylab)
-        if figname: fig.savefig(figname)
+        if figname: 
+            fig.savefig(figname)
         plt.show()
     def histogram(self,x,title=None,figname=None,xlab=None,range=None,bins=80):
         """simple histogram of one or more columns """
         # if filename: plt.ion()
-        fig = plt.figure()
+        self.fign = self.fign + 1
+        fig = plt.figure(self.fign)
         ax1 = fig.add_subplot(1,1,1)
         for xi in x:
             if range:
@@ -63,7 +69,8 @@ class ATable(object):
                 ax1.hist(xi,bins=bins)
         if title:    ax1.set_title(title)
         if xlab:     ax1.set_xlabel(xlab)
-        if figname: fig.savefig(figname)
+        if figname: 
+            fig.savefig(figname)
         plt.show()
     def pdump(self,filename):
         pickle.dump(self,open(filename,"wb"))
@@ -87,4 +94,14 @@ if __name__ == "__main__":
     a.pdump("a.bin")
     b = a.pload("a.bin")
     print b.get('x')[0],b.get('y')[0],b.get('z')[0]
+    #
+    s1=['a','b','d','e']
+    s2=[ 1 , 2 , 4 , 5 ]
+    a2 = ATable([s1,s2],['s1','s2'],['string','int'])
+    a2.show()
+    a2.pdump('a2.bin')
+    b2 = a.pload('a2.bin')
+    s1[0] = 'z'
+    print b2.cols
+    print a2.cols
 
