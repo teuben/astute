@@ -53,6 +53,7 @@ class AT_cubespectrum(admit.AT):
 
 
         a1 = atable.ATable([fr,data],['frequency','data'])
+        # a1.pdump('cubespectrum.bin')
         self.bdp_out[0].table = a1
         data   = data * 1000              # in mJy/beam now
         print "Freq range : %g %g GHz" % (fr.min(), fr.max())
@@ -61,4 +62,6 @@ class AT_cubespectrum(admit.AT):
             self.pdump()
         if self.do_plot:
             title = 'CubeSpectrum(%s)' % pp
-            a1.plotter(fr,[data],title,fn+'.png')
+            xlabel = 'Frequency (Ghz)'
+            ylabel = 'Flux (mJy/beam)'
+            a1.plotter(fr,[data],title,fn+'.png',xlab=xlabel,ylab=ylabel)
