@@ -1,3 +1,4 @@
+#! /usr/bin/env casarun
 #! /usr/bin/env python
 #
 #   show what's inside a BDP
@@ -5,17 +6,29 @@
 #   for now only for cPickle'd versions
 #
 
-# file = 'test00.p'
-
 import sys, os
 import admit1 as admit
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-	print 'Need a (pickle) filename'
-	sys.exit(0)
-    file = sys.argv[1]
+    print sys.argv[0]
+    if False:
+        # if run via python
+        argv = sys.argv
+    else:
+        # if run via casarun
+        argv = admit.casa_argv(sys.argv)
+
+    if len(argv) < 2:
+        print 'Need a (pickle) filename'
+        sys.exit(0)
+    file = argv[2]
+        
+    
+    if os.environ.has_key('CASAPATH'):
+        cp = os.environ['CASAPATH']
+        if len(cp.split())==1:
+            os.environ['CASAPATH']="%s linux socorro admit" % cp
     a = admit.ADMIT()
     b = a.pload(file)
     b.info()
