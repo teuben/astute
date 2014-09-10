@@ -27,7 +27,7 @@ import AT_moments      as at3
 import AT_linecube     as at4
 
 
-def try1a(mode):
+def try1a(mode=999):
     _debug = True
     mcrit=0
     print "TRY1a"
