@@ -1,5 +1,5 @@
 #! /usr/bin/env casarun
-#
+#-*- mode: python -*-
 # casapy script
 #
 # To run this:
@@ -13,6 +13,8 @@
 import astute, alines, parfile
 import sys, os
 import numpy  as np   
+import casa
+import taskinit
 
 #    local keywords
 cen    = 0
@@ -34,7 +36,8 @@ c_im   = 'im/cim'
 n_im   = 'im/nemo'
 m_im   = 'im/mir'
 
-cen    = p.geti('cen')
+if p.has('cen'):
+   cen = p.geti('cen')
 
 
 #    process packages; normally we really don't want to allow that, just today here we do
@@ -47,7 +50,7 @@ if p.has('miriad'): use_miriad = p.geti('miriad')
 
 
 #    debug
-print "ARGV: ",sys.argv
+#print "ARGV: ",sys.argv
 
 
 #    FITS file existence check
@@ -67,7 +70,15 @@ if True:
 if a.has('CASA') and use_casa:
    print "@ASTUTE: getdata: creating %s" % c_im
    print "casa::importfits "
-   importfits(a_fits, c_im, overwrite=True)
+   casa.importfits(a_fits, c_im, overwrite=True)
+   # potentially look at:
+   # - masking
+   # - imreframe (to get different velocity frame)
+   if True:
+      taskinit.ia.open(c_im)
+      taskinit.ia.calcmask('"%s"!=0' % c_im)
+      taskinit.ia.statistics()
+      taskinit.ia.close()
 
 if a.has('NEMO') and use_nemo:
    print "@ASTUTE: getdata: creating %s" % n_im
