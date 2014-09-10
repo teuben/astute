@@ -4,8 +4,42 @@
 #   python scripts and place them in your $PATH with a top
 #   line
 #          #! /usr/bin/env casarun
+#
+#   It really is nothing more than
+#          exec casapy --nogui -c $*
+#
+#   But for convenience a few extra bells and whistles were added:
+#
+#   When invoked with  -c   if gives the count of the arguments
+#   in sys.argv[] that can be ignored if to be converted for
+#   classic post-casa argv processing.
+#   E.g.
+#   argv = admit.casa_argv(sys.argv)
+#   argv[0] is now the script name when you did
 #  
-#   Warning: such scripts return to the shell.
+# @todo  if don't see --nogui, return regular sys.argv?
+#        this way it can be used with with and without casa
 
-exec casapy --nogui -c $*
 
+#echo  CASARUN: $#argv  $*
+
+set casapy=(casapy --nogui -c)
+
+if ($#argv == 0) then
+   echo "Usage:  $0 -c"
+   echo "        $0 scriptname [ARGS]"
+else if ("X$1" == "X-c") then
+   echo $#casapy
+else
+   # do the real work
+   exec $casapy $*
+endif
+
+
+#
+# The following python code can also be found in the admit module:
+#
+# def casa_argv(argv):
+#     lines = os.popen("casarun -c","r").readlines()
+#     n = int(lines[len(lines)-1].strip())
+#     return argv[n:]
