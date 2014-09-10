@@ -1,0 +1,84 @@
+#! /usr/bin/env casarun
+#-*- mode: python -*-
+#! /usr/bin/env python
+#
+#  testing a piece of an ADMIT pipeline
+#  it depends on having run 'getdata' in for example 'w_1_c'  (n253 benchmark)
+#
+#  e.g.
+#      cd $ASTUTE/data
+#      mkdir w_1_c  
+#      cd w_1_c
+#      pipesetup project=w_1_c
+#      getdata
+#      test1                                      (ideally just this script)
+#      /usr/bin/python $ASTUTE/bin/test1          (currently needed [sic] unless you fix tcl/tk link)
+#
+#      in "mkcd $CASAPATH/lib/casapy/lib"  :   ln -s ../../../share/tcl8.4 ; ln -s ../../../share/tk8.4
+#                               
+#      Running it via 'casarun' solves this problem.
+
+import os, sys
+import admit1 as admit
+#
+import AT_ingest       as at1
+import AT_summary      as at2
+import AT_cubestats    as at3
+import AT_cubespectrum as at4
+import AT_linecube     as at5
+import AT_moments      as at6
+
+
+
+def try3(filename=None):
+    _debug = True
+    print "TRY3",filename
+    #  start a new ADMIT:   
+    #  am1 is the top level, only to find new projects
+    #  am2 a new one in each project
+    am1 = admit.ADMIT("TRY3")
+    if filename==None:
+        ff = am1.find_files("*.fits")
+    else:
+        ff = am1.find_files(filename)
+    for f in ff:
+        print "=== FITS: ",f,"================================================================================="
+    	adir = '%s.admit' % f
+	am1.setdir(adir)
+	#
+	project = f[:f.rindex(".")]
+	am2 = admit.ADMIT("admit",project=project)
+	b0 = admit.BDP_file("../" + f)                ; am2.add(b0)
+	b1 = admit.BDP_image("cim")                   ; am2.add(b1)
+	a1 = at1.AT_ingest([b0],[b1])
+	a1.run()
+	#
+        b2 = admit.BDP_summary("summary")             ; am2.add(b2)
+        a2 = at2.AT_summary([b1],[b2])
+        a2.run()
+        #
+	b3 = admit.BDP_cubestats("cubestats")         ; am2.add(b3)
+	a3 = at3.AT_cubestats([b1],[b3])
+	a3.run()
+	# 
+	b4 = admit.BDP_cubespectrum("cubespectrum")   ; am2.add(b4)  
+	a4 = at4.AT_cubespectrum([b1,b3],[b4])
+	a4.run()
+        #
+	b5 = admit.BDP_image("linecube")              ; am2.add(b5)  
+	a5 = at5.AT_linecube([b1,b3],[b5])
+	a5.run()
+
+	# 	
+	am2.pdump()
+	#
+	am1.tesdir()
+    # done!
+
+if __name__ == "__main__":
+    argv = admit.casa_argv(sys.argv)
+    if len(argv) > 1:
+        try3(argv[1])
+    else:
+        try3()
+    
