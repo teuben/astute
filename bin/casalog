@@ -1,0 +1,26 @@
+#! /bin/csh -f
+#
+
+
+set dir = logs
+
+echo "Moving your casapy-* and ipython-* files into logs/"
+
+if (-d $dir) then
+   set l1 = (`echo casapy-*`)
+   if ($status) then
+      echo No log files found,
+      exit 0
+   endif
+
+   set l2=(`echo ipython-*`)
+   if ($status) then
+      echo No log files found,
+      exit 0
+   endif
+
+   echo $#l1 casapy and $#l2 ipython log files
+   mv $l1 $l2 $dir
+else
+   echo No $dir subdirectory to clean you ipython- and casapy- log files into
+endif
