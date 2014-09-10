@@ -18,15 +18,27 @@ _debug = True
 
 nprojects = 100
 nlines    = 100
+# ==============================================================================
+
+def casa_argv(argv):
+    """process the argv from a casarun script to a classic argv list
+       such that the returned argv[0] is the casarun scriptname
+    """
+    lines = os.popen("casarun -c","r").readlines()
+    n = int(lines[len(lines)-1].strip())
+    return argv[n:]
+
 
 # ==============================================================================
 
 class ADMIT(object):
-    def __init__(self, name='none'):
+    def __init__(self, name='none', project=None):
         self.parfile = "tas.def"       #  relic of ASTUTE, keep it for now
         self.name    = name
+        self.project = project
         self.debug   = False
         self.bdps    = []
+        self.keyval  = {}
     def __len__(self):
         return len(self.bdps)
     def __eq__(self, other):
@@ -35,6 +47,7 @@ class ADMIT(object):
         """Add a BDP to the stack of BDP's this ADMIT pipeline contains"""
         # note there needs to be a cleanup/delete/pop option here
         # __main__ : deepcopy ga ve 19780 bytes,  re-assign + deepcopy was 22973 bytes, why ?
+        b.admit(self.project)
         if False:
             b1 = copy.deepcopy(b)
             self.bdps.append(b1)
@@ -129,6 +142,7 @@ class ADMIT(object):
         """
         change directory to dirname to work in. Assumed to contain parameter file
         if the directory doesn't exist yet, create it
+        See pushd()/popd() for a better version
         """
         def mkdir_p(path):
             #if not os.path.isdir(dirname):
@@ -148,6 +162,7 @@ class ADMIT(object):
     def tesdir(self):
         """
         revert back from previous setdir (sorry, not recursive yet)
+        See pushd()/popd() for a better version
         """
         os.chdir(self.pwd)
     def walkdir(self,dlist):
@@ -170,11 +185,12 @@ class BDP(object):
         should have some static members
     """
     #
-    def __init__(self, name='none',filename=None, filetype=None):
+    def __init__(self, name='none',filename=None, filetype=None, project=None):
         self.name     = name
         self.id       = 0
         self.filename = filename
         self.filetype = filetype
+        self.project  = project
         self.deps     = []
         self.derv     = []
         self.task     = []
@@ -182,6 +198,8 @@ class BDP(object):
         self.updated  = False     # ???   this triggers a new run
         self.output   = True      # True: triggers a new save(pdump/xwrite)
         if _debug: print "BDP(%s,%s,%s) " % (name,filename,filetype)
+    def admit(self,project):
+        self.project = project
     def parse(self,doParse = True):
         """ Doug's XML parser, automatically invoked if
             you do b = BDP_foobar("xmlfile")
@@ -237,6 +255,9 @@ class BDP(object):
             pickle.dump(self,open(filename,"wb"))
             self.output = False
     def run(self):
+        """ run the task that this BDP was created by.
+        Dangerous.
+        """
         if self.updated:
             if _debug: print "BDP::%s (%s) was up to date" % (self.name,self.filename)
             return False
@@ -262,6 +283,15 @@ class BDP_buckett(BDP):
     def __init__(self, filename=None, filetype=None):
         BDP.__init__(self,"BUCKETT",filename,filetype)
         self.data     = {}
+
+class BDP_summary(BDP):
+    """
+    This BDP is a convenient summary of a project
+    """
+    def __init__(self, filename=None, filetype=None):
+        BDP.__init__(self,"SUMMARY",filename,filetype)
+        self.data     = {}
+
 
 
 class BDP_file(BDP):
