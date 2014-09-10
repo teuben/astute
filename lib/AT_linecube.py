@@ -12,6 +12,10 @@ def line_segments(data,cut,nline,ngap,ngrow=0):
     find segments that define a line
     [ [start1,end1], [start2,end2], ....]
     ngrow: not implemented
+
+    could imagine nline smaller if the data-cut is
+    bigger, i.e. narrower but stronger signals still
+    get accepted
     """
     def index(w,start,value):
         n = len(w)
@@ -44,7 +48,11 @@ def line_segments(data,cut,nline,ngap,ngrow=0):
         i2 = index(w,i1,0)
         if i2<0: break
         i3 = index(w,i2,1)
-        if i3<0: break
+        if i3<0: 
+            il = i2-i1
+            if il>= nline:
+                s.append([i1,i2])
+            break
         #
         ig = i3-i2
         if ig <= ngap:
@@ -168,18 +176,21 @@ class AT_linecube(admit.AT):
         print segments
         segp = []
         n = len(freq)
-        rmax = ratio.max() #  + 0.05*(ratio.max()-ratio.min())
+        rmax = ratio.max() + 0.1 #  + 0.05*(ratio.max()-ratio.min())
         segp.append(  [freq[0],freq[n-1],cutoff,cutoff] )
         for s in segments:
             ch0 = s[0]
             ch1 = s[1]
-            print "Cutting a cube %d - %d" % (ch0,ch1)
+            lmean = sum(freq[ch0:ch1]*ratio[ch0:ch1])/sum(ratio[ch0:ch1])
+            lmax  = max(ratio[ch0:ch1])
+            print "Cutting a cube %d - %d  @ %g GHz log(S/N) = %g" % (ch0,ch1,lmean,lmax)
             segp.append(  [freq[ch0],freq[ch1],rmax,rmax] )
+            segp.append(  [lmean,lmean, rmax-0.1, rmax+0.05] )
         print segp
         
 
         #
-        self.plotter(freq,[ratio],'LineCubeStats-1',xlab='Freq',ylab='log(signal/noise)',figname='linecube1.png',segments=segp)
+        self.plotter(freq,[ratio],'LineCubeStats-1',xlab='Freq',ylab='log(peak/sigma)',figname='linecube1.png',segments=segp)
 
         t.histogram([ratio,ratio2],'LineCubeStats-2',figname='linecube2.png')
         #
