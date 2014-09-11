@@ -370,6 +370,8 @@ class AT(object):
         self.bdp_out   = bdp_out
         self.keyvals   = {}
         for b2 in bdp_out:
+            # each output BDP needs to know the AT it created
+            # although task[] is a list, we only support 1 now
             b2.task.append(self)
             for b1 in bdp_in:
                 if b1 != b2:
@@ -416,8 +418,30 @@ class AT(object):
         for b2 in self.bdp_out:
             if b2.updated:
                 b2.update(False)
-    def get(self, key):
-        return self.keyvals[key]
+    def geti(self, key, default=None):
+        """parse and return as integer"""
+        return int(self.get(key,default))
+    def getf(self, key, default=None):
+        """parse and return as float"""
+        return float(self.get(key,default))
+    def getb(self, key, default=None):
+        """parse and return as boolean (0=false 1=true)"""
+        b = int(self.get(key,default))
+        if b==0: return False
+        return True
+    def get(self, key, default=None):
+        if default == None:
+            if self.has(key):
+                return self.keyvals[key]
+            else:
+                # bad
+                print "No value for key ",key
+                return ""
+        else:
+            if self.has(key):
+                return self.keyvals[key]
+            else:
+                return default
     def has(self, key):
         return self.keyvals.has_key(key)
     def rerun(self):
@@ -444,7 +468,6 @@ class AT(object):
         for b in self.bdp_in:
             pname = b.filename + "." + ext
             b.pdump(pname)
-
     def pload(self, ext='p', filename=None):
         """ is this even sane? """
         if filename:
@@ -535,7 +558,8 @@ class AT_cube(AT):
 # flow:   1 -> 1
 # flow12: 1 -> 2
 # flow21: 2 -> 1
-# flowN:  1 -> N 
+# flow1N: 1 -> N 
+# flowN1: N -> 1
 #
 
 class AT_flow(AT):
@@ -572,10 +596,10 @@ class AT_flow12(AT):
     version = '1.0'
     keys = []
     def __init__(self,bdp_in=[],bdp_out=[]):
-        if _debug: print "AT_flow2.init"
+        if _debug: print "AT_flow12.init"
         AT.__init__(self,self.name,bdp_in,bdp_out)
     def run(self):
-        if _debug: print "AT_flow2.run"
+        if _debug: print "AT_flow12.run"
         if not AT.run(self):
             return False
         # specialized work can commence here
@@ -590,9 +614,9 @@ class AT_flow21(AT):
     keys = []
     def __init__(self,bdp_in=[],bdp_out=[]):
         AT.__init__(self,self.name,bdp_in,bdp_out)
-        if _debug: print "AT_combine.init"
+        if _debug: print "AT_flow21.init"
     def run(self):
-        if _debug: print "AT_combine.run"
+        if _debug: print "AT_flow21.run"
         if not AT.run(self):
             return False
         # specialized work can commence here
@@ -609,9 +633,9 @@ class AT_flow22(AT):
     keys = []
     def __init__(self,bdp_in=[],bdp_out=[]):
         AT.__init__(self,self.name,bdp_in,bdp_out)
-        if _debug: print "AT_combine.init"
+        if _debug: print "AT_flow22.init"
     def run(self):
-        if _debug: print "AT_combine.run"
+        if _debug: print "AT_flow22.run"
         if not AT.run(self):
             return False
         # specialized work can commence here
@@ -621,20 +645,37 @@ class AT_flow22(AT):
         if self.do_pickle:
             self.pdump()
 
-class AT_flowN(AT):
+class AT_flow1N(AT):
     """Split one BDP into N BDPs"""
-    name = 'FLOWN'
+    name = 'FLOW1N'
     version = '1.0'
     keys = ['n']
     def __init__(self,bdp_in=[],bdp_out=[]):
-        if _debug: print "AT_flowN.init"
+        if _debug: print "AT_flow1N.init"
         AT.__init__(self,self.name,bdp_in,bdp_out)
     def run(self):
-        if _debug: print "AT_flowN.run"
+        if _debug: print "AT_flow1N.run"
         if not AT.run(self):
             return False
         # specialized work can commence here
-        print "  work_flowN: %d -> %d" % (len(self.bdp_in),len(self.bdp_out))
+        print "  work_flow1N: %d -> %d" % (len(self.bdp_in),len(self.bdp_out))
+        if self.do_pickle:
+            self.pdump()
+
+class AT_flowN1(AT):
+    """Take BDPs, merge them into one"""
+    name = 'FLOWN1'
+    version = '1.0'
+    keys = ['n']
+    def __init__(self,bdp_in=[],bdp_out=[]):
+        if _debug: print "AT_flowN1.init"
+        AT.__init__(self,self.name,bdp_in,bdp_out)
+    def run(self):
+        if _debug: print "AT_flowN1.run"
+        if not AT.run(self):
+            return False
+        # specialized work can commence here
+        print "  work_flowN1: %d -> %d" % (len(self.bdp_in),len(self.bdp_out))
         if self.do_pickle:
             self.pdump()
 
