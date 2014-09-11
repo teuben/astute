@@ -25,4 +25,23 @@ a.add(b12)
 
 
 a.pdump('flow2.p')
+a1.set('debug=1')
+a.run()
+for b in a.bdps:
+    print b.filename,b.task[0],b.task[0].name
+
+#  now an example how you can reconstruct;
+#  this is pickle specific though,not XML
+
+aa = a.pload('flow2.p')
+
+#  running it of course will need no work.
+aa.run()
+
+
+#  print out the tasks, notice that FLOW12 now has two different addressed... it should not !!
+#  this is a pickle side-effect
+for b in aa.bdps:
+    print b.filename,b.task[0],b.task[0].name
+
 
