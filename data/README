@@ -24,6 +24,9 @@ cube432        4 x 3 x 2 sample cube, good for column/row major testing
 ros13co        61 x 61 x 27 dataset, clumpfind benchmark cube
 NGC6334I       800 x 800 x 2404 SMA dataset, lots of lines
 
+
+EGNoG          27 cubes of around 35x35x35
+
 RScl
 Antennae
 G0.25_B3
@@ -296,3 +299,4 @@ benchmark bench2:
    pipeset cen=0 point=312,312
    test1
    test1a
+
