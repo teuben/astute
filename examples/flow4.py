@@ -40,6 +40,22 @@ a.run()
 print "ALL DONE==========================================="
 
 
+#  now an example how you can reconstruct;
+#  this is pickle specific though,not XML
+
+aa = a.pload('flow4.p')
+
+#  running it of course will need no work.
+aa.run()
+
+
+#  print out the tasks, notice that 
+for b in aa.bdps:
+    print b.filename,b.task[0],b.task[0].name
+
+
+
+
 
 #
 """
