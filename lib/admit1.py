@@ -57,7 +57,9 @@ class ADMIT(object):
         """from all the BDP's are known, and their relation ship,
         this will run the whole pipeline, but not the orphans
         """
-        print "no run in admit yet"
+        print "experimental running in admit (no proper flow control)"
+        for b in self.bdps:
+            b.task[0].run()
     def set(self,a=None, b=1, c=[]):
         """set a global ADMIT parameter
            The idea is that these are obtained through introspection
@@ -228,7 +230,7 @@ class BDP(object):
         print '     ',t.keys
         print '     ',t.keyvals
     def update(self,new_state):
-        if _debug: print "UPDATE: %s" % self.name
+        if _debug: print "UPDATE: %s(%s)" % (self.name,self.filename)
         self.updated = new_state
         for d in self.derv:
             d.update(new_state)
@@ -566,14 +568,14 @@ class AT_flow(AT):
     """ change one BDP into another one"""
     name = 'FLOW'
     version = '1.0'
-    keys = []
+    keys = ['debug']
     def __init__(self,bdp_in=[],bdp_out=[]):
         if _debug: print "AT_flow.init"
         AT.__init__(self,self.name,bdp_in,bdp_out)
         set_keys=self.set.im_func.func_code.co_varnames
         set_vals=self.set.im_func.func_defaults
-        print 'keys:',set_keys
-        print 'vals:',set_vals
+        print 'special flow keys:',set_keys
+        print 'special flow vals:',set_vals
     def run(self):
         if _debug: print "AT_flow.run"
         if not AT.run(self):
@@ -583,18 +585,13 @@ class AT_flow(AT):
         #
         if self.do_pickle:
             self.pdump()
-    def set(self,a=None, b=1, c=[], d='d'):
-        """AT.set() is the way parameters are passed"""
-        print "AT.set"
-    def get(self,key):
-        """AT.get() retrieved current values"""
-        print "AT.get"
+  
 
 class AT_flow12(AT):
     """ split one BDP into two """
     name = 'FLOW12'
     version = '1.0'
-    keys = []
+    keys = ['debug']
     def __init__(self,bdp_in=[],bdp_out=[]):
         if _debug: print "AT_flow12.init"
         AT.__init__(self,self.name,bdp_in,bdp_out)
@@ -603,7 +600,7 @@ class AT_flow12(AT):
         if not AT.run(self):
             return False
         # specialized work can commence here
-        print "  work_flow2: %d -> %d" % (len(self.bdp_in),len(self.bdp_out))
+        print "  work_flow12: %d -> %d" % (len(self.bdp_in),len(self.bdp_out))
         if self.do_pickle:
             self.pdump()
 
@@ -611,7 +608,7 @@ class AT_flow21(AT):
     """ combine two BDPs into one"""
     name = 'FLOW21'
     version = '1.0'
-    keys = []
+    keys = ['debug']
     def __init__(self,bdp_in=[],bdp_out=[]):
         AT.__init__(self,self.name,bdp_in,bdp_out)
         if _debug: print "AT_flow21.init"
@@ -630,7 +627,7 @@ class AT_flow22(AT):
     """ arrange two BDPs into two others"""
     name = 'FLOW22'
     version = '1.0'
-    keys = []
+    keys = ['debug']
     def __init__(self,bdp_in=[],bdp_out=[]):
         AT.__init__(self,self.name,bdp_in,bdp_out)
         if _debug: print "AT_flow22.init"
@@ -649,7 +646,7 @@ class AT_flow1N(AT):
     """Split one BDP into N BDPs"""
     name = 'FLOW1N'
     version = '1.0'
-    keys = ['n']
+    keys = ['n','debug']
     def __init__(self,bdp_in=[],bdp_out=[]):
         if _debug: print "AT_flow1N.init"
         AT.__init__(self,self.name,bdp_in,bdp_out)
@@ -666,7 +663,7 @@ class AT_flowN1(AT):
     """Take BDPs, merge them into one"""
     name = 'FLOWN1'
     version = '1.0'
-    keys = ['n']
+    keys = ['n','debug']
     def __init__(self,bdp_in=[],bdp_out=[]):
         if _debug: print "AT_flowN1.init"
         AT.__init__(self,self.name,bdp_in,bdp_out)
