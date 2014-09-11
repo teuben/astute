@@ -11,12 +11,6 @@ import admit1 as admit
 
 a = admit.ADMIT()
 
-
-#  here we create a01 and a02, but in theory one should be
-#  able to use just a0 and reuse it, but there probably is
-#  a bug (or feature) in the state of the AT's. 
-#  This should be checked out!
-
 b0 = admit.BDP_file("b0")
 a0 = admit.AT_flow([],[b0])
 a0.run()
