@@ -2,9 +2,9 @@
 #
 #  Flow with one junction coming back w/ dependency
 #
-#    /--------- b2 ---\
-#  b0 ->  b1           -> b3
-#           \ --------/
+#      /--b1--\
+#    b0        b3
+#      \--b2--/
 #
 import sys, os
 import admit1 as admit
