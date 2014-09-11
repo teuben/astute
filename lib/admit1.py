@@ -105,7 +105,7 @@ class ADMIT(object):
             b1 = copy.deepcopy(b)
             self.bdps.append(b1)
         pickle.dump(self,open(pname,"wb"))
-        del btmp
+        self.bdps = btmp
     def pload(self,pname):
         print "ADMIT: pickle loading %s" % pname
         return pickle.load(open(pname,"rb"))
@@ -569,7 +569,8 @@ class AT_flow(AT):
     name = 'FLOW'
     version = '1.0'
     keys = ['debug']
-    def __init__(self,bdp_in=[],bdp_out=[]):
+    def __init__(self,bdp_in=[],bdp_out=[],name=None):
+        if name != None: self.name = name
         if _debug: print "AT_flow.init"
         AT.__init__(self,self.name,bdp_in,bdp_out)
         set_keys=self.set.im_func.func_code.co_varnames
@@ -577,7 +578,7 @@ class AT_flow(AT):
         print 'special flow keys:',set_keys
         print 'special flow vals:',set_vals
     def run(self):
-        if _debug: print "AT_flow.run"
+        if _debug: print "AT_flow.run(%s)" % self.name
         if not AT.run(self):
             return False
         # specialized work can commence here
@@ -592,11 +593,12 @@ class AT_flow12(AT):
     name = 'FLOW12'
     version = '1.0'
     keys = ['debug']
-    def __init__(self,bdp_in=[],bdp_out=[]):
+    def __init__(self,bdp_in=[],bdp_out=[],name=None):
+        if name != None: self.name = name
         if _debug: print "AT_flow12.init"
         AT.__init__(self,self.name,bdp_in,bdp_out)
     def run(self):
-        if _debug: print "AT_flow12.run"
+        if _debug: print "AT_flow12.run(%s)" % self.name
         if not AT.run(self):
             return False
         # specialized work can commence here
@@ -609,11 +611,12 @@ class AT_flow21(AT):
     name = 'FLOW21'
     version = '1.0'
     keys = ['debug']
-    def __init__(self,bdp_in=[],bdp_out=[]):
+    def __init__(self,bdp_in=[],bdp_out=[],name=None):
+        if name != None: self.name = name
         AT.__init__(self,self.name,bdp_in,bdp_out)
         if _debug: print "AT_flow21.init"
     def run(self):
-        if _debug: print "AT_flow21.run"
+        if _debug: print "AT_flow21.run(%s)" % self.name
         if not AT.run(self):
             return False
         # specialized work can commence here
@@ -628,11 +631,12 @@ class AT_flow22(AT):
     name = 'FLOW22'
     version = '1.0'
     keys = ['debug']
-    def __init__(self,bdp_in=[],bdp_out=[]):
+    def __init__(self,bdp_in=[],bdp_out=[],name=None):
+        if name != None: self.name = name
         AT.__init__(self,self.name,bdp_in,bdp_out)
         if _debug: print "AT_flow22.init"
     def run(self):
-        if _debug: print "AT_flow22.run"
+        if _debug: print "AT_flow22.run(%s)" % self.name
         if not AT.run(self):
             return False
         # specialized work can commence here
@@ -647,11 +651,12 @@ class AT_flow1N(AT):
     name = 'FLOW1N'
     version = '1.0'
     keys = ['n','debug']
-    def __init__(self,bdp_in=[],bdp_out=[]):
+    def __init__(self,bdp_in=[],bdp_out=[],name=None):
+        if name != None: self.name = name
         if _debug: print "AT_flow1N.init"
         AT.__init__(self,self.name,bdp_in,bdp_out)
     def run(self):
-        if _debug: print "AT_flow1N.run"
+        if _debug: print "AT_flow1N.run(%s)" % self.name
         if not AT.run(self):
             return False
         # specialized work can commence here
@@ -664,11 +669,12 @@ class AT_flowN1(AT):
     name = 'FLOWN1'
     version = '1.0'
     keys = ['n','debug']
-    def __init__(self,bdp_in=[],bdp_out=[]):
+    def __init__(self,bdp_in=[],bdp_out=[],name=None):
+        if name != None: self.name = name
         if _debug: print "AT_flowN1.init"
         AT.__init__(self,self.name,bdp_in,bdp_out)
     def run(self):
-        if _debug: print "AT_flowN1.run"
+        if _debug: print "AT_flowN1.run(%s)" % self.name
         if not AT.run(self):
             return False
         # specialized work can commence here
