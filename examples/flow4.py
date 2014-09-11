@@ -28,12 +28,16 @@ a3 = admit.AT_flow21([b1,b2],[b3])
 a3.run()
 
 
+a.add(b0)
+a.add(b1)
+a.add(b2)
+a.add(b3)
 
 a.pdump('flow4.p')
 
 print "DONE==========================================="
-a3.set("debug=0")
-a2.run()
+a1.set("debug=0")
+a3.run()
 
 #
 """
