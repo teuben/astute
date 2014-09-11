@@ -31,3 +31,21 @@ a3.run()
 
 a.pdump('flow4.p')
 
+print "DONE==========================================="
+a3.set("debug=0")
+a2.run()
+
+#
+"""
+
+testing with a user interface:
+
+1) pickle form
+
+   a) create from scratch, if flow4.p not present; no options parsed
+   b) if flow4.p present, read and instatiate the a's and b's.
+      - rerun pipeline should cause no work to be done
+      - set a parameter anywhere in the a0,a1,a2,a3 and re-run pipeline
+
+
+"""
