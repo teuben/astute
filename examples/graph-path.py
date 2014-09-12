@@ -1,3 +1,10 @@
+#!/usr/bin/env python
+#
+#
+#  based on https://www.python.org/doc/essays/graphs/
+#
+
+
 graph = {'A': ['B', 'C'],
          'B': ['C', 'D'],
          'C': ['D'],
