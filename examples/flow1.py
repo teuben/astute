@@ -9,9 +9,16 @@
 #     reexecution behave correctly.
 #  2) are parameters stored in the correct place
 #  3) does XML save and restore state 
-#  4) does Pickly do the same
+#  4) does Pickle do the same
 
 import admit1 as admit
+
+# See also flow1.dot
+#digraph flow1 {
+#  a1 [shape=box];
+#  b0 -> a1 -> b1;
+#}
+
 
 a = admit.ADMIT()
 
@@ -24,3 +31,5 @@ a.add(b1)
 
 a.pdump('admit1.p')
 b0.pdump('b00.p')
+
+
