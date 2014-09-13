@@ -54,12 +54,16 @@ class ADMIT(object):
         else:
             self.bdps.append(b)
     def run(self):
-        """from all the BDP's are known, and their relation ship,
+        """from all the BDP's are known, and their relationship,
         this will run the whole pipeline, but not the orphans
         """
         print "experimental running in admit (no proper flow control)"
         for b in self.bdps:
             b.task[0].run()
+    def info(self):
+        print "ADMIT(%s): %s" % (self.name, self.project)
+        for b in self.bdps:
+            b.info()
     def set(self,a=None, b=1, c=[]):
         """set a global ADMIT parameter
            The idea is that these are obtained through introspection
@@ -94,6 +98,8 @@ class ADMIT(object):
             if callable(attr) and names != 'print_all' and names != '__init__':
                 attr() # calling the method
     def pdump(self,name=None):
+        """ dump an admit object into pickle format
+        """
         if not name:
             pname = self.name + '.p'
         else:
@@ -107,6 +113,8 @@ class ADMIT(object):
         pickle.dump(self,open(pname,"wb"))
         self.bdps = btmp
     def pload(self,pname):
+        """ load an admit object into pickle format
+        """
         print "ADMIT: pickle loading %s" % pname
         return pickle.load(open(pname,"rb"))
     def discover(self,mode=None,rootdir='.'):
@@ -210,7 +218,7 @@ class BDP(object):
         """ Doug's XML writer
         """
     def show(self):
-        return self.filename
+        return "BDP_%s(%s): " % (self.name,self.filename)
     def info(self):
         print 'BDP %s(%s)' % (self.name,self.filename)
         if len(self.deps)==0:
@@ -647,7 +655,14 @@ class AT_flow22(AT):
             self.pdump()
 
 class AT_flow1N(AT):
-    """Split one BDP into N BDPs"""
+    """Split one BDP into N BDPs.  The value of N is perhaps not known before entry, but this
+    differs how the AT should handle this:
+    1) caller knows N and allocates the array bdp_out[] and the AT fills them
+    2) caller does not know N (e.g. it depends on the bdp_in[] and keys[]), and 
+       can give either an empty bdp[] or a single [b] , the AT will then allocate
+       and add to this list. This however means that the AT needs to make decisions
+       on naming convention, in either case.
+    """
     name = 'FLOW1N'
     version = '1.0'
     keys = ['n','debug']
@@ -668,7 +683,7 @@ class AT_flowN1(AT):
     """Take BDPs, merge them into one"""
     name = 'FLOWN1'
     version = '1.0'
-    keys = ['n','debug']
+    keys = ['debug']
     def __init__(self,bdp_in=[],bdp_out=[],name=None):
         if name != None: self.name = name
         if _debug: print "AT_flowN1.init"
