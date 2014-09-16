@@ -26,6 +26,16 @@ dependancies to a minimum. Eventually, ADMIT should run without any of those.
    python -c "import astropy"
 
 
+   a) Here's one way to install astropy:
+      (you do need to make sure the $PATH is such that python is CASA's python, 
+       not the /usr/bin/python !!!  
+       You also need a machine with compilers, watch out mac users, that's Xcode!
+
+      wget https://bootstrap.pypa.io/get-pip.py
+      python get-pip.py      
+      pip install astropy
+
+
 1) prepare a miriad version of the small benchmark cube (you need MIRIAD for this)
 
    cd data/ros13co
