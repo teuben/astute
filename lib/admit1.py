@@ -64,6 +64,32 @@ class ADMIT(object):
         print "ADMIT(%s): %s" % (self.name, self.project)
         for b in self.bdps:
             b.info()
+    def show(self):
+        print "=== ADMIT(%s): %s" % (self.name, self.project)
+        tasks = []
+        for b in self.bdps:
+            t = b.task[0]
+            try:
+                it = tasks.index(t)
+            except ValueError:
+                tasks.append(t)
+        print "Scanned %s BDP's, found %d tasks" % (len(self.bdps),len(tasks))
+        for t in tasks:
+            tn = t.name
+            binn = "-"
+            bonn = "-"
+            if len(t.bdp_in):  
+                b = t.bdp_in[0]
+                binn = b.filename
+                for b in t.bdp_in[1:]:
+                    binn = binn + "," + b.filename
+            if len(t.bdp_out): 
+                b = t.bdp_out[0]
+                bonn = b.filename
+                for b in t.bdp_out[1:]:
+                    bonn = bonn + "," + b.filename
+            print "RUN:: %s([%s],[%s])" % (tn,binn,bonn)
+        print "=== "
     def set(self,a=None, b=1, c=[]):
         """set a global ADMIT parameter
            The idea is that these are obtained through introspection
@@ -73,6 +99,8 @@ class ADMIT(object):
     def check(self):
         """ check all the BDP's in this admit, and see if they have name collisions
         of their BDPs, and identify orphaned branches of the tree
+        A topological sort is needed as well, if they are not in the correct
+        execution order.  See also the unix tsort(1) program 
         """
     def get(self,key):
         """get a global ADMIT parameter"""
@@ -276,6 +304,8 @@ class BDP(object):
             if _debug: print " Warning: no task set ???"
             # raise ?
         else:
+            if len(self.task) > 1:
+                print "warning: we don't support multiple tasks per BDP"
             for t in self.task:
                 t.run()
         self.updated = True
