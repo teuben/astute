@@ -2,10 +2,11 @@ import sys, os
 import atable
 import numpy as np
 import casa
+import taskinit
 import admit1 as admit
 
 
-def rejecto(data, f=1.5):
+def rejecto1(data, f=1.5):
     u = np.mean(data)
     s = np.std(data)
     newdata = [e for e in data if (u - f * s < e < u + f * s)]
@@ -25,20 +26,23 @@ def mystats(data):
     m2 = d.mean()
     s2 = d.std()
     n2 = len(d)
-    return (n1,m1,s2,n2,m2,s2)
+    return (n1,m1,s1,n2,m2,s2)
 
 
 class AT_cubestats(admit.AT):
     name = 'CUBESTATS'
     version = '1.0'
-    keys = ['sigma', 'ppp']
+    keys = ['ppp','verbose','cubehist']
     def __init__(self,bdp_in=[],bdp_out=[]):
         admit.AT.__init__(self,self.name,bdp_in,bdp_out)
     def run(self):
         if not admit.AT.run(self):
             return False
         # specialized work can commence here
-        use_ppp = False
+        #
+        verbose      = self.geti('verbose',0)
+        use_ppp      = self.getb('ppp',0)
+        use_cubehist = self.getb('cubehist',1)
         #
         fn = self.bdp_in[0].filename
         print "casa::imhead(%s)" % fn
@@ -53,6 +57,7 @@ class AT_cubestats(admit.AT):
         print "casa::imstat(%s)" % fn
         mask = '"%s" != 0.0' % fn
         imstat0 = casa.imstat(fn,           logfile='imstat0.logfile',append=False)
+        if verbose: print imstat0
         imstat1 = casa.imstat(fn,axes=[0,1],logfile='imstat1.logfile',append=False)
         if use_ppp:
             print "Creating PeakPosPoint"
@@ -64,14 +69,24 @@ class AT_cubestats(admit.AT):
                 xpos[i] = s['maxpos'][0]
                 ypos[i] = s['maxpos'][1]
         #
+        if use_cubehist:
+            taskinit.tb.open(fn)
+            data = taskinit.tb.getcol('map')   # get the N-Dim view
+            shape = data.shape
+            taskinit.tb.close()
+            d1 = data.ravel()                  # get a 1D view
+            d1 = d1*1000.0                     # get it in mJy/beam
+        #
         c1 = 'max'
         c2 = 'sigma'
         c3 = 'medabsdevmed'
         c4 = 'mean'
+        c5 = 'min'
         #
         print "Cube Stats:"
         print "  number of points: %d" % imstat0['npts']
         print "  mean, sigma: %g %g  (%g) mJy/beam" % (imstat0[c4][0]*1000,imstat0[c3][0]*1000,imstat0[c2][0]*1000)
+        print "  min: ", imstat0[c5][0]*1000," mJy/beam  @: ",imstat0['minpos']
         print "  max: ", imstat0[c1][0]*1000," mJy/beam  @: ",imstat0['maxpos']
   
         print "Plane Stats:"
@@ -80,8 +95,6 @@ class AT_cubestats(admit.AT):
         print "  max   :: ",mystats( imstat1[c1]*1000 )
         print "  sigma :: ",mystats( imstat1[c2]*1000 )
         print "  s/n   :: ",mystats( imstat1[c1]/imstat1[c3] )
-
-
 
         col_names = ['channel','frequency','mean',      'sigma',     'max']
         col_data  = [ ch,       fr,         imstat1[c4], imstat1[c3], imstat1[c1]] 
@@ -102,11 +115,10 @@ class AT_cubestats(admit.AT):
         noise  = a1.get('sigma')*1000           # in mJy/beam now
         signal = a1.get('max')*1000             # in mJy/beam now
         s2n    = signal/noise                   # dimensionless
-        print 'freq type ',freq.dtype
         print "Freq range : %g %g GHz" % (freq.min(), freq.max())
         print "Mean range : %g %g mJy/beam" % (mean.min(), mean.max())
         print "Noise range : %g %g mJy/beam" % (noise.min(), noise.max())
-        print "Peak Signal range : %g %g mJy/beam" % (signal.min(), signal.max())
+        print "Peak range : %g %g mJy/beam" % (signal.min(), signal.max())
         print "S/N range : %g %g mJy/beam" % (s2n.min(), s2n.max())
 
         (n1,sn1,sn2,n3,sn3,sn4) = mystats( imstat1[c1]/imstat1[c3] )
@@ -114,10 +126,10 @@ class AT_cubestats(admit.AT):
         (n1,sn1,sn2,n3,sn3,sn4) = mystats( imstat1[c3] )
         print "SIGNAL/NOISE:             ",(signal.max()/sn3/1000.0)
 
-
-        print "Cube Stats after pickle:"
-        print "  mean, sigma: %g %g  (%g) mJy/beam" % (imstat0[c4][0]*1000,imstat0[c3][0]*1000,imstat0[c2][0]*1000)
-        print "  max: ", imstat0[c1][0]*1000," mJy/beam  @: ",imstat0['maxpos']
+        
+        #print "Cube Stats after pickle:"
+        #print "  mean, sigma: %g %g  (%g) mJy/beam" % (imstat0[c4][0]*1000,imstat0[c3][0]*1000,imstat0[c2][0]*1000)
+        #print "  max: ", imstat0[c1][0]*1000," mJy/beam  @: ",imstat0['maxpos']
 
         fno = self.bdp_out[0].filename 
         if self.do_pickle:
@@ -140,4 +152,6 @@ class AT_cubestats(admit.AT):
                 a1.histogram(ydata,   'CubeStats-S,N,R',fno+'.2.png')
                 #a1.histogram([ratio], 'CubeStats-R',    fno+'.3.png',range=[0.2,0.6])
                 a1.histogram([ratio], 'CubeStats-R',    fno+'.3.png')
+            if use_cubehist:
+                a1.histogram([d1],'CubeHist',fno+'.4.png')
             
