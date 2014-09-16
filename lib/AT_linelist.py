@@ -208,7 +208,7 @@ class AT_linelist(admit.AT):
         segp.append(  [freq[0],freq[n-1],cutoff,cutoff] )
         segp.append(  [freq[0],freq[n-1],dmean,dmean] )
         # allocate atable for BDP
-        tfreq  = np.arange(nlines,dtype=float)     ; c1 = 'freq'
+        tfreq  = np.arange(nlines,dtype=float)     ; c1 = 'frequency'
         twidth = np.arange(nlines,dtype=float)     ; c2 = 'width'
         tshort = range(nlines)                     ; c3 = 'short'
         tlikel = np.arange(nlines,dtype=float)     ; c4 = 'likely'
