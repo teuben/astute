@@ -24,7 +24,8 @@ import AT_summary      as at0
 import AT_cubestats    as at1
 import AT_cubespectrum as at2
 import AT_moments      as at3
-import AT_linecube     as at4
+import AT_linelist     as at4
+import AT_linecube     as at5
 
 
 def try1a(mode=999):
@@ -50,7 +51,8 @@ def try1a(mode=999):
     if mode>mcrit:
         mcrit=mcrit+1
         b1s = admit.BDP_summary('summary')
-        a1s = at0.AT_summary([b0],[b1s])
+        a1s = at0.AT_summary([b1],[b1s])
+        #a1s.set('verbose=0')
         a1s.run()
         a.add(b1s) 
 
@@ -75,32 +77,50 @@ def try1a(mode=999):
     # 4
     if mode>mcrit:
         mcrit=mcrit+1
-        b5 = admit.BDP_image('linecube')
-        a5 = at4.AT_linecube([b1,b2],[b5])
+        b5 = admit.BDP_image('linelist')
+        a5 = at4.AT_linelist([b1,b2],[b5])
+        a5.set('csigma=-1')
+        a5.set('f=1.0')
         a5.run()
         a.add(b5)
 
     # 5
     if mode>mcrit:
         mcrit=mcrit+1
-        b40 = admit.BDP_file('mom0')
-        b41 = admit.BDP_file('mom1')
-        b42 = admit.BDP_file('mom2')
-        a4 = at3.AT_moments([b1],[b40,b41,b42])
-        a4.set('moments=0,1,2')
-        a4.run()
-        a.add(b40)
-        a.add(b41)
-        a.add(b42)
+        b61 = admit.BDP_image('linecube')
+        b6 = [b61]
+        a6 = at5.AT_linecube([b1,b5],b6)
+        a6.run()
+        nlines = len(b6)
+        print "Found %d linecubes" % nlines
+        for i in range(nlines):
+            a.add(b6[i])
 
-    # 6 
+    # 6
     if mode>mcrit:
+        mcrit=mcrit+1
+        b60 = range(nlines)
+        b61 = range(nlines)
+        b62 = range(nlines)
+        a60 = range(nlines)
+        for i in range(nlines):
+            lname = b6[i].filename 
+            b60[i] = admit.BDP_image(lname + '.mom0')
+            b61[i] = admit.BDP_image(lname + '.mom1')
+            b62[i] = admit.BDP_image(lname + '.mom2')
+            a60[i] = at3.AT_moments([b6[i]],[b60[i],b61[i],b62[i]])
+            a60[i].set('moments=0,1,2')
+            a60[i].run()
+            a.add(b60[i])
+            a.add(b61[i])
+            a.add(b62[i])
+    # 7 
+    if False:
         mcrit=mcrit+1
 	a0.pdump()
 	a1.pdump()
 	a2.pdump()
 	a3.pdump()
-        a4.pdump()
 
     a.pdump()
     print "END mcrit=%d" % mcrit
