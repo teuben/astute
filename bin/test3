@@ -44,6 +44,7 @@ def try3(filename=None):
     for f in ff:
         print "=== FITS: ",f,"================================================================================="
     	adir = '%s.admit' % f
+        # go into the directory (pushd)
 	am1.setdir(adir)
 	#
 	project = f[:f.rindex(".")]
@@ -55,6 +56,7 @@ def try3(filename=None):
 	#
         b2 = admit.BDP_summary("summary")             ; am2.add(b2)
         a2 = at2.AT_summary([b1],[b2])
+        a2.set('verbose=0')
         a2.run()
         #
 	b3 = admit.BDP_cubestats("cubestats")         ; am2.add(b3)
@@ -67,11 +69,13 @@ def try3(filename=None):
         #
 	b5 = admit.BDP_image("linecube")              ; am2.add(b5)  
 	a5 = at5.AT_linecube([b1,b3],[b5])
+        a5.set('f=1.0')
+        a5.set('csigma=5.0')
 	a5.run()
 
-	# 	
+	# save the state	
 	am2.pdump()
-	#
+	# back up directory (popd)
 	am1.tesdir()
     # done!
 
