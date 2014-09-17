@@ -1,0 +1,31 @@
+#! /usr/bin/env python
+#
+#   show what's inside an 'ATable'
+#   
+#   for now only for cPickle'd versions
+#
+
+import sys, os
+import atable
+
+
+
+if __name__ == "__main__":
+    print sys.argv[0]
+    argv = sys.argv
+
+    if len(argv) < 2:
+        print 'Need a (pickle) table (usually a bin file)'
+        sys.exit(0)
+    file = argv[1]
+        
+    
+    if os.environ.has_key('CASAPATH'):
+        cp = os.environ['CASAPATH']
+        if len(cp.split())==1:
+            os.environ['CASAPATH']="%s linux socorro admit" % cp
+    a = atable.ATable().pload(file)
+    # by default show, if more arguments use that to switch
+    a.show()
+    #
+    a.data()
