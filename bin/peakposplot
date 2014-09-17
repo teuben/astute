@@ -1,5 +1,5 @@
-#! /usr/bin/env casarun
 #! /usr/bin/env python
+#! /usr/bin/env casarun
 #
 #    example to present the peak positions of each channel in a cube
 #    in a plot that scales the intensity at each peak with a circle
@@ -17,7 +17,6 @@ except:
 
 
 try:
-    import admit1 as admit
     import atable
 except:
     print 'No admit'
@@ -30,19 +29,21 @@ Qbin = True
 #Qbin = False
 
 if Qbin:
-    print "Using peakpospoint.bin"
-    # from peakpospoint.bin
+    pppfile = "cubestats-ppp.bin"
+    print "Using ",pppfile
+    # needs:
     # ['channel', 'frequency', 'maxposx', 'maxposy', 'max']
-    t = atable.ATable().pload('peakpospoint.bin')
+    t = atable.ATable().pload(pppfile)
     print t.names
     i = t.get('max')
     c = t.get('channel')
     x = t.get('maxposx')
     y = t.get('maxposy')
 else:
-    print "Using ccdstat.tab"
+    pppfile = "ccdstat.tab"
+    print "Using ",pppfile
     #  from maxpos=t
-    t = Table.read('ccdstat.tab',format='ascii')
+    t = Table.read(pppfile,format='ascii')
     if True:
         # if properly labeled
 	i = t['max']
@@ -87,9 +88,9 @@ ax4.set_title('k=%g' % gamma)
 
 
 
-
+fig.savefig('PeakPosPlot-1.png')
 plt.show()
-fig.savefig('PeakPosPlot.pdf')
+fig.savefig('PeakPosPlot-2.png')
 
 
 
