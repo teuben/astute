@@ -63,6 +63,18 @@ class ADMIT(object):
         print "experimental running in admit (no proper flow control)"
         for b in self.bdps:
             b.task[0].run()
+    def tsort(self):
+        """ topologic sort to get the b's in correct execution order
+        """
+        # first print out the segments, so you can (for debug) pipe them into tsort :-)
+        for b1 in self.bdps:
+            for b2 in b1.derv:
+                print "TSORT: ",b1.filename,b2.filename
+        # now do the sort
+        #
+        # and print out the linear order
+        for b1 in self.bdps:
+            print "SORTED: ",b1.filename
     def info(self):
         print "ADMIT(%s): %s" % (self.name, self.project)
         for b in self.bdps:
@@ -232,9 +244,9 @@ class BDP(object):
         self.filename = filename
         self.filetype = filetype
         self.project  = project
-        self.deps     = []
-        self.derv     = []
-        self.task     = []
+        self.deps     = []        # parents
+        self.derv     = []        # children
+        self.task     = []        # task with which BDP was created (should be 1)
         # below these are for runtime, not needed for persistence
         self.updated  = False     # ???   this triggers a new run
         self.output   = True      # True: triggers a new save(pdump/xwrite)
