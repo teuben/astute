@@ -1,22 +1,10 @@
 #! /usr/bin/env casarun
 #-*- mode: python -*-
-#! /usr/bin/env python
 #
-#  testing a piece of an ADMIT pipeline
-#  it depends on having run 'getdata' in for example 'w_1_c'  (n253 benchmark)
+#    example pipeline on a series of fits files. 
+#    Written for EGNoG where only one linecube is created,  no LineList
+#    Run this from the directory wehre all the A1....fits files are located
 #
-#  e.g.
-#      cd $ASTUTE/data
-#      mkdir w_1_c  
-#      cd w_1_c
-#      pipesetup project=w_1_c
-#      getdata
-#      test1                                      (ideally just this script)
-#      /usr/bin/python $ASTUTE/bin/test1          (currently needed [sic] unless you fix tcl/tk link)
-#
-#      in "mkcd $CASAPATH/lib/casapy/lib"  :   ln -s ../../../share/tcl8.4 ; ln -s ../../../share/tk8.4
-#                               
-#      Running it via 'casarun' solves this problem.
 
 import os, sys
 import admit1 as admit
