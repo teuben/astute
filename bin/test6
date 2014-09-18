@@ -1,0 +1,107 @@
+#! /usr/bin/env casarun
+#-*- mode: python -*-
+#
+#  test6 (see also flow6.dot)
+#  testing a piece of an ADMIT pipeline, this one written for n253
+#  based on 'test1' as it existed on sep 18, for the benefit of
+#  comparing two contrasting views of running an ADMIT pipeline
+#  from scratch
+#
+import sys,os
+
+import admit1 as admit
+#     note the two 'peculiar styles here how to grab the AT's 
+#     I usually prefer some namespace in front of class instantiations,
+#     so the reader can see where they come from.
+#     Also note this is CASA agnostic, the AT's could be implemented
+#     in "any" package (MIRIAD and https://github.com/radio-astro-tools 
+#     come to mind here)
+from   AT_ingest import AT_ingest
+import AT_summary      as at0
+import AT_cubestats    as at1
+import AT_cubespectrum as at2
+import AT_moments      as at3
+import AT_linelist     as at4
+import AT_linecube     as at5
+
+
+def test6(filename):
+    #  start a new ADMIT, set plotmode to batch mode
+    a = admit.ADMIT("TRY1a", project='n253::test1')
+    a.plotmode(0,'png')
+
+    adir = "%s.admit" % filename                   # all ADMIT work in a subdirectory .admit
+    a.setdir(adir)
+
+    b0 = admit.BDP_file("../" + filename)          ;     a.add(b0) 
+    a0 = admit.AT_file([],[b0])      
+    a0.run()
+
+    b1 = admit.BDP_file('cim')                     ;     a.add(b1) 
+    a1 = AT_ingest([b0],[b1])
+    a1.set('mask=0')
+    a1.run()
+
+    b1s = admit.BDP_summary('summary')             ;    a.add(b1s) 
+    a1s = at0.AT_summary([b1],[b1s])
+    a1s.set('verbose=0')
+    a1s.run()
+
+
+    b2 = admit.BDP_cubestats('cubestats')          ;   a.add(b2)
+    a2 = at1.AT_cubestats([b1],[b2])                 
+    # if you set PeakPosPlot, remember it's expensive
+    a2.set('ppp=0')
+    a2.run()
+
+    # for now, if you give 2 BDP's it has to be a cubestats
+    # in which the mean,sigma,max,maxpos for the cube was recorded as well
+    b3 = admit.BDP_cubespectrum('cubespectrum')    ;   a.add(b3)
+    a3 = at2.AT_cubespectrum([b1,b2],[b3])             
+    #a3 = at2.AT_cubespectrum([b1],[b3])             
+    a3.set('pos=310,310')
+    a3.run()
+    
+    
+    b5 = admit.BDP_image('linelist')               ;   a.add(b5)
+    a5 = at4.AT_linelist([b1,b2],[b5])
+    a5.set('csigma=-1')
+    a5.set('f=1.0')
+    a5.run()
+    
+
+    b6p = admit.BDP_image('linecube')        # allocate one
+    b6  = [b6p]                              # into array
+    a6  = at5.AT_linecube([b1,b5],b6)        # a6.run will append to b6 as needed
+    a6.run()
+    nlines = len(b6)
+    print "Found %d linecubes" % nlines
+    for i in range(nlines):
+        a.add(b6[i])
+
+    b60 = range(nlines)
+    b61 = range(nlines)
+    b62 = range(nlines)
+    a60 = range(nlines)
+    for i in range(nlines):
+        lname = b6[i].filename 
+        b60[i] = admit.BDP_image(lname + '.mom0')    ;  a.add(b60[i]) 
+        b61[i] = admit.BDP_image(lname + '.mom1')    ;  a.add(b61[i])  
+        b62[i] = admit.BDP_image(lname + '.mom2')    ;  a.add(b62[i])
+
+        a60[i] = at3.AT_moments([b6[i]],[b60[i],b61[i],b62[i]])
+        a60[i].set('moments=0,1,2')
+        a60[i].run()
+
+    a.pdump()
+
+if __name__ == "__main__":
+    # get the bare args because we're running through "casarun", not "python"
+    argv = admit.casa_argv(sys.argv)
+    if len(argv) == 2:
+        filename = argv[1]
+        print "Trying file=%s" % filename
+        test6(filename)
+    else:
+        print "Need a fits filename buddy"
+
