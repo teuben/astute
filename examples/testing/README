@@ -1,0 +1,19 @@
+
+This is the place where we collect many example , useful for
+ADMIT post processing using modules you may or may not have.
+
+The idea is that you catch the missing modules, or execute
+some simple example
+
+We will assuming the basic CASA modules are always present,
+i.e. numpy, scipy and matplotplib.
+
+
+For example
+
+
+try:
+    from astropy.table import Table
+except:
+    print "no astropy"
+    os.exit(0)
