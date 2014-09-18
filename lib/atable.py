@@ -16,7 +16,7 @@ class ATable(object):
     """
     def __init__(self,cols=[],names=[],types=[],units=[],filename=None):
         self.n       = 0
-        self.version = "2-sep-2014"
+        self.version = "17-sep-2014"
         self.cols    = cols
         self.names   = names
         self.types   = types
@@ -35,7 +35,15 @@ class ATable(object):
         print 'col_names: ',self.names
         print 'col_types: ',self.types
         print 'col_units: ',self.units
-        
+    def data(self):
+        """ just for debug, needs prettier output"""
+        n = len(self.cols[0])
+        m = len(self.cols)
+        for i in range(n):
+            d = []
+            for j in range(m):
+                d.append(self.cols[j][i])
+            print d
     def get(self,name):
         for i in range(len(self.cols)):
             if name == self.names[i]:
@@ -63,12 +71,13 @@ class ATable(object):
         fig = plt.figure(self.fign)
         ax1 = fig.add_subplot(1,1,1)
         for xi in x:
-            if range:
-                ax1.hist(xi,bins=bins,range=range)
-            else:
+            if range==None:
                 ax1.hist(xi,bins=bins)
+            else:
+                ax1.hist(xi,bins=bins,range=range)
         if title:    ax1.set_title(title)
         if xlab:     ax1.set_xlabel(xlab)
+        ax1.set_ylabel("#")
         if figname: 
             fig.savefig(figname)
         plt.show()
