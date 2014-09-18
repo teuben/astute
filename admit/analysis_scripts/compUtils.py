@@ -28,7 +28,7 @@ def get_root_url_for_date(date):
     year = date[:4]
     mm = date[5:7]
     hostname = get_host_name()
-    return "%s/index.php?dir=AOS/containers/%s/" % (hostname, date)
+    return "%s/index.php?dir=AOS/CONTAINER/%s/" % (hostname, date)
 
 def get_root_url_for_abm_container(antenna,date):
     """
@@ -38,7 +38,7 @@ def get_root_url_for_abm_container(antenna,date):
     The returned URL already contains the date.
     """
     url = get_root_url_for_date(date)
-    url += antenna.lower() + '-abm/CONTROL/' + antenna.upper() + '/' 
+    url += 'alma/logs/' + antenna.lower() + '-abm/CONTROL/' + antenna.upper() + '/' 
     return url
 
 def retrieve_abm_container_data_files(antenna, date, time='*', overwrite=False, verbose=True):
@@ -72,7 +72,7 @@ def retrieve_abm_container_data_files(antenna, date, time='*', overwrite=False, 
         print "Retrieving %s" % (completeurl)
         wget = distutils.spawn.find_executable('wget',path=':'.join(sys.path)+':'+os.environ['PATH'])
         cmd = wget + ' -r -l1 --no-parent -A.gz %s' % (completeurl) # -o %s' % (completeurl, outfile)
-        # will write to new subdiretory: computing-logs.aiv.alma.cl/AOS/containers/2014-04-29/dv25-abm/CONTROL/DV25/
+        # will write to new subdirectory: computing-logs.aiv.alma.cl/AOS/CONTAINER/2014-04-29/alma/logs/dv25-abm/CONTROL/DV25/
         print "Calling: ", cmd
         exitcode = os.system(cmd)
         if exitcode == 0:
@@ -87,7 +87,6 @@ def retrieve_abm_container_data_files(antenna, date, time='*', overwrite=False, 
                         os.remove(f)
             files = sorted(glob.glob(directory+'/*'))
             print files
-            
             allfiles = catAllFiles(files, outfilename=files[0][:-13]) # strip off the time string at end
             print "concatenated file = ", allfiles
             return allfiles

@@ -341,7 +341,7 @@ def checkPolsToPlot(polsToPlot, corr_type_string):
 def getCorrType(msName, spwsToPlot, debug):
     """
     Open the DATA_DESCRIPTION_ID table.  Find the polarization_id of the first
-    spw in the list of spwsToPlot, then read the CORR_TYPE from the POLARIZATION
+    spw in the list of spwsToPlot, then read the CORR_TYPE from POLARIZATION
     table.
     """
     mytb = au.createCasaTool(tbtool)
@@ -638,16 +638,22 @@ def countDigitsInXTickLabels(adesc):
         digits += len('%g' % (float(xticklabels[l].get_text())))
     print "%d digits in %d labels" % (digits,len(xticklabels))
 
-def GetFieldIdsForFieldName(token, vm, mymsmd):
+def GetFieldIdsForFieldName(token, vm, mymsmd, msFields):
     if (casadef.casa_version >= '4.1.0'):
-        myid = mymsmd.fieldsforname(token)
+        if (mymsmd != '' and mymsmd != None):
+            myid = mymsmd.fieldsforname(token)[0]
+        else:
+            myid = list(msFields).index(token)
     else:
         myid = vm.getFieldIdsForFieldName(token)
     return(myid)
 
-def GetFieldNamesForFieldId(u, vm, mymsmd):
+def GetFieldNamesForFieldId(u, vm, mymsmd, msFields):
     if (casadef.casa_version >= '4.1.0'):
-        myFieldName = mymsmd.namesforfields(u)
+        if (mymsmd != '' and mymsmd != None):
+            myFieldName = mymsmd.namesforfields(u)[0]
+        else:
+            myFieldName = msFields[u]
     else:
         myFieldName = vm.getFieldNamesForFieldId(u)
     return(myFieldName)
@@ -1136,9 +1142,9 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
   if (caltable[-1] == '/'):
       print "Stripping off the trailing '/' from the caltable name."
       caltable = caltable[:-1]
-
+  mytb = au.createCasaTool(tbtool)
   try:
-      tb.open(caltable)
+      mytb.open(caltable)
   except:
       print "Could not open the caltable = %s" % (caltable)
       return(vm)
@@ -1158,13 +1164,13 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
       caltableTitle = '...' + caltable[-90:]
   else:
       caltableTitle = caltable
-  names = tb.colnames()
+  names = mytb.colnames()
   if ('UVW' in names):
       print "This appears to be a measurement set, not a caltable. Aborting."
       return(vm)
   casalog.post(cmd)
-  ant = tb.getcol('ANTENNA1')
-  fields = tb.getcol('FIELD_ID')
+  ant = mytb.getcol('ANTENNA1')
+  fields = mytb.getcol('FIELD_ID')
 #  if (DEBUG):
 #      print "FIELD_ID column = ", fields
   validFields = False
@@ -1178,33 +1184,34 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
   try:
       flags = {}
       for f in range(len(fields)):
-          flags[f] = tb.getcell('FLAG',f)
+          flags[f] = mytb.getcell('FLAG',f)
   except:
       print "No Flag column found. Are you sure this is a bandpass solution file, or is it the .ms?"
       print "If it is a solution file, does it contain solutions for both TDM and FDM spws?"
       return(vm)
 #  if (debug): print "%d: flags.keys() = %s" % (len(flags.keys()), str(flags.keys()))
 
-  times = tb.getcol('TIME')
-  intervals = tb.getcol('INTERVAL')
+  times = mytb.getcol('TIME')
+  intervals = mytb.getcol('INTERVAL')
   if ('SPECTRAL_WINDOW_ID' not in names):
       # This is an old-style CASA cal table.
       tableFormat = 33  
-      cal_desc_id = tb.getcol('CAL_DESC_ID')
-      VisCal = (tb.info())['subType']
+      msAnt = []
+      cal_desc_id = mytb.getcol('CAL_DESC_ID')
+      VisCal = (mytb.info())['subType']
       if (VisCal == "BPOLY"):
           print "This appears to be a BPOLY cal table written in the casa 3.3/3.4 style."
       else:
           print "This appears to be an old-format cal table from casa 3.3 or earlier."
       if (debug): print "VisCal = ", VisCal
-      tb.close()
+      mytb.close()
       ParType = "unknown"  # i.e. not Complex
-      calDesc = tb.open(caltable+'/CAL_DESC')
-      originalSpws = tb.getcol('SPECTRAL_WINDOW_ID')  # [[0,1,2,3]]
+      calDesc = mytb.open(caltable+'/CAL_DESC')
+      originalSpws = mytb.getcol('SPECTRAL_WINDOW_ID')  # [[0,1,2,3]]
       if debug: print "originalSpws = ", originalSpws
       originalSpw = originalSpws[0]                   # [0,1,2,3]
       if debug: print "originalSpw = ", originalSpw
-      msName = tb.getcol('MS_NAME')[0]
+      msName = mytb.getcol('MS_NAME')[0]
       if debug: print "msName in table = ", msName
       if (ms != ''):
           msName = ms
@@ -1213,23 +1220,20 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
       if (VisCal == "BPOLY"):
           originalChannelStart = np.zeros(len(originalSpw))
       else:
-          originalChannelRange = tb.getcol('CHAN_RANGE')
+          originalChannelRange = mytb.getcol('CHAN_RANGE')
           originalChannelStart = originalChannelRange[0][0][:][0]
-      tb.close()
+      mytb.close()
       try:
-          tb.open(msName+'/SPECTRAL_WINDOW')
-          refFreq = tb.getcol('REF_FREQUENCY')    
-          net_sideband = tb.getcol('NET_SIDEBAND')
-          measFreqRef = tb.getcol('MEAS_FREQ_REF')
+          mytb.open(msName+'/SPECTRAL_WINDOW')
+          refFreq = mytb.getcol('REF_FREQUENCY')    
+          net_sideband = mytb.getcol('NET_SIDEBAND')
+          measFreqRef = mytb.getcol('MEAS_FREQ_REF')
           originalSpw_casa33 = range(len(measFreqRef))
           chanFreqGHz_casa33 = []     # used by showFDM
           for i in originalSpw_casa33:
               # The array shapes can vary.
-              chanFreqGHz_casa33.append(1e-9 * tb.getcell('CHAN_FREQ',i))
-          tb.close()
-#          (corr_type, corr_type_string, nPolarizations) = getCorrType(msName,spwsToPlot)
-#          if (corr_type_string == []):
-#              return(vm)
+              chanFreqGHz_casa33.append(1e-9 * mytb.getcell('CHAN_FREQ',i))
+          mytb.close()
       except:
           print "2) Could not open the associated measurement set tables (%s). Will not translate antenna names." % (msName)
 #          print "I will assume ALMA data: XX, YY, and refFreq=first channel."
@@ -1237,33 +1241,42 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
 #          corr_type = [9,12]
   else:  # 3.4
       tableFormat = 34
-      cal_desc_id = tb.getcol('SPECTRAL_WINDOW_ID')
-      cal_scans = tb.getcol('SCAN_NUMBER')
+      cal_desc_id = mytb.getcol('SPECTRAL_WINDOW_ID')
+      cal_scans = mytb.getcol('SCAN_NUMBER')
       unique_cal_scans = np.unique(cal_scans)
       cal_scans_per_spw = {}
       for myspw in np.unique(cal_desc_id):
           cal_scans_per_spw[myspw] = np.unique(cal_scans[np.where(myspw == cal_desc_id)[0]])
           if (debug):
               print "spw %d: scans %s" % (myspw,str(cal_scans_per_spw[myspw]))
-      ParType = tb.getkeyword('ParType')    # string = 'Complex'
-      msName = tb.getkeyword('MSName')      
-      VisCal = tb.getkeyword('VisCal')      # string = 'B TSYS'
-      PolBasis = tb.getkeyword('PolBasis')  # string = 'LINEAR'
-      spectralWindowTable = tb.getkeyword('SPECTRAL_WINDOW').split()[1]
-      tb.close()
-      tb.open(spectralWindowTable)
+      ParType = mytb.getkeyword('ParType')    # string = 'Complex'
+      msName = mytb.getkeyword('MSName')      
+      VisCal = mytb.getkeyword('VisCal')      # string = 'B TSYS'
+      PolBasis = mytb.getkeyword('PolBasis')  # string = 'LINEAR'
+      spectralWindowTable = mytb.getkeyword('SPECTRAL_WINDOW').split()[1]
+      antennaTable = mytb.getkeyword('ANTENNA').split()[1]
+      fieldTable = mytb.getkeyword('FIELD').split()[1]
+      mytb.close()
+      mytb.open(spectralWindowTable)
       chanFreqGHz = []
-      originalSpws = range(len(tb.getcol('MEAS_FREQ_REF')))
-      originalSpw = originalSpws  # may need to do a global replace of this <----------------------------------
-      originalSpwNames = tb.getcol('NAME')
+      originalSpws = range(len(mytb.getcol('MEAS_FREQ_REF')))
+      originalSpw = originalSpws  # may need to do a global replace of this <------------------------
+      originalSpwNames = mytb.getcol('NAME')
       for i in originalSpws:
           # The array shapes can vary.
-          chanFreqGHz.append(1e-9 * tb.getcell('CHAN_FREQ',i))
-      tb.close()
-
+          chanFreqGHz.append(1e-9 * mytb.getcell('CHAN_FREQ',i))
+      mytb.close()
+      #      CAS-6801 changes
+      mytb.open(antennaTable)
+      msAnt = mytb.getcol('NAME')
+      mytb.close()
+      mytb.open(fieldTable)
+      msFields = mytb.getcol('NAME')
+      mytb.close()
+      
   # Now open the associated ms tables via ValueMapping
-  msAnt = []
   mymsmd = ''
+#  msAnt = []  # comment this out when CAS-6801 changes are in place
   observatoryName = ''
   if (vm == ''):
     if (debug): print  "msName = %s." % (msName)
@@ -1301,9 +1314,9 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
         except:
           print "1)Could not open the associated measurement set tables (%s). Will not translate antenna names or frequencies." % (msName)
     else:
-      if (ms==''):
+      if (ms=='' and tableFormat < 34):
           print "Could not find the associated measurement set (%s). Will not translate antenna names or frequencies." % (msName)
-      else:
+      elif (ms != ''):
           # Use the ms name passed in from the command line
           msName = ms
 #          print "************* 2) Set msName to ", msName
@@ -1355,7 +1368,7 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
   if (len(msAnt) > 0):
       msFields = list(msFields) # necessary to avoid having to index with extra 0: msFields[fieldIndex][0]
       msFieldsUnique = np.unique(msFields)
-      msFound = True
+      msFound = True  # will also be true if necessary information is found in the caltable subtables
       print "Fields in ms  = ", msFields
   else:
       msFields = []
@@ -1507,26 +1520,28 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
   # Now generate the list of minimal basebands that contain the spws to be plotted
   if (casadef.casa_version >= '4.1.0' and msFound):
       allBasebands = []
-      try:
-          for spw in originalSpwsToPlot:
-              mybaseband = mymsmd.baseband(spw)
-              if (debug): print "appending: spw=%d -> bb=%d" % (spw,mybaseband)
-              allBasebands.append(mybaseband)
-          allBasebands = np.unique(allBasebands)
-          basebandDict = getBasebandDict(msName)  # needed later by showFDM()
-      except:
+      if (mymsmd != ''):
+          try:
+              for spw in originalSpwsToPlot:
+                  mybaseband = mymsmd.baseband(spw)
+                  if (debug): print "appending: spw=%d -> bb=%d" % (spw,mybaseband)
+                  allBasebands.append(mybaseband)
+              allBasebands = np.unique(allBasebands)
+              basebandDict = getBasebandDict(msName,caltable=caltable)  # needed later by showFDM()
+          except:
+              basebandDict = {}
+              print "This dataset (%s) does not have a BBC_NO column in the SPECTRAL_WINDOW_TABLE." % (msName)
+      else:
           basebandDict = {}
-          if (observatoryName.find('SMA')>=0):
-              print "This SMA dataset (%s) does not have a BBC_NO column in the SPECTRAL_WINDOW_TABLE." % (msName)
-          else:
-              print "This MS (%s) is too old to have a BBC_NO column in the SPECTRAL_WINDOW_TABLE." % (msName)
-          if (overlay.find('spw')>=0):
-              print "As such, overlay='spw' is not supported, but overlay='baseband' should work."
-              return
+          telescopeName = getTelescopeNameFromCaltable(caltable)
+          print "This %s caltable (%s) is too old to have a BBC_NO column in the SPECTRAL_WINDOW_TABLE." % (telescopeName,caltable)
+      if (basebandDict == {} and overlay.find('spw') >= 0):
+          print "As such, overlay='spw' is not supported, but overlay='baseband' should work."
+          return
   elif (msFound==False):
       allBasebands = [1,2,3,4]
   else:
-      basebandDict = getBasebandDict(msName)  # needed later by showFDM()
+      basebandDict = getBasebandDict(msName,caltable=caltable)  # needed later by showFDM()
       allBasebands = []
       for spw in originalSpwsToPlot:
           mybaseband = [key for key in basebandDict if spw in basebandDict[key]]
@@ -1681,14 +1696,14 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
   if (bOverlay):        
         # Now open the Bandpass solution table
         try:
-              tb.open(caltable2)
+              mytb.open(caltable2)
         except:
               print "Could not open the second caltable = %s" % (caltable2)
               return(vm)
-        names = tb.colnames()
-        ant2 = tb.getcol('ANTENNA1')
-        fields2 = tb.getcol('FIELD_ID')
-        times2 = tb.getcol('TIME')
+        names = mytb.colnames()
+        ant2 = mytb.getcol('ANTENNA1')
+        fields2 = mytb.getcol('FIELD_ID')
+        times2 = mytb.getcol('TIME')
         if ('SPECTRAL_WINDOW_ID' not in names):
             if ('SNR' not in names):
                 print "This does not appear to be a cal table."
@@ -1696,15 +1711,15 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
             else:
                 tableFormat2 = 33
                 print "This appears to be an old-format cal table from casa 3.3 or earlier."
-                cal_desc_id2 = tb.getcol('CAL_DESC_ID')
-                VisCal2 = (tb.info())['subType']
-                tb.close()
+                cal_desc_id2 = mytb.getcol('CAL_DESC_ID')
+                VisCal2 = (mytb.info())['subType']
+                mytb.close()
                 ParType = "unknown"  # i.e. not Complex
-                calDesc2 = tb.open(caltable2+'/CAL_DESC')
-                originalSpws2 = tb.getcol('SPECTRAL_WINDOW_ID')  # [[0,1,2,3]]
+                calDesc2 = mytb.open(caltable2+'/CAL_DESC')
+                originalSpws2 = mytb.getcol('SPECTRAL_WINDOW_ID')  # [[0,1,2,3]]
                 originalSpw2 = originalSpws2[0]                   # [0,1,2,3]
-                msName2 = tb.getcol('MS_NAME')[0]
-                tb.close()
+                msName2 = mytb.getcol('MS_NAME')[0]
+                mytb.close()
                 # Now open the associated ms tables via ValueMapping to figure out channel freqs
                 chanFreqGHz2 = []
                 for ictr in range(len(originalSpw2)):
@@ -1748,28 +1763,28 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
                     
         else:
             tableFormat2 = 34
-            cal_desc_id2 = tb.getcol('SPECTRAL_WINDOW_ID')
-            msName2 = tb.getkeyword('MSName')      
-            ParType2 = tb.getkeyword('ParType')    # string = 'Complex'
-            VisCal2 = tb.getkeyword('VisCal')      # string = 'B TSYS'
-            PolBasis2 = tb.getkeyword('PolBasis')  # string = 'LINEAR'
-            spectralWindowTable2 = tb.getkeyword('SPECTRAL_WINDOW').split()[1]
-            tb.close()
-            tb.open(spectralWindowTable2)
+            cal_desc_id2 = mytb.getcol('SPECTRAL_WINDOW_ID')
+            msName2 = mytb.getkeyword('MSName')      
+            ParType2 = mytb.getkeyword('ParType')    # string = 'Complex'
+            VisCal2 = mytb.getkeyword('VisCal')      # string = 'B TSYS'
+            PolBasis2 = mytb.getkeyword('PolBasis')  # string = 'LINEAR'
+            spectralWindowTable2 = mytb.getkeyword('SPECTRAL_WINDOW').split()[1]
+            mytb.close()
+            mytb.open(spectralWindowTable2)
             chanFreqGHz2 = []
-            originalSpws2 = range(len(tb.getcol('MEAS_FREQ_REF')))
+            originalSpws2 = range(len(mytb.getcol('MEAS_FREQ_REF')))
             for i in originalSpws2:
                 # The array shapes can vary.
-                chanFreqGHz2.append(1e-9 * tb.getcell('CHAN_FREQ',i))
-            originalSpws2 = range(len(tb.getcol('MEAS_FREQ_REF')))
+                chanFreqGHz2.append(1e-9 * mytb.getcell('CHAN_FREQ',i))
+            originalSpws2 = range(len(mytb.getcol('MEAS_FREQ_REF')))
             originalSpw2 = originalSpws2  # may want to do a global replace of this <----------------------------------
 
         uniqueSpwsInCalTable2 = np.unique(cal_desc_id2)
-        tb.open(caltable2)
+        mytb.open(caltable2)
         try:
             flags2 = {}
             for f in range(len(fields2)):
-                flags2[f] = tb.getcell('FLAG',f)
+                flags2[f] = mytb.getcell('FLAG',f)
         except:
             print "bOverlay: No Flag column found. Are you sure this is a bandpass solution file, or is it the .ms?"
             print "If it is a solution file, does it contain solutions for both TDM and FDM spws?"
@@ -1950,18 +1965,20 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
              removeAntenna = []
              for token in tokens:
                if (casadef.casa_version >= '4.1.0'):
-                 if (token in mymsmd.antennanames(range(mymsmd.nantennas()))):
+                 if (token in msAnt): 
                      antlist = list(antlist)  # needed in case preceding antenna had ! modifier
-                     antlist.append(mymsmd.antennaids(token)[0])
+#                     antlist.append(mymsmd.antennaids(token)[0]) # This crashes if ms was not actually found
+                     antlist.append(list(msAnt).index(token)) # This alternative should work in all cases
                  elif (token[0] == '!'):
-                     if (token[1:] in mymsmd.antennanames(range(mymsmd.nantennas()))):
+                     if (token[1:] in msAnt):
                          antlist = uniqueAntennaIds
-                         removeAntenna.append(mymsmd.antennaids(token[1:]))
+#                         removeAntenna.append(mymsmd.antennaids(token[1:])) # This crashes if ms was not actually found
+                         removeAntenna.append(list(msAnt).index(token[1:])) # This alternative should work in all cases
                      else:
-                         print "Antenna %s is not in the ms. It contains: " % (token), mymsmd.antennanames(range(mymsmd.nantennas()))
+                         print "Antenna %s is not in the ms. It contains: " % (token), msAnt
                          return(vm)
                  else:
-                     print "Antenna %s is not in the ms. It contains: " % (token), mymsmd.antennanames(range(mymsmd.nantennas()))
+                     print "Antenna %s is not in the ms. It contains: " % (token), msAnt
                      return(vm)
                else:
                  if (token in vm.uniqueAntennas):
@@ -2039,24 +2056,27 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
                  myloc = token.find('*')
                  if (myloc > 0):   # saw wildcard in name
                      for u in uniqueFields:
-                         myFieldName = GetFieldNamesForFieldId(u,vm,mymsmd)[0:myloc]
-                         if (token[0:myloc]==myFieldName):
+                         # Sept 2014: will crash if ms is not found
+                         myFieldName = GetFieldNamesForFieldId(u,vm,mymsmd,msFields)[:myloc]
+                         if (token[:myloc]==myFieldName[:myloc]):
                              if (DEBUG):
-                                 print "Found wildcard match = %s" % GetFieldNamesForFieldId(u,vm,mymsmd)
+                                 print "Found wildcard match = %s" % GetFieldNamesForFieldId(u,vm,mymsmd,msFields)
                              fieldlist.append(u)
                          else:
                              if (DEBUG):
-                                 print "No wildcard match with = %s" % GetFieldNamesForFieldId(u,vm,mymsmd)
+                                 print "No wildcard match of %s with = %s" % (token[:myloc], GetFieldNamesForFieldId(u,vm,mymsmd,msFields))
                  elif (myloc==0):  # saw wildcard at start of name
                      for u in uniqueFields:
                          fieldlist.append(u)
                  elif (token in msFields):
                      fieldlist = list(fieldlist)  # needed in case preceding field had ! modifier
-                     fieldlist.append(GetFieldIdsForFieldName(token,vm,mymsmd))
+                     fieldlist.append(GetFieldIdsForFieldName(token,vm,mymsmd,msFields))
                  elif (token[0] == '!'):
+                     if (fieldlist == []):
+                         for u in uniqueFields: # uniqueFields is a list of IDs
+                             fieldlist.append(u)
                      if (token[1:] in msFields):
-                         fieldlist = uniqueFields
-                         removeField.append(GetFieldIdsForFieldName(token[1:],vm,mymsmd))
+                         removeField.append(GetFieldIdsForFieldName(token[1:],vm,mymsmd,msFields))
                      else:
                          print "1) Field %s is not in the ms. It contains: " % (token), uniqueFields, msFieldsUnique
                          return(vm)
@@ -2108,7 +2128,7 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
               return(vm)
       else:
           showatmfieldName = showatmfield
-          showatmfield = GetFieldIdsForFieldName(showatmfield,vm,mymsmd)
+          showatmfield = GetFieldIdsForFieldName(showatmfield,vm,mymsmd,msFields)
           if (list(showatmfield) == []):
               print "The showatmfield (%s) is not in the ms." %(showatmfieldName)
               return(vm)
@@ -2505,20 +2525,20 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
 # bpoly == false
 #################
   msFound = False
-  tb.open(caltable)
+  mytb.open(caltable)
   if (ParType == 'Complex'):  # casa >= 3.4
       gain = {}
       for f in range(len(fields)):
-          gain[f] = tb.getcell('CPARAM',f)
+          gain[f] = mytb.getcell('CPARAM',f)
   else: # casa 3.3
       gain = {}
-#      gain = tb.getcol('FPARAM')       # e.g. (2, 128, 576)
-      if ('FPARAM' in tb.colnames()):
+#      gain = mytb.getcol('FPARAM')       # e.g. (2, 128, 576)
+      if ('FPARAM' in mytb.colnames()):
           for f in range(len(fields)):
-              gain[f] = tb.getcell('FPARAM',f)
+              gain[f] = mytb.getcell('FPARAM',f)
       else:
           for f in range(len(fields)):
-              gain[f] = tb.getcell('GAIN',f)
+              gain[f] = mytb.getcell('GAIN',f)
   nPolarizations =  len(gain[0])
   if (debug):
       print "(1)Set nPolarizations = %d" % nPolarizations
@@ -2529,29 +2549,29 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
       ggy = {}
       for g in range(len(gain)):
           ggy[g] =  gain[g][1]
-  tb.close()
+  mytb.close()
 
   if (debug):
       print "nPolarizations = ", nPolarizations
   nRows = len(gain)
   if (bOverlay):
-        tb.open(caltable2)
+        mytb.open(caltable2)
         gain2 = {}
         if (ParType == 'Complex'):
-#            gain2 = tb.getcol('CPARAM')  # will bomb if shape varies
+#            gain2 = mytb.getcol('CPARAM')  # will bomb if shape varies
             if (debug): print "ParType = Complex"
             for f in range(len(fields2)):
 #                if (debug): print "getting row %d/%d" % (f,len(fields))
-                gain2[f] = tb.getcell('CPARAM',f)
+                gain2[f] = mytb.getcell('CPARAM',f)
         else:
-#            gain2 = tb.getcol('FPARAM')  # will bomb if shape varies
+#            gain2 = mytb.getcol('FPARAM')  # will bomb if shape varies
             if (debug): print "ParType != Complex, it is %s" % (ParType)
             for f in range(len(fields2)):
                 if (tableFormat2 == 34):
-                    gain2[f] = tb.getcell('FPARAM',f)
+                    gain2[f] = mytb.getcell('FPARAM',f)
                 else:
-                    gain2[f] = tb.getcell('GAIN',f)
-        tb.close()
+                    gain2[f] = mytb.getcell('GAIN',f)
+        mytb.close()
         ggx2 = {}
         for g in range(len(gain2)):
 #            print "Appending to ggx: ", gain2[g][0]
@@ -2565,25 +2585,59 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
         nRows2 = len(gain2)
         if (debug): print "nRows2 = ", nRows2
 
-  try:
-      if (DEBUG):
-          print "Trying to open %s" % (msName+'/SPECTRAL_WINDOW')
-      tb.open(msName+'/SPECTRAL_WINDOW')
-      refFreq = tb.getcol('REF_FREQUENCY')
-      net_sideband = tb.getcol('NET_SIDEBAND')
-      measFreqRef = tb.getcol('MEAS_FREQ_REF')
-      tb.close()
-      if (debug): print "Calling getCorrtype('%s',%s,%s)" % (msName,str(originalSpwsToPlot),str(debug))
-#      (corr_type, corr_type_string, nPolarizations) = getCorrType(msName,spwsToPlot,debug)
-      (corr_type, corr_type_string, nPolarizations) = getCorrType(msName,originalSpwsToPlot,debug)
-      if (corr_type_string == []):
-          return(vm)
-  except:
-      print "4) Could not open the associated measurement set tables (%s). Will not translate antenna names." % (msName)
-      print "I will assume ALMA data: XX, YY, and refFreq=first channel."
-#      chanFreqGHz = []  # comment out on 2014-04-08
-      corr_type_string = ['XX','YY']
-      corr_type = [9,12]
+  if (tableFormat == 34):
+      # CAS-6801, unfortunately corr_type is not available in the caltable
+      mytb.open(caltable)
+      spectralWindowTable = mytb.getkeyword('SPECTRAL_WINDOW').split()[1]
+      if ('OBSERVATION' in mytb.getkeywords()):
+          observationTable = mytb.getkeyword('OBSERVATION').split()[1]
+      else:
+          observationTable = None
+      mytb.open(spectralWindowTable)
+      refFreq = mytb.getcol('REF_FREQUENCY')
+      net_sideband = mytb.getcol('NET_SIDEBAND')
+      measFreqRef = mytb.getcol('MEAS_FREQ_REF')
+      mytb.close()
+      corr_type = None
+      if (os.path.exists(msName)):
+          try:
+              (corr_type, corr_type_string, nPolarizations) = getCorrType(msName,originalSpwsToPlot,debug)
+          except:
+              print "4) Could not open the associated measurement set tables (%s)." % (msName)
+      if (corr_type == None):
+          if (observationTable == None):
+              corr_type, corr_type_string, nPolarizations = getCorrTypeByAntennaName(msAnt[0].lower())
+          else:
+              telescope = getTelescopeNameFromCaltableObservationTable(observationTable)
+              if (telescope.find('ALMA') >= 0):
+                  print "Using telescope name (%s) to set the polarization type." % (telescope)
+                  corr_type_string = ['XX','YY']
+                  corr_type = [9,12]
+              elif (telescope.find('VLA') >= 0):
+                  print "Using telescope name (%s) to set the polarization type." % (telescope)
+                  corr_type_string = ['RR','LL']
+                  corr_type = [5,8]
+              else:
+                  corr_type, corr_type_string, noPolarizations = getCorrTypeByAntennaName(msAnt[0].lower())
+  else:
+      try:
+          if (DEBUG):
+              print "Trying to open %s" % (msName+'/SPECTRAL_WINDOW')
+          mytb.open(msName+'/SPECTRAL_WINDOW')
+          refFreq = mytb.getcol('REF_FREQUENCY')
+          net_sideband = mytb.getcol('NET_SIDEBAND')
+          measFreqRef = mytb.getcol('MEAS_FREQ_REF')
+          mytb.close()
+          if (debug): print "Calling getCorrtype('%s',%s,%s)" % (msName,str(originalSpwsToPlot),str(debug))
+          (corr_type, corr_type_string, nPolarizations) = getCorrType(msName,originalSpwsToPlot,debug)
+          if (corr_type_string == []):
+              return(vm)
+      except:
+          print "4) Could not open the associated measurement set tables (%s). Will not translate antenna names." % (msName)
+          print "I will assume ALMA data: XX, YY, and refFreq=first channel."
+          #      chanFreqGHz = []  # comment out on 2014-04-08
+          corr_type_string = ['XX','YY']
+          corr_type = [9,12]
 
   if (len(polsToPlot) > len(corr_type)):
       # Necessary for SMA (single-pol) data
@@ -2713,7 +2767,7 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
           # Allow the basebands parameter to select the spws
           basebandSpwsToPlot = []
           for baseband in basebands:
-              myspws = list(getSpwsForBaseband(vis=msName, mymsmd=mymsmd, bb=baseband))
+              myspws = list(getSpwsForBaseband(vis=msName, mymsmd=mymsmd, bb=baseband, caltable=caltable))
               basebandSpwsToPlot += myspws
           spwsToPlot = np.intersect1d(basebandSpwsToPlot, spwsToPlot)
           print "selected basebands %s have spwsToPlot = %s" % (str(basebands),str(spwsToPlot))
@@ -2765,7 +2819,7 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
      else:
          baseband = 0
          if (casadef.casa_version >= '4.1.0'):
-             if (getBasebandDict(msName) != {}):
+             if (getBasebandDict(msName,caltable=caltable) != {}):
                  try:
                      baseband = mymsmd.baseband(originalSpwsToPlot[spwctr])
                      if (baseband not in basebands):
@@ -2791,7 +2845,7 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
       if (groupByBaseband == False):
           baseband = 0
           if (casadef.casa_version >= '4.1.0'):
-              if (getBasebandDict(msName) != {}):
+              if (getBasebandDict(msName,caltable=caltable) != {}):
                   try:
                       baseband = mymsmd.baseband(originalSpwsToPlot[spwctr])
                       if (baseband not in basebands):
@@ -2849,7 +2903,7 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
             if (debug):
                 print "Skipping mytime %d because it is not in %s, or scan %d is not in %s" % (mytime, str(timerangeList),scansForUniqueTimes[mytime],scansToPlotPerSpw[ispw])
             mytime += 1
-            print "  0006  incrementing mytime to ", mytime
+            if (debug): print "  0006  incrementing mytime to ", mytime
             if (mytime == nUniqueTimes and overlayTimes and overlayAntennas):
                 # added March 14, 2013 to support the case when final timerange is flagged
                 doneOverlayTime = False
@@ -5000,7 +5054,7 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
               or (scanTest and scanTest2 and overlaySpws and overlayAntennas==False and overlayTimes==False)
               or ((spwctr==len(spwsToPlot)-1) and (overlayBasebands or overlaySpws) and overlayAntennas==False and overlayTimes==False)
               # following case is needed for scans parameter with overlay='time'
-              or (overlayTimes and scanTest)
+              or (overlayTimes and scanTest and overlayAntennas==False)
               # Following case is needed to make subplot=11 to work for: try to support overlay='antenna,time' :  'phase'
               or (xframe == lastFrame and overlayTimes and overlayAntennas and
                   xctr+1==len(antennasToPlot) and
@@ -5010,7 +5064,9 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
                   and overlayAntennas==False 
                   )
               ):
-            if (debug): print "^^^^^^^^^^^^^ mytime=%d, len(uniqueTimes)=%d, nUniqueTimes=%d" % (mytime,len(uniqueTimes),nUniqueTimes)
+            if (debug): 
+                print "^^^^^^^^^^^^^ mytime=%d, len(uniqueTimes)=%d, nUniqueTimes=%d, mytimeTest=%s" % (mytime,len(uniqueTimes),nUniqueTimes,mytimeTest)
+                print "              xctr+1=%d, len(antennasToPlot)=%d, doneOverlayTime=%s, scanTest=%s, scanTest2=%s" % (xctr+1, len(antennasToPlot), doneOverlayTime, scanTest, scanTest2)
             DrawBottomLegendPageCoords(msName, uniqueTimes[mytime], mysize, figfile)
 
             # added len(pages)>0 on July 30, 2013 to prevent crash when called with single
@@ -5209,8 +5265,49 @@ def plotbandpass3(caltable='', antenna='', field='', spw='', yaxis='amp',
       
       return(madstats)
   else:
+      if (msFound and mymsmd != ''):
+          mymsmd.close()
       return(vm)
   # end of plotbandpass3
+
+
+def getTelescopeNameFromCaltable(caltable):
+    mytb = au.createCasaTool(tbtool)
+    mytb.open(caltable)
+    if ('OBSERVATION' in mytb.getkeywords()):
+        observationTable = mytb.getkeyword('OBSERVATION').split()[1]
+    else:
+        observationTable = None
+    mytb.close()
+    if (observationTable == None):
+        return('')
+    else:
+        return(getTelescopeNameFromCaltableObservationTable(observationTable))
+    
+
+def getTelescopeNameFromCaltableObservationTable(observationTable):
+    mytb = au.createCasaTool(tbtool)
+    mytb.open(observationTable)
+    telescope = mytb.getcell('TELESCOPE_NAME')
+    mytb.close()
+    return(telescope)
+
+def getCorrTypeByAntennaName(firstAntenna):
+    """
+    This function is used only if the OBSERVATION table of the caltable is blank and the MS is unavailable.
+    """
+    print "Using antenna name (%s) to set the polarization type." % (firstAntenna)
+    if (firstAntenna.find('ea') >= 0):
+        corr_type_string = ['RR','LL']
+        corr_type = [5,8]
+    elif (firstAntenna.find('dv') >= 0 or firstAntenna.find('da') >= 0 or
+          firstAntenna.find('pm') >= 0 or firstAntenna.find('da') >= 0):
+        corr_type_string = ['XX','YY']
+        corr_type = [9,12]
+    else: # SMA
+        corr_type_string = ['XX']
+        corr_type = [9]
+    return(corr_type, corr_type_string, len(corr_type))
 
 def showFinalMessage(overlayAntennas, solutionTimeSpread, nUniqueTimes):
   if (overlayAntennas and solutionTimeSpread > 0 and nUniqueTimes==1):
@@ -5845,6 +5942,8 @@ def showFDM(originalSpw, chanFreqGHz, baseband, showBasebandNumber, basebandDict
         nchan = len(chanFreqGHz[i])
         # latter 3 values are for ACA with FPS enabled
         if (nchan >= 15 and nchan not in [256,128,64,32,16,248,124,62]):
+          # To fix in Sept 2014
+          # crashes if showfdm=True but no ms was found
           if (originalSpw[i] in basebandDict[baseband] or showBasebandNumber):
             fdmctr += 1
             verticalOffset = fdmctr*0.04*yrange
@@ -6337,24 +6436,27 @@ def appendBasebandNumber(spwString, baseband, showBasebandNumber):
         spwString += ', bb%d' % (baseband)
     return(spwString)
 
-def getSpwsForBaseband(bb, vis=None, mymsmd=None, nonchanavg=True):
-    if (casadef.subversion_revision >= '25753'):
-        if (mymsmd==None):
-            mymsmd = au.createCasaTool(msmdtool)
-            mymsmd.open(vis)
-            s = mymsmd.spwsforbaseband(bb)
-            mymsmd.close()
+def getSpwsForBaseband(bb, vis=None, mymsmd=None, nonchanavg=True, caltable=None):
+    if (casadef.subversion_revision >= '25753' and vis != None):
+        if (os.path.exists(vis)):
+            if (mymsmd==None):
+                mymsmd = au.createCasaTool(msmdtool)
+                mymsmd.open(vis)
+                s = mymsmd.spwsforbaseband(bb)
+                mymsmd.close()
+            else:
+                s = mymsmd.spwsforbaseband(bb)
         else:
-            s = mymsmd.spwsforbaseband(bb)
+            s = getBasebandDict(vis=vis, caltable=caltable)[bb]
     else:
-        s = getBasebandDict(vis)[bb]
+        s = getBasebandDict(vis=vis, caltable=caltable)[bb]
     spws = []
     for spw in s:
         if (mymsmd.nchan(spw) > 1 or nonchanavg==False):
             spws.append(spw)   
     return(spws)
         
-def getBasebandDict(vis, spwlist=[]):
+def getBasebandDict(vis=None, spwlist=[], caltable=None):
     """
     Builds a dictionary with baseband numbers as the keys and the
     associated spws as the values.  The optional parameter spwlist can
@@ -6362,23 +6464,37 @@ def getBasebandDict(vis, spwlist=[]):
     Note: This is obsoleted by msmd.spwsforbaseband(-1)
     """
     bbdict = {}
-    bbs = au.getBasebandNumbers(vis)
+    if (vis != None):
+        if (os.path.exists(vis)):
+            bbs = au.getBasebandNumbers(vis)
+        elif (caltable != None):
+            bbs = au.getBasebandNumbersFromCaltable(caltable)
+        else:
+            print "Must specify either vis or caltable"
+            return
+    elif (caltable != None):
+        bbs = au.getBasebandNumbersFromCaltable(caltable)
+    else:
+        print "Must specify either vis or caltable"
+        return
     if (type(bbs) == int):  # old datasets will bomb on msmd.baseband()
         return(bbdict)
-    if (casadef.casa_version >= '4.1.0'):
-        mymsmd = au.createCasaTool(msmdtool)
-        mymsmd.open(vis)
-        if (spwlist == []):
-            nspws = mymsmd.nspw()
-            spwlist = range(nspws)
-        for spw in spwlist:
-            bbc_no = mymsmd.baseband(spw)
-            if (bbc_no not in bbdict.keys()):
-                bbdict[bbc_no] = [spw]
-            else:
-                bbdict[bbc_no].append(spw)
-        mymsmd.close()
-    else: # read from spw table
+    if (casadef.casa_version >= '4.1.0' and vis != None):
+        if (os.path.exists(vis)):
+            mymsmd = au.createCasaTool(msmdtool)
+            mymsmd.open(vis)
+            if (spwlist == []):
+                nspws = mymsmd.nspw()
+                spwlist = range(nspws)
+            for spw in spwlist:
+                bbc_no = mymsmd.baseband(spw)
+                if (bbc_no not in bbdict.keys()):
+                    bbdict[bbc_no] = [spw]
+                else:
+                    bbdict[bbc_no].append(spw)
+            mymsmd.close()
+    if (bbdict == {}):
+        # read from spw table
         ubbs = np.unique(bbs)
         for bb in ubbs:
             bbdict[bb] = []
