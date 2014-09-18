@@ -1,10 +1,11 @@
 import sys, os
 import atable
 import numpy as np
+import numpy.ma as ma
 import casa
 import taskinit
 import admit1 as admit
-
+import matplotlib.pyplot as plt
 
 def rejecto1(data, f=1.5):
     u = np.mean(data)
@@ -28,6 +29,43 @@ def mystats(data):
     n2 = len(d)
     return (n1,m1,s1,n2,m2,s2)
 
+def hisplot(x,title=None,figname=None,xlab=None,range=None,bins=80,gauss=None):
+    """simple histogram of one or more columns """
+    # if filename: plt.ion()
+    # better example: http://matplotlib.org/examples/statistics/histogram_demo_features.htmlsparspark
+    fig = plt.figure(1)
+    ax1 = fig.add_subplot(1,1,1)
+    if range == None:
+        h=ax1.hist(x,bins=bins)
+    else:
+        h=ax1.hist(x,bins=bins,range=range)
+    if title:    ax1.set_title(title)
+    if xlab:     ax1.set_xlabel(xlab)
+    ax1.set_ylabel("#")
+    if gauss != None:
+        if len(gauss) == 3:
+            m = gauss[0]    # mean
+            s = gauss[1]    # std
+            a = gauss[2]    # amp
+        elif len(gauss) == 2:
+            m = gauss[0]    # mean
+            s = gauss[1]    # std
+            a = max(h[0])   # match peak value in histogram
+        else:
+            print "bad bad gauss estimator"
+        print "GaussPlot(%g,%g,%g)" % (m,s,a)
+        d = s/10.0
+        if range == None:
+            gx = np.arange(x.min(),x.max(),d)
+        else:
+            gx = np.arange(range[0],range[1],d)
+        arg = (gx-m)/s
+        gy = a * np.exp(-0.5*arg*arg)
+        ax1.plot(gx,gy)
+    if figname: 
+        fig.savefig(figname)
+    plt.show()
+
 
 class AT_cubestats(admit.AT):
     name = 'CUBESTATS'
@@ -44,9 +82,9 @@ class AT_cubestats(admit.AT):
         use_ppp      = self.getb('ppp',0)
         use_cubehist = self.getb('cubehist',1)
         #
-        fn = self.bdp_in[0].filename
-        print "casa::imhead(%s)" % fn
-        h = casa.imhead(fn,mode='list')
+        fin = self.bdp_in[0].filename
+        print "casa::imhead(%s)" % fin
+        h = casa.imhead(fin,mode='list')
         n = h['shape'][2]
         p = h['crpix3']
         d = h['cdelt3']
@@ -54,23 +92,25 @@ class AT_cubestats(admit.AT):
         ch = np.arange(n) + 1        # 1-based channels
         fr = ((ch-p-1)*d + v)/1e9    # in GHz !!
         #
-        print "casa::imstat(%s)" % fn
-        mask = '"%s" != 0.0' % fn
-        imstat0 = casa.imstat(fn,           logfile='imstat0.logfile',append=False)
+        print "casa::imstat(%s)" % fin
+        mask = '"%s" != 0.0' % fin
+        imstat0 = casa.imstat(fin,           logfile='imstat0.logfile',append=False)
         if verbose: print imstat0
-        imstat1 = casa.imstat(fn,axes=[0,1],logfile='imstat1.logfile',append=False)
+        imstat1 = casa.imstat(fin,axes=[0,1],logfile='imstat1.logfile',append=False)
         if use_ppp:
-            print "Creating PeakPosPoint"
+            # until imstat  can do this per plane, we need to loop over the planes
+            # so it's expensive.
+            print "Creating PeakPosPoint (expensive method)"
             # n= number of channels
             xpos = np.arange(n)
             ypos = np.arange(n)
             for i in range(n):
-                s = casa.imstat(fn,chans='%d'%i)
+                s = casa.imstat(fin,chans='%d'%i)
                 xpos[i] = s['maxpos'][0]
                 ypos[i] = s['maxpos'][1]
         #
         if use_cubehist:
-            taskinit.tb.open(fn)
+            taskinit.tb.open(fin)
             data = taskinit.tb.getcol('map')   # get the N-Dim view
             shape = data.shape
             taskinit.tb.close()
@@ -88,8 +128,12 @@ class AT_cubestats(admit.AT):
         print "  mean, sigma: %g %g  (%g) mJy/beam" % (imstat0[c4][0]*1000,imstat0[c3][0]*1000,imstat0[c2][0]*1000)
         print "  min: ", imstat0[c5][0]*1000," mJy/beam  @: ",imstat0['minpos']
         print "  max: ", imstat0[c1][0]*1000," mJy/beam  @: ",imstat0['maxpos']
+        nsigma = 5.0
+        d2min = (imstat0[c4][0] - nsigma * imstat0[c2][0])*1000
+        d2max = (imstat0[c4][0] + nsigma * imstat0[c2][0])*1000
   
-        print "Plane Stats:"
+        print "Plane Stats: N    mean                 std       (all)      N    mean                   std (robust)"
+        #                  (246, 0.27362257102568238, 0.74791136119946566, 156, 0.0080285586976625214, 0.016183423031758848)
         print "  mean  :: ",mystats( imstat1[c4]*1000 )
         print "  madm  :: ",mystats( imstat1[c3]*1000 )
         print "  max   :: ",mystats( imstat1[c1]*1000 )
@@ -99,8 +143,10 @@ class AT_cubestats(admit.AT):
         col_names = ['channel','frequency','mean',      'sigma',     'max']
         col_data  = [ ch,       fr,         imstat1[c4], imstat1[c3], imstat1[c1]] 
         if use_ppp:
-            col_names.append(['maxposx','maxposy'])
-            col_data.append([xpos,ypos])
+            col_names.append('maxposx')
+            col_data.append(xpos)
+            col_names.append('maxposy')
+            col_data.append(ypos)
         a1 = atable.ATable(col_data, col_names)
         a1.pdump('cubestats.bin')
 
@@ -121,6 +167,9 @@ class AT_cubestats(admit.AT):
         print "Peak range : %g %g mJy/beam" % (signal.min(), signal.max())
         print "S/N range : %g %g mJy/beam" % (s2n.min(), s2n.max())
 
+        d2min = mean.mean() - nsigma * noise.mean()
+        d2max = mean.mean() + nsigma * noise.mean()
+
         (n1,sn1,sn2,n3,sn3,sn4) = mystats( imstat1[c1]/imstat1[c3] )
         print "SIGNAL CONFIDENCE FACTOR: ",(s2n.max()-sn3)/sn4
         (n1,sn1,sn2,n3,sn3,sn4) = mystats( imstat1[c3] )
@@ -137,21 +186,46 @@ class AT_cubestats(admit.AT):
         if self.do_plot:
             # be careful, arrays not checked for 0
             xlabel = 'Frequency (Ghz)'
-            ylabel = 'log10(Peak,Noise[mJy/beam])'
-            if False:
-                # signal is green, noise is blue
-                ydata = [np.log10(signal),np.log10(noise)]
+            ylabel = 'log(Peak,Noise[mJy/beam])'
+            # signal is green, noise is blue
+            # also add the plot (ratio is now red)
+            ratio = np.log10(signal)-np.log10(noise)
+            use_ratio = True
+            if use_ratio:
+                ydata = [np.log10(signal),np.log10(noise),ratio]
             else:
-                # also add the plot (ratio is now red)
-                ratio = np.log10(signal)-np.log10(noise)
-                #ydata = [np.log10(signal),np.log10(noise),ratio]
                 ydata = [np.log10(signal),np.log10(noise)]
-            title = 'CubeStats %s' % self.bdp_in[0].project
+            title = 'CubeStats-1 %s' % self.bdp_in[0].project
             a1.plotter(freq,ydata,title, fno+'.1.png',xlab=xlabel,ylab=ylabel)
             if True:
-                a1.histogram(ydata,   'CubeStats-S,N,R',fno+'.2.png')
-                #a1.histogram([ratio], 'CubeStats-R',    fno+'.3.png',range=[0.2,0.6])
-                a1.histogram([ratio], 'CubeStats-R',    fno+'.3.png')
+                title = 'CubeStats-2 %s' % self.bdp_in[0].project
+                if use_ratio:
+                    xlab  = 'log(Peak,Noise,P/N[mJy/beam])'
+                else:
+                    xlab  = 'log(Peak,Noise[mJy/beam])'
+                a1.histogram(ydata,title,fno+'.2.png',xlab=xlab)
+                title = 'CubeStats-3 %s' % self.bdp_in[0].project
+                xlab  = 'log(Peak/Noise[mJy/beam])'
+                a1.histogram([ratio],title,fno+'.3.png',xlab=xlab)
             if use_cubehist:
-                a1.histogram([d1],'CubeHist',fno+'.4.png')
+                title = 'CubeStats-4 %s' % self.bdp_in[0].project                
+                xlab = 'CubeData [mJy/beam])'
+                print "Masking outside %g  %g" % (d2min,d2max)
+                #   @todo this is no good, masking is not zero
+                #d2 = ma.masked_outside(d1,d2min,d2max)
+                d2 = d1[d1!=0]
+                n1 = len(d1)
+                n2 = len(d2)
+                fraction = (100.0*n2)/n1
+                print "  %d/%d (%g %%) data are non-zero" % (n2,n1,fraction)
+                #a1.histogram([d2],title,fno+'.4.png',xlab=xlab,range=[d2min,d2max])
+                if True:
+                    # robust
+                    gmean = mean.mean()
+                    gdisp = noise.mean()
+                else:
+                    # raw cube
+                    gmean = imstat0[c4][0]*1000
+                    gdisp = imstat0[c2][0]*1000
+                hisplot(d2,title,fno+'.4.png',xlab=xlab,range=[d2min,d2max],gauss=[gmean,gdisp])
             
