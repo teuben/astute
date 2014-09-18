@@ -121,16 +121,25 @@ def hisplot(x,title=None,figname=None,xlab=None,range=None,bins=80,gauss=None):
     fig = plt.figure(1)
     ax1 = fig.add_subplot(1,1,1)
     if range:
-        ax1.hist(x,bins=bins,range=range)
+        h=ax1.hist(x,bins=bins,range=range)
     else:
-        ax1.hist(x,bins=bins)
+        h=ax1.hist(x,bins=bins)
     if title:    ax1.set_title(title)
     if xlab:     ax1.set_xlabel(xlab)
-    if gauss:
-        a = 40.0
-        m = gauss[0]
-        s = gauss[1]
-        d = s/20
+    ax1.set_ylabel("#")
+    if gauss != None:
+        if len(gauss) == 3:
+            m = gauss[0]    # mean
+            s = gauss[1]    # std
+            a = gauss[2]    # amp
+        elif len(gauss) == 2:
+            m = gauss[0]    # mean
+            s = gauss[1]    # std
+            a = max(h[0])   # match peak value in histogram
+        else:
+            print "bad bad gauss estimator"
+        print "GaussPlot(%g,%g,%g)" % (m,s,a)
+        d = s/10.0
         gx = np.arange(x.min(),x.max(),d)
         arg = (gx-m)/s
         gy = a * np.exp(-0.5*arg*arg)
@@ -201,7 +210,7 @@ class AT_linelist(admit.AT):
         segments = line_segments(ratio,cutoff,nline,ngap)
         nlines = len(segments)
         print "Found %d lines" % nlines
-        print segments
+        # print segments
         segp = []
         n = len(freq)
         rmax = ratio.max() + 0.1 #  + 0.05*(ratio.max()-ratio.min())
@@ -224,7 +233,7 @@ class AT_linelist(admit.AT):
             lmean  = sum1/sum0
             lsigma = math.sqrt(sum2/sum0-lmean*lmean)
             lmax  = max(ratio[ch0:ch1])
-            print "Cutting a cube %d - %d  @ %g GHz +/- %g GHz log(S/N) = %g" % (ch0,ch1,lmean,lsigma,lmax)
+            print "Line in channels %d - %d  @ %g GHz +/- %g GHz log(S/N) = %g" % (ch0,ch1,lmean,lsigma,lmax)
             segp.append(  [freq[ch0],freq[ch1],rmax,rmax] )
             segp.append(  [lmean,lmean, rmax-0.1, rmax+0.05] )
             #
@@ -273,14 +282,16 @@ class AT_linelist(admit.AT):
         #  this needs to be streamlines
         #  e.g. the segp[], could add a macro processor to plotter/histogram
         #  accepting
-        self.plotter(freq,[ratio],'LineCubeStats-1',xlab='Freq',ylab='log(peak/sigma)',figname='linelist1.png',segments=segp)
-        t.histogram([ratio,ratio2],'LineCubeStats-2',figname='linelist2.png')
-        hisplot(ratio,gauss=[dr.mean(),dr.std()])
+        xlab = 'Frequency (Ghz)'
+        ylab = 'log(Peak/Noise)'
+        self.plotter(freq,[ratio],'LineList-1',xlab=xlab,ylab=ylab,figname='linelist1.png',segments=segp)
+        xlab = 'log(Peak/Noise)'
+        t.histogram([ratio,ratio2],'LineList-2',figname='linelist2.png',xlab=xlab)
+        xlab = 'log(Peak/Noise)'
+        hisplot(ratio,'LineList-3',gauss=[dr.mean(),dr.std()],xlab=xlab)
         #
         # store in the BDP
-        
         #
-
         if self.do_pickle:
             self.pdump()
         if self.do_plot:
