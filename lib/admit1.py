@@ -39,10 +39,13 @@ class ADMIT(object):
         self.debug   = False
         self.bdps    = []
         self.keyval  = {}
+        self.pmode   = 0
     def __len__(self):
         return len(self.bdps)
     def __eq__(self, other):
         return isinstance(other, ADMIT) and vars(self) == vars(other)
+    def plotmode(self, pmode):
+        self.pmode = pmode
     def add(self, b):
         """Add a BDP to the stack of BDP's this ADMIT pipeline contains"""
         # note there needs to be a cleanup/delete/pop option here
@@ -235,6 +238,7 @@ class BDP(object):
         # below these are for runtime, not needed for persistence
         self.updated  = False     # ???   this triggers a new run
         self.output   = True      # True: triggers a new save(pdump/xwrite)
+        self.pmode    = 0         # plotting mode
         if _debug: print "BDP(%s,%s,%s) " % (name,filename,filetype)
     def admit(self,project):
         self.project = project
@@ -248,7 +252,7 @@ class BDP(object):
     def show(self):
         return "BDP_%s(%s): " % (self.name,self.filename)
     def info(self):
-        print 'BDP %s(%s)' % (self.name,self.filename)
+        print '===> BDP %s(%s) <===' % (self.name,self.filename)
         if len(self.deps)==0:
             print 'deps: -'
         else:
@@ -409,6 +413,7 @@ class AT(object):
         self.bdp_in    = bdp_in
         self.bdp_out   = bdp_out
         self.keyvals   = {}
+        self.pmode     = 0
         for b2 in bdp_out:
             # each output BDP needs to know the AT it created
             # although task[] is a list, we only support 1 now
@@ -451,7 +456,7 @@ class AT(object):
     def setkv(self,keyvals):
         """set a task parameter"""
         # store them, but should also check if valid
-        print "set keys: ",self.keys
+        #print "set keys: ",self.keys
         for k in keyvals.keys():
             self.keyvals[k] = keyvals[k]
         # mark all bdp's that they have changed information
@@ -558,26 +563,6 @@ class AT_file(AT):
             print "AT_file: only one BPD_out expected, only first one saved"
         if self.do_pickle:
             self.pdump()
-
-class AT_ingest(AT):
-    name    = 'INGEST'
-    version = '1.0'
-    keys    = []
-    def __init__(self,bdp_in=[],bdp_out=[]):
-        AT.__init__(self,self.name,bdp_in,bdp_out)
-        if _debug: print "AT_ingest.init"
-    def run(self):
-        if _debug: print "AT_ingest.run"
-        if not AT.run(self):
-            return False
-        # specialized work can commence here
-        if len(self.bdp_in) != 1:
-            print "AT_ingest: only one BDP_in expected"
-        if len(self.bdp_out) != 1:
-            print "AT_ingest: only one BPD_out expected"
-        if self.do_pickle:
-            self.pdump()
-
 
 class AT_cube(AT):
     name    = 'CUBE'
