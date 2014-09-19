@@ -1,0 +1,84 @@
+#! /usr/bin/env casarun
+#-*- mode: python -*-
+#
+#  test6 (see also flow6.dot)
+#  testing a piece of an ADMIT pipeline, this one written for n253
+#  based on 'test1' as it existed on sep 18, for the benefit of
+#  comparing two contrasting views of running an ADMIT pipeline
+#  from scratch
+#
+import sys,os
+
+import admit1 as admit
+#     note the two 'peculiar styles here how to grab the AT's 
+#     I usually prefer some namespace in front of class instantiations,
+#     so the reader can see where they come from.
+#     Also note this is CASA agnostic, the AT's could be implemented
+#     in "any" package (MIRIAD and https://github.com/radio-astro-tools 
+#     come to mind here)
+from   AT_ingest import AT_ingest
+import AT_summary      as at0
+import AT_cubestats    as at1
+import AT_cubespectrum as at2
+import AT_moments      as at3
+import AT_linelist     as at4
+import AT_linecube     as at5
+
+
+def test6(filename):
+    #  start a new ADMIT, set plotmode to batch mode
+    a = admit.ADMIT("TRY1a", project='n253::test1')
+    a.plotmode(0,'png')
+
+    adir = "%s.admit" % filename                   # all ADMIT work in a subdirectory .admit
+    a.setdir(adir)
+
+    a1 = AT_ingest()                               ;   a.add(a1)
+    a1.file("../" + filename)
+    a1.set('mask=0')
+    a1.run()
+
+    a1s = at0.AT_summary([a1[0]]])                 ;   a.add(a1s)
+    a1s.set('verbose=0')
+    a1s.run()
+
+    a2 = at1.AT_cubestats([a1[0]])                 ;   a.add(a2) 
+    # if you set PeakPosPlot, remember it's expensive
+    a2.set('ppp=0')
+    a2.run()
+
+    # for now, if you give 2 BDP's it has to be a cubestats
+    # in which the mean,sigma,max,maxpos for the cube was recorded as well
+    a3 = at2.AT_cubespectrum([a1[0],a2[0]])        ;   a.add(a3)           
+    #a3 = at2.AT_cubespectrum([a1[0]])             
+    a3.set('pos=310,310')
+    a3.run()
+    
+    a5 = at4.AT_linelist([a1[0],a2[0]])            ;   a.add(a5)
+    a5.set('csigma=-1')
+    a5.set('f=1.0')
+    a5.run()
+    
+    a6  = at5.AT_linecube([a1[0],a5[0]])           ;   a.add(a6)
+    a6.run()
+    nlines = len(a6)
+    print "Found %d linecubes" % nlines
+
+    a6x = range(nlines)
+    for i in range(nlines):
+        a6x[i] = at3.AT_moments([a6[i]])             ;  a.add(a6x[i])
+        a6x[i].set('moments=0,1,2')
+        a6x[i].run()
+
+    a.pdump()
+
+if __name__ == "__main__":
+    # get the bare args because we're running through "casarun", not "python"
+    argv = admit.casa_argv(sys.argv)
+    if len(argv) == 2:
+        filename = argv[1]
+        print "Trying file=%s" % filename
+        test6(filename)
+    else:
+        print "Need a fits filename buddy"
+
