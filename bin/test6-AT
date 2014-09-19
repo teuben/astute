@@ -34,7 +34,7 @@ def test6(filename):
     a.setdir(adir)
 
     a1 = AT_ingest()                               ;   a.add(a1)
-    a1.file("../" + filename)
+    a1.set("file=" + "../" + filename)
     a1.set('mask=0')
     a1.run()
 
