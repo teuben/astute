@@ -68,6 +68,12 @@ def hisplot(x,title=None,figname=None,xlab=None,range=None,bins=80,gauss=None):
 
 
 class AT_cubesum(admit.AT):
+    """
+    This is really a special case of AT_moments
+    it only computes moment0
+    it should also handle channel dependant noise 
+    not sure how to handle spatial
+    """
     name = 'CUBESUM'
     version = '1.0'
     keys = ['nsigma','verbose','cutoff']
