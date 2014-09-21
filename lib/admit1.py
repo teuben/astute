@@ -1,9 +1,12 @@
 #! /usr/bin/env python
 #
+#  ADMIT1:  first version of ADMIT
 #
 #  simple container to put all of the ADMIT, BDP and AT in one file for testing
 #
 #  no 'import casa' or so allowed here. All package specific work needs to be delegated
+#  If your AT_xxx needs casa routines, they need to be in a separate module
+#
 #
 import sys, os, errno, fnmatch
 import copy
@@ -44,13 +47,16 @@ class ADMIT(object):
         return len(self.bdps)
     def __eq__(self, other):
         return isinstance(other, ADMIT) and vars(self) == vars(other)
-    def plotmode(self, pmode):
-        self.pmode = pmode
+    def plotmode(self, plotmode, plottype='png'):
+        self.pmode = plotmode
+        self.ptype = plottype
     def add(self, b):
         """Add a BDP to the stack of BDP's this ADMIT pipeline contains"""
         # note there needs to be a cleanup/delete/pop option here
         # __main__ : deepcopy ga ve 19780 bytes,  re-assign + deepcopy was 22973 bytes, why ?
         b.admit(self.project)
+        b.pmode = self.pmode
+        print "BDP %s gets plotmode %d" % (b.filename,b.pmode)
         if False:
             b1 = copy.deepcopy(b)
             self.bdps.append(b1)
@@ -157,6 +163,9 @@ class ADMIT(object):
         self.bdps = btmp
     def pload(self,pname):
         """ load an admit object into pickle format
+            since admit stores many objects in deeply nested structures
+            (the AT's and BDP's) they are duplicated. After a pickle.load()
+            these should be re-pointed?
         """
         print "ADMIT: pickle loading %s" % pname
         return pickle.load(open(pname,"rb"))
@@ -250,7 +259,7 @@ class BDP(object):
         # below these are for runtime, not needed for persistence
         self.updated  = False     # ???   this triggers a new run
         self.output   = True      # True: triggers a new save(pdump/xwrite)
-        self.pmode    = 0         # plotting mode
+        self.pmode    = 0         # plotting mode (can be changed by admit)
         if _debug: print "BDP(%s,%s,%s) " % (name,filename,filetype)
     def admit(self,project):
         self.project = project
@@ -446,6 +455,7 @@ class AT(object):
         AT_xxx needs to run.
         """
         # if _debug: print "AT.run(%s)" % self.name
+        os.system('echo -n AT_DATE=%s=; date' % self.name)
         do_nothing = True
         for b2 in self.bdp_out:
             if not b2.updated: do_nothing = False
