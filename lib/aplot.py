@@ -40,6 +40,29 @@ class APlot(object):
         APlot.pmode = pmode
     def figure(self,figno=1):
         APlot.figno = figno-1
+    def scatter(self,x,y,title=None,figname=None,xlab=None,ylab=None,c=None,s=None):
+        """simple plotter of multiple columns against one column"""
+        # if filename: plt.ion()
+        #plt.ion()
+        plt.ioff()
+        APlot.figno = APlot.figno + 1
+        fig = plt.figure(APlot.figno)
+        ax1 = fig.add_subplot(1,1,1)
+        if c==None and s==None:
+            ax1.scatter(x,y)
+        elif c==None:
+            ax1.scatter(x,y,s=s)
+        elif s==None:
+            ax1.scatter(x,y,c=c)
+        else:
+            ax1.scatter(x,y,c=c,s=s)
+        if title:    ax1.set_title(title)
+        if xlab:     ax1.set_xlabel(xlab)
+        if ylab:     ax1.set_ylabel(ylab)
+        if figname: 
+            fig.savefig(figname)
+        if APlot.pmode:
+            plt.show()
     def plotter(self,x,y,title=None,figname=None,xlab=None,ylab=None):
         """simple plotter of multiple columns against one column"""
         # if filename: plt.ion()
