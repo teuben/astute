@@ -1,12 +1,11 @@
 #! /usr/bin/env python
 #
-#  simple table class
+#  simple table class, for plotting, see aplot
 #
 
 
 import sys, os
 import numpy as np
-import matplotlib.pyplot as plt
 #import pickle
 import cPickle as pickle
 
@@ -48,39 +47,6 @@ class ATable(object):
         for i in range(len(self.cols)):
             if name == self.names[i]:
                 return self.cols[i]
-    def plotter(self,x,y,title=None,figname=None,xlab=None,ylab=None):
-        """simple plotter of multiple columns against one column"""
-        # if filename: plt.ion()
-        #plt.ion()
-        plt.ioff()
-        self.fign = self.fign + 1
-        fig = plt.figure(self.fign)
-        ax1 = fig.add_subplot(1,1,1)
-        for yi in y:
-            ax1.plot(x,yi)
-        if title:    ax1.set_title(title)
-        if xlab:     ax1.set_xlabel(xlab)
-        if ylab:     ax1.set_ylabel(ylab)
-        if figname: 
-            fig.savefig(figname)
-        plt.show()
-    def histogram(self,x,title=None,figname=None,xlab=None,range=None,bins=80):
-        """simple histogram of one or more columns """
-        # if filename: plt.ion()
-        self.fign = self.fign + 1
-        fig = plt.figure(self.fign)
-        ax1 = fig.add_subplot(1,1,1)
-        for xi in x:
-            if range==None:
-                ax1.hist(xi,bins=bins)
-            else:
-                ax1.hist(xi,bins=bins,range=range)
-        if title:    ax1.set_title(title)
-        if xlab:     ax1.set_xlabel(xlab)
-        ax1.set_ylabel("#")
-        if figname: 
-            fig.savefig(figname)
-        plt.show()
     def pdump(self,filename):
         pickle.dump(self,open(filename,"wb"))
     def pload(self,filename):
