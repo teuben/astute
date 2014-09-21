@@ -1,5 +1,5 @@
 import sys, os, math
-import atable
+import atable, aplot
 import numpy as np
 import numpy.ma as ma
 import matplotlib.pyplot as plt
@@ -111,45 +111,9 @@ def robust(data,f=1.5):
     dm = ma.masked_outside(data,f1,f3)
     return dm
 
-
-
-
-def hisplot(x,title=None,figname=None,xlab=None,range=None,bins=80,gauss=None):
-    """simple histogram of one or more columns """
-    # if filename: plt.ion()
-    # better example: http://matplotlib.org/examples/statistics/histogram_demo_features.htmlsparspark
-    fig = plt.figure(1)
-    ax1 = fig.add_subplot(1,1,1)
-    if range:
-        h=ax1.hist(x,bins=bins,range=range)
-    else:
-        h=ax1.hist(x,bins=bins)
-    if title:    ax1.set_title(title)
-    if xlab:     ax1.set_xlabel(xlab)
-    ax1.set_ylabel("#")
-    if gauss != None:
-        if len(gauss) == 3:
-            m = gauss[0]    # mean
-            s = gauss[1]    # std
-            a = gauss[2]    # amp
-        elif len(gauss) == 2:
-            m = gauss[0]    # mean
-            s = gauss[1]    # std
-            a = max(h[0])   # match peak value in histogram
-        else:
-            print "bad bad gauss estimator"
-        print "GaussPlot(%g,%g,%g)" % (m,s,a)
-        d = s/10.0
-        gx = np.arange(x.min(),x.max(),d)
-        arg = (gx-m)/s
-        gy = a * np.exp(-0.5*arg*arg)
-        ax1.plot(gx,gy)
-    if figname: 
-        fig.savefig(figname)
-    plt.show()
-
 class AT_linelist(admit.AT):
     """
+    LINELIST:  should be called LINEID when it does the lineid
     bdp_in[0]   bandcube
     bdp_in[1]   cubestats (needs cols::frequency,sigma,max)
     
@@ -160,30 +124,9 @@ class AT_linelist(admit.AT):
     """
     name = 'LINELIST'
     version = '1.0'
-    keys = ['f', 'nsigma', 'nline', 'ngap', 'csigma']
+    keys = ['f', 'nsigma', 'nline', 'ngap', 'csigma', 'vlsr']
     def __init__(self,bdp_in=[],bdp_out=[]):
         admit.AT.__init__(self,self.name,bdp_in,bdp_out)
-    def plotter(self,x,y,title=None,figname=None,xlab=None,ylab=None,segments=None):
-        """simple plotter of multiple columns against one column
-           stolen from atable, allowing some extra bars in the plot
-           for line_id
-        """
-        # if filename: plt.ion()
-        #plt.ion()
-        plt.ioff()
-        fig = plt.figure()
-        ax1 = fig.add_subplot(1,1,1)
-        for yi in y:
-            ax1.plot(x,yi)
-        if segments:
-            for s in segments:
-                ax1.plot([s[0],s[1]],[s[2],s[3]])
-        if title:    ax1.set_title(title)
-        if xlab:     ax1.set_xlabel(xlab)
-        if ylab:     ax1.set_ylabel(ylab)
-        if figname: 
-            fig.savefig(figname)
-        plt.show()
     def run(self):
         if not admit.AT.run(self):
             return False
@@ -194,10 +137,14 @@ class AT_linelist(admit.AT):
         nline  = self.geti('nline',3)
         ngap   = self.geti('ngap',2)
         csigma = self.getf('csigma',2.0)
+        vlsr   = self.getf('vlsr',0.0)
         #
         fni = self.bdp_in[0].filename
         t = self.bdp_in[1].table
         freq  = t.get('frequency')
+        # @ todo:  relativistic
+        if True:
+            freq = freq/(1-vlsr/299792.458)
         sigma = t.get('sigma')
         peak  = t.get('max')
         ratio = np.log10(peak)-np.log10(sigma)
@@ -275,20 +222,20 @@ class AT_linelist(admit.AT):
                 sm0 = data[0:nx,0:ny,k,0]*1000
                 sm1 = ma.masked_less(sm0,cutoff2)
                 csum[k] = sm1.sum()
-            t.plotter(freq,[csum],'CubeCut csigma=%g' % csigma,xlab='Freq',figname='linelist0.png')
+            aplot.APlot().plotter(freq,[csum],'CubeCut csigma=%g' % csigma,xlab='Freq',figname='linelist0.png')
             # now decide if 'csum' is going to be a column in cubestats
 
         #  ...trying out some plots....
-        #  this needs to be streamlines
+        #  this needs to be streamlined
         #  e.g. the segp[], could add a macro processor to plotter/histogram
         #  accepting
-        xlab = 'Frequency (Ghz)'
+        xlab = 'Frequency (Ghz) vlsr=%g' % vlsr
         ylab = 'log(Peak/Noise)'
-        self.plotter(freq,[ratio],'LineList-1',xlab=xlab,ylab=ylab,figname='linelist1.png',segments=segp)
+        aplot.APlot().plotter2(freq,[ratio],'LineList-1',xlab=xlab,ylab=ylab,figname='linelist1.png',segments=segp)
         xlab = 'log(Peak/Noise)'
-        t.histogram([ratio,ratio2],'LineList-2',figname='linelist2.png',xlab=xlab)
+        aplot.APlot().histogram([ratio,ratio2],'LineList-2',figname='linelist2.png',xlab=xlab)
         xlab = 'log(Peak/Noise)'
-        hisplot(ratio,'LineList-3',gauss=[dr.mean(),dr.std()],xlab=xlab)
+        aplot.APlot().hisplot(ratio,'LineList-3',figname='linelist3.png',gauss=[dr.mean(),dr.std()],xlab=xlab)
         #
         # store in the BDP
         #

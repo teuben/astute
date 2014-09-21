@@ -1,5 +1,5 @@
 import sys, os
-import atable
+import atable, aplot
 import numpy as np
 import casa
 import admit1 as admit
@@ -76,4 +76,4 @@ class AT_cubespectrum(admit.AT):
             title = 'CubeSpectrum(%s)' % pp
             xlabel = 'Frequency (Ghz)'
             ylabel = 'Flux (mJy/beam)'
-            a1.plotter(fr,[data],title,fn+'.png',xlab=xlabel,ylab=ylabel)
+            aplot.APlot().plotter(fr,[data],title,'cubespectrum.png',xlab=xlabel,ylab=ylabel)

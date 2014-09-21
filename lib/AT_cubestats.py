@@ -1,5 +1,5 @@
 import sys, os
-import atable
+import atable, aplot
 import numpy as np
 import numpy.ma as ma
 import casa
@@ -28,44 +28,6 @@ def mystats(data):
     s2 = d.std()
     n2 = len(d)
     return (n1,m1,s1,n2,m2,s2)
-
-def hisplot(x,title=None,figname=None,xlab=None,range=None,bins=80,gauss=None):
-    """simple histogram of one or more columns """
-    # if filename: plt.ion()
-    # better example: http://matplotlib.org/examples/statistics/histogram_demo_features.htmlsparspark
-    fig = plt.figure(1)
-    ax1 = fig.add_subplot(1,1,1)
-    if range == None:
-        h=ax1.hist(x,bins=bins)
-    else:
-        h=ax1.hist(x,bins=bins,range=range)
-    if title:    ax1.set_title(title)
-    if xlab:     ax1.set_xlabel(xlab)
-    ax1.set_ylabel("#")
-    if gauss != None:
-        if len(gauss) == 3:
-            m = gauss[0]    # mean
-            s = gauss[1]    # std
-            a = gauss[2]    # amp
-        elif len(gauss) == 2:
-            m = gauss[0]    # mean
-            s = gauss[1]    # std
-            a = max(h[0])   # match peak value in histogram
-        else:
-            print "bad bad gauss estimator"
-        print "GaussPlot(%g,%g,%g)" % (m,s,a)
-        d = s/10.0
-        if range == None:
-            gx = np.arange(x.min(),x.max(),d)
-        else:
-            gx = np.arange(range[0],range[1],d)
-        arg = (gx-m)/s
-        gy = a * np.exp(-0.5*arg*arg)
-        ax1.plot(gx,gy)
-    if figname: 
-        fig.savefig(figname)
-    plt.show()
-
 
 class AT_cubestats(admit.AT):
     name = 'CUBESTATS'
@@ -196,19 +158,26 @@ class AT_cubestats(admit.AT):
             else:
                 ydata = [np.log10(signal),np.log10(noise)]
             title = 'CubeStats-1 %s' % self.bdp_in[0].project
-            a1.plotter(freq,ydata,title, fno+'.1.png',xlab=xlabel,ylab=ylabel)
+            # a1.plotter(freq,ydata,title, fno+'.1.png',xlab=xlabel,ylab=ylabel,pmode=self.pmode)
+            aplot.APlot().plotter(freq,ydata,title, fno+'.1.png',xlab=xlabel,ylab=ylabel)
             if True:
                 title = 'CubeStats-2 %s' % self.bdp_in[0].project
                 if use_ratio:
                     xlab  = 'log(Peak,Noise,P/N[mJy/beam])'
                 else:
                     xlab  = 'log(Peak,Noise[mJy/beam])'
-                a1.histogram(ydata,title,fno+'.2.png',xlab=xlab)
+                aplot.APlot().histogram(ydata,title,fno+'.2.png',xlab=xlab)
                 title = 'CubeStats-3 %s' % self.bdp_in[0].project
                 xlab  = 'log(Peak/Noise[mJy/beam])'
-                a1.histogram([ratio],title,fno+'.3.png',xlab=xlab)
+                #a1.histogram([ratio],title,fno+'.3.png',xlab=xlab,pmode=self.pmode)
+                aplot.APlot().histogram([ratio],title,fno+'.3.png',xlab=xlab)
+            if use_ppp:
+                title = 'CubeStats-4'
+                xlab = 'Pixel'
+                ylab = 'Pixel'
+                #aplot.APlot().scatter([xpos],[ypos],title,fno+'.4.png',xlab=xlab,ylab=ylab,pmode=self.pmode)
             if use_cubehist:
-                title = 'CubeStats-4 %s' % self.bdp_in[0].project                
+                title = 'CubeStats-5 %s' % self.bdp_in[0].project                
                 xlab = 'CubeData [mJy/beam])'
                 print "Masking outside %g  %g" % (d2min,d2max)
                 #   @todo this is no good, masking is not zero
@@ -227,5 +196,5 @@ class AT_cubestats(admit.AT):
                     # raw cube
                     gmean = imstat0[c4][0]*1000
                     gdisp = imstat0[c2][0]*1000
-                hisplot(d2,title,fno+'.4.png',xlab=xlab,range=[d2min,d2max],gauss=[gmean,gdisp])
+                aplot.APlot().hisplot(d2,title,fno+'.5.png',xlab=xlab,range=[d2min,d2max],gauss=[gmean,gdisp])
             
