@@ -61,7 +61,7 @@ class AT_cubestats(admit.AT):
         imstat1 = casa.imstat(fin,axes=[0,1],logfile='imstat1.logfile',append=False)
         if use_ppp:
             # until imstat  can do this per plane, we need to loop over the planes
-            # so it's expensive.
+            # so this is an expensive step (about 70" for n253 cubes)
             print "Creating PeakPosPoint (expensive method)"
             # n= number of channels
             xpos = np.arange(n)
@@ -175,7 +175,12 @@ class AT_cubestats(admit.AT):
                 title = 'CubeStats-4'
                 xlab = 'Pixel'
                 ylab = 'Pixel'
-                #aplot.APlot().scatter([xpos],[ypos],title,fno+'.4.png',xlab=xlab,ylab=ylab,pmode=self.pmode)
+                gamma = 0.75
+                smax = 10
+                z0 = signal/signal.max()
+                psize  = np.pi * (smax * (z0**gamma))**2
+                pcolor = ch
+                aplot.APlot().scatter(xpos,ypos,title,fno+'.4.png',xlab=xlab,ylab=ylab,c=pcolor,s=psize)
             if use_cubehist:
                 title = 'CubeStats-5 %s' % self.bdp_in[0].project                
                 xlab = 'CubeData [mJy/beam])'
