@@ -69,7 +69,10 @@ if True:
     print "New aplot.scatter"
     z0 = i/i.max()
     s = np.pi * ( smax * (z0**gamma) )**2
-    aplot.APlot().scatter(x,y,s=s,c=c)
+    cmds = []
+    cmds.append("grid")
+    cmds.append("axis equal")
+    aplot.APlot().scatter(x,y,s=s,c=c,cmds=cmds)
 else:
 
     z1 = i/i.max()

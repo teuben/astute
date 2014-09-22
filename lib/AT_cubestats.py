@@ -180,6 +180,9 @@ class AT_cubestats(admit.AT):
                 z0 = signal/signal.max()
                 psize  = np.pi * (smax * (z0**gamma))**2
                 pcolor = ch
+                cmds = []
+                cmds.append('axis equal')
+                cmds.append('grid')
                 aplot.APlot().scatter(xpos,ypos,title,fno+'.4.png',xlab=xlab,ylab=ylab,c=pcolor,s=psize)
             if use_cubehist:
                 title = 'CubeStats-5 %s' % self.bdp_in[0].project                
