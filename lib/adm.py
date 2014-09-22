@@ -12,27 +12,42 @@ import sys, os, errno, fnmatch
 
 try:
     import pyfits
+    print "pyfits loaded"
 except:
     print "Warning: no pyfits found for this python"
 
+
+try:
+    import analysis_scripts.analysisUtils as au
+    print "analysisUtils loaded"
+except:
+    print "Warning: analysisUtils could not be loaded"
+
+try:
+    import astropy
+    print "astropy loaded"
+except:
+    print "Warning: astropy could not be loaded"
+
 __version__ = "pre-ADMIT functions: $Id$"
 
-__message__ = "wed 1243"
+__message__ = "wed 1410"
 
 
 class ADMIT(object):
     """
     This is ADMIT
     """
-    def __init__(self,debug=True):
+    def __init__(self,name='',debug=True):
         self.parfile = "tas.def"
         self.debug   = debug
+        self.name    = name
         if self.debug: print "ADMIT::init (%s)" % __message__
     def set_parfile(self,parfile):
         self.parfile = parfile
     def query_dir(self,here=None):
         """
-        from here, drill down and find directories in which parameter files exists
+        from here, drill down and find directories in which ADMIT exists
         """
         dlist = []
         if here == None:
@@ -48,6 +63,9 @@ class ADMIT(object):
         if self.debug: print "Queried ",n," directories, found ",len(dlist), " with a parfile"
         return dlist
     def find_files(self, pattern="*.fits"):
+        """
+        Find files containing a wildcard pattern
+        """
         flist = []
         for file in os.listdir('.'):
             if fnmatch.fnmatch(file,pattern):
@@ -61,6 +79,7 @@ class ADMIT(object):
         def mkdir_p(path):
             #if not os.path.isdir(dirname):
             #    os.makedirs(dirname)
+            #
             try:
                 os.makedirs(path)
             except OSError as exc: # Python >2.5
@@ -74,7 +93,7 @@ class ADMIT(object):
         if self.debug: print "ADMIT::setdir %s" % dirname
     def tesdir(self):
         """
-        revert back from previous setdir
+        revert back from previous setdir (sorry, not recursive yet)
         """
         os.chdir(self.pwd)
     def walkdir(self,dlist):
@@ -86,6 +105,9 @@ class ADMIT(object):
             print par.get('fits')
             print par.keys()
             self.tesdir()
+    def test(self,name='test'):
+        a = ADMIT(name)
+        return a
 
 if __name__ == '__main__':
     print "No __main__ yet, if ever...."
