@@ -286,10 +286,11 @@ class BDP(object):
             print 'derv:'
             for bi in self.derv:
                 print '    : %s(%s)' % (bi.name, bi.filename)
-        t = self.task[0]
-        print 'TASK ',t.name
-        print '     ',t.keys
-        print '     ',t.keyvals
+        if len(self.task) > 0:
+            t = self.task[0]
+            print 'TASK ',t.name
+            print '     ',t.keys
+            print '     ',t.keyvals
     def update(self,new_state):
         if _debug: print "UPDATE: %s(%s)" % (self.name,self.filename)
         self.updated = new_state
