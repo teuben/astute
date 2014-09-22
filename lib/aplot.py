@@ -40,7 +40,15 @@ class APlot(object):
         APlot.pmode = pmode
     def figure(self,figno=1):
         APlot.figno = figno-1
-    def scatter(self,x,y,title=None,figname=None,xlab=None,ylab=None,c=None,s=None):
+    def parse(self,plt,fig,ax,lines):
+        for line in lines:
+            if line=='grid':
+                plt.grid()
+            elif line=='axis equal':
+                plt.axis('equal')
+            else:
+                print "Skipping unknown aplot command: %s" % line
+    def scatter(self,x,y,title=None,figname=None,xlab=None,ylab=None,c=None,s=None,cmds=None):
         """simple plotter of multiple columns against one column"""
         # if filename: plt.ion()
         #plt.ion()
@@ -59,6 +67,8 @@ class APlot(object):
         if title:    ax1.set_title(title)
         if xlab:     ax1.set_xlabel(xlab)
         if ylab:     ax1.set_ylabel(ylab)
+        if cmds != None:
+              self.parse(plt,fig,ax1,cmds)
         if figname: 
             fig.savefig(figname)
         if APlot.pmode:
