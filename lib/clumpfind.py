@@ -11,6 +11,8 @@
 #    https://github.com/low-sky/dendro-core
 #  but also note the IDL code in
 #    https://github.com/low-sky/dendro
+#  pyprops is the pything cprops derived, and comes from
+#    https://github.com/akleroy/pyprops/ 
 
 
 import sys
@@ -105,6 +107,11 @@ def imom(f, xyz):
     return ( m0, [mx1,my1,mz1], [mx2,my2,mz2] )
     
 
+def one:
+    try:
+        import asciitable
+    except:
+        
 
 if __name__ == "__main__":
     # testing
