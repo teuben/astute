@@ -92,3 +92,6 @@ dependancies to a minimum. Eventually, ADMIT should run without any of those.
 
    ftp://ftp.cv.nrao.edu/pub/casaguides/analysis_scripts.tar
 
+   Note: for convenience, these are now included in $ASTUTE/admit/analysis_scripts
+         see the README.pjt file in there
+
