@@ -33,6 +33,13 @@ if __name__ == "__main__":
 
     a0 = admit.ADMIT()
     a1 = a0.pload(file)
-    a1.tsort()
-    a1.info()
+
+    if True:
+        a1.tsort()
+        #a1.info()
+    else:
+        nbdp = len(a1)
+        print 'Found %d BDPs' % nbdp
+        for i in range(nbdp):
+            print i,a1[i].filename
 
