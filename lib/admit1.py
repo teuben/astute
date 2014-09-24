@@ -47,6 +47,9 @@ class ADMIT(object):
         return len(self.bdps)
     def __eq__(self, other):
         return isinstance(other, ADMIT) and vars(self) == vars(other)
+    def __getitem__(self,index):
+        """ get access to a BDP """
+        return self.bdps[index]
     def plotmode(self, plotmode, plottype='png'):
         self.pmode = plotmode
         self.ptype = plottype
@@ -312,6 +315,14 @@ class BDP(object):
             print "BDP::task %s" % t.show()
     def set(self,keyval):
         if _debug: print "BDP::set %s" % keyval
+
+    def print_attributes(self):
+        """ show the attributes of this object and their value """
+        print '* Attributes *'
+        for names in dir(self):
+            attr = getattr(self,names)
+            if not callable(attr):
+                print names,':',attr
     def pdump(self,filename):
         """ save, if needed """
         if self.output:
