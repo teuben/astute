@@ -8,7 +8,7 @@ import taskinit
 class AT_moments(admit.AT):
     name = 'MOMENTS'
     version = '1.0'
-    keys = ['moments','nsigma']
+    keys = ['moments','nsigma','cutoff']
     def __init__(self,bdp_in=[],bdp_out=[]):
         admit.AT.__init__(self,self.name,bdp_in,bdp_out)
     def run(self):
@@ -23,6 +23,8 @@ class AT_moments(admit.AT):
         else:
             moments = [0]
         #
+        cutoff = self.getf('cutoff')
+        dmax = 999999.9
         fni = self.bdp_in[0].filename
         n1 = len(self.bdp_out)
         n2 = len(moments)
@@ -34,7 +36,7 @@ class AT_moments(admit.AT):
         taskinit.ia.open(fni)
         for (m,b) in zip(moments,self.bdp_out):
             fno = b.filename
-            taskinit.ia.moments(m,outfile=fno,overwrite=True)
+            taskinit.ia.moments(m,outfile=fno,includepix=[cutoff,dmax],overwrite=True)
             b.moment = m
             if m==0:
                 fno0 = fno
