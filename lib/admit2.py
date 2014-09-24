@@ -566,10 +566,10 @@ class AT_flow(AT):
     name = 'FLOW'
     version = '1.0'
     keys = ['debug']
-    def __init__(self,bdp_in=[],bdp_out=[],name=None):
+    def __init__(self,bdp_in=[],name=None):
         if name != None: self.name = name
         if _debug: print "AT_flow.init"
-        AT.__init__(self,self.name,bdp_in,bdp_out)
+        AT.__init__(self,self.name,bdp_in)
         set_keys=self.set.im_func.func_code.co_varnames
         set_vals=self.set.im_func.func_defaults
         print 'special flow keys:',set_keys
@@ -579,6 +579,8 @@ class AT_flow(AT):
         if not AT.run(self):
             return False
         # specialized work can commence here
+        b = BDP_file('flow-b1')
+        self.bdp_out = [b]
         print "  work_flow: %d -> %d" % (len(self.bdp_in),len(self.bdp_out))
         #
         if self.do_pickle:
@@ -611,15 +613,17 @@ class AT_flow21(AT):
     name = 'FLOW21'
     version = '1.0'
     keys = ['debug']
-    def __init__(self,bdp_in=[],bdp_out=[],name=None):
+    def __init__(self,bdp_in=[],name=None):
         if name != None: self.name = name
-        AT.__init__(self,self.name,bdp_in,bdp_out)
+        AT.__init__(self,self.name,bdp_in)
         if _debug: print "AT_flow21.init"
     def run(self):
         if _debug: print "AT_flow21.run(%s)" % self.name
         if not AT.run(self):
             return False
         # specialized work can commence here
+        b = BDP_file('flow-b1')
+        self.bdp_out = [b]
         print "  work: %d -> %d" % (len(self.bdp_in),len(self.bdp_out))
         print "  in:  ",self.bdp_in[0].show(),self.bdp_in[1].show()
         print "  out: ",self.bdp_out[0].show()
