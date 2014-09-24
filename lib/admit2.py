@@ -41,7 +41,9 @@ class ADMIT(object):
         self.project = project
         self.debug   = False
         self.bdps    = []
-        self.tasks   = []
+        self.tasks   = {}
+        self.connmap = []
+        self.depsmap = []
         self.keyval  = {}
         self.pmode   = 0
     def __len__(self):
@@ -54,17 +56,40 @@ class ADMIT(object):
     def plotmode(self, plotmode, plottype='png'):
         self.pmode = plotmode
         self.ptype = plottype
-    def add(self, b):
+    def add(self, a, lot = None):
         """Add an AT to the stack of AT's this ADMIT  contains
         Also adjust the mapping 
         """
+        self.tasks[a.taskid] = a
+        if len(a.bdp_in) != 0:
+            print "WARNING WARNING: bdp_in not empty"
+        if lot != None:
+            for i in range(len(lot)):
+                #print lot
+                #print self.tasks
+                st_id = lot[i][0]
+                sb_id = lot[i][1]
+                self.connmap.append( (st_id,sb_id,a.taskid,i) )
+                #print st_id,sb_id,self.tasks[0]
+                a.bdp_in.append( self.tasks[st_id][sb_id] )
+        return a.taskid
     def run(self):
         """from all the BDP's are known, and their relationship,
         this will run the whole pipeline, but not the orphans
         """
-        print "experimental running in admit (no proper flow control)"
-        for t in self.tasks:
-            t.run()
+        print "experimental running in admit (no proper flow control, order of add's"
+        if True:
+            # fake a depsmap
+            for key in self.tasks:
+                self.depsmap.append( [self.tasks[key].taskid] )
+        if False:
+            # testing, no sorting done
+            for key in self.tasks:
+                self.tasks[key].run()
+        else:
+            for dl in self.depsmap:
+                for d in dl:
+                    self.tasks[d].run()
     def tsort(self):
         """ topologic sort to get the b's in correct execution order
         """
@@ -74,6 +99,8 @@ class ADMIT(object):
             b.info()
     def show(self):
         print "=== ADMIT(%s): %s" % (self.name, self.project)
+        for cm in self.connmap:
+            print "connmap",cm
     def set(self,a=None, b=1, c=[]):
         """set a global ADMIT parameter
            The idea is that these are obtained through introspection
@@ -396,18 +423,23 @@ class AT(object):
     name    = 'generic'
     version = '1.0'
     keys    = []
-    def __init__(self,name='none',bdp_in=[]):
-        if _debug: print "AT(%s,[%d])" % (name,len(bdp_in))
+    def __init__(self,name='none'):
+        if _debug: print "AT(%s)" % (name)
+        self.taskid = AT.taskid
+        AT.taskid = AT.taskid + 1
         self.name      = name
         self.do_pickle = True
         self.do_plot   = True
-        self.bdp_in    = bdp_in
-        self.bdp_out   = []       # will be created soon we hope, in run()
+        self.bdp_in    = []       # will be contructed during the admit.add()
+        self.bdp_out   = []       # will be created during the AT_xxx() constructor
         self.keyvals   = {}
         self.pmode     = 0
     def __len__(self):
         len(self.bdp_in)
     def __getitem__(self,index):
+        #print "getitem: %d" % index
+        #print len(self.bdp_out)
+        #print self.bdp_out[0]
         if index >= len(self.bdp_out):
             print "AT::%s has bdp len %d,%d" % (self.name,len(self.bdp_in),len(self.bdp_out))
         return self.bdp_out[index]
@@ -521,19 +553,15 @@ class AT_file(AT):
     name    = 'FILE'
     version = '1.0'
     keys    = ['type','file']
-    def __init__(self,bdp_in=[]):
-        self.taskid = AT.taskid
-        AT.taskid = AT.taskid + 1
-        AT.__init__(self,self.name,bdp_in)
+    def __init__(self,name=None):
+        if name != None: self.name = name
+        AT.__init__(self,self.name)
         if _debug: print "AT_file.init"
+        self.bdp_out = [BDP_file(self.name)]
     def run(self):
         if _debug: print "AT_file.run"
         if not AT.run(self):
             return False
-        # specialized work can commence here
-        fitsfile = self.get('file')
-        b = BDP_file(fitsfile)
-        self.bdp_out = [b]
 
         if self.do_pickle:
             self.pdump()
@@ -566,21 +594,17 @@ class AT_flow(AT):
     name = 'FLOW'
     version = '1.0'
     keys = ['debug']
-    def __init__(self,bdp_in=[],name=None):
+    def __init__(self,name=None):
         if name != None: self.name = name
         if _debug: print "AT_flow.init"
-        AT.__init__(self,self.name,bdp_in)
-        set_keys=self.set.im_func.func_code.co_varnames
-        set_vals=self.set.im_func.func_defaults
-        print 'special flow keys:',set_keys
-        print 'special flow vals:',set_vals
+        AT.__init__(self,self.name)
+
+        b = BDP_file(self.name)
+        self.bdp_out = [b]
     def run(self):
         if _debug: print "AT_flow.run(%s)" % self.name
         if not AT.run(self):
             return False
-        # specialized work can commence here
-        b = BDP_file('flow-b1')
-        self.bdp_out = [b]
         print "  work_flow: %d -> %d" % (len(self.bdp_in),len(self.bdp_out))
         #
         if self.do_pickle:
@@ -592,18 +616,18 @@ class AT_flow12(AT):
     name = 'FLOW12'
     version = '1.0'
     keys = ['debug']
-    def __init__(self,bdp_in=[],name=None):
+    def __init__(self,name=None):
         if name != None: self.name = name
         if _debug: print "AT_flow12.init"
-        AT.__init__(self,self.name,bdp_in)
+        AT.__init__(self,self.name)
+        b1 = BDP_file('flow12-b1')
+        b2 = BDP_file('flow12-b2')
+        self.bdp_out = [b1,b2]
     def run(self):
         if _debug: print "AT_flow12.run(%s)" % self.name
         if not AT.run(self):
             return False
         # specialized work can commence here
-        b1 = BDP_file('flow12-b1')
-        b2 = BDP_file('flow12-b2')
-        self.bdp_out = [b1,b2]
         print "  work_flow12: %d -> %d" % (len(self.bdp_in),len(self.bdp_out))
         if self.do_pickle:
             self.pdump()
@@ -613,17 +637,17 @@ class AT_flow21(AT):
     name = 'FLOW21'
     version = '1.0'
     keys = ['debug']
-    def __init__(self,bdp_in=[],name=None):
+    def __init__(self,name=None):
         if name != None: self.name = name
-        AT.__init__(self,self.name,bdp_in)
+        AT.__init__(self,self.name)
         if _debug: print "AT_flow21.init"
+        b = BDP_file('flow-b1')
+        self.bdp_out = [b]
     def run(self):
         if _debug: print "AT_flow21.run(%s)" % self.name
         if not AT.run(self):
             return False
         # specialized work can commence here
-        b = BDP_file('flow-b1')
-        self.bdp_out = [b]
         print "  work: %d -> %d" % (len(self.bdp_in),len(self.bdp_out))
         print "  in:  ",self.bdp_in[0].show(),self.bdp_in[1].show()
         print "  out: ",self.bdp_out[0].show()
