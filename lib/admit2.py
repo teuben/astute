@@ -11,16 +11,12 @@
 import sys, os, errno, fnmatch
 import copy
 import cPickle as pickle
-import atable
-import matplotlib.pyplot as plt
 import numpy as np
 import parfile
 
 _debug = False
 _debug = True
 
-nprojects = 100
-nlines    = 100
 # ==============================================================================
 
 def casa_argv(argv):
@@ -35,23 +31,28 @@ def casa_argv(argv):
 # ==============================================================================
 
 class ADMIT(object):
+    projectid = 0
     def __init__(self, name='none', project=None):
         self.parfile = "tas.def"       #  relic of ASTUTE, keep it for now
         self.name    = name
         self.project = project
         self.debug   = False
-        self.bdps    = []
         self.tasks   = {}
         self.connmap = []
         self.depsmap = []
         self.keyval  = {}
         self.pmode   = 0
+        # maintain a projectid in case multiple admit's are present
+        self.projectid = ADMIT.projectid
+        ADMIT.projectid = ADMIT.projectid + 1
     def __len__(self):
         return len(self.bdps)
     def __eq__(self, other):
         return isinstance(other, ADMIT) and vars(self) == vars(other)
     def __getitem__(self,index):
-        """ get access to an AT """
+        """ 
+        get access to an AT 
+        """
         return self.tasks[index]
     def plotmode(self, plotmode, plottype='png'):
         self.pmode = plotmode
@@ -59,6 +60,7 @@ class ADMIT(object):
     def add(self, a, lot = None):
         """Add an AT to the stack of AT's this ADMIT  contains
         Also adjust the mapping 
+        Usually all but the first task will have a lot (List of Tuples)
         """
         self.tasks[a.taskid] = a
         if len(a.bdp_in) != 0:
@@ -74,7 +76,7 @@ class ADMIT(object):
                 a.bdp_in.append( self.tasks[st_id][sb_id] )
         return a.taskid
     def run(self):
-        """from all the BDP's are known, and their relationship,
+        """from all the AT's are known, and their relationship,
         this will run the whole pipeline, but not the orphans
         """
         print "experimental running in admit (no proper flow control, order of add's"
@@ -194,7 +196,7 @@ class ADMIT(object):
         """
         change directory to dirname to work in. Assumed to contain parameter file
         if the directory doesn't exist yet, create it
-        See pushd()/popd() for a better version
+        See pushd()/popd() for a better version - deprecate this.
         """
         def mkdir_p(path):
             #if not os.path.isdir(dirname):
@@ -262,42 +264,14 @@ class BDP(object):
         return "BDP_%s(%s): " % (self.name,self.filename)
     def info(self):
         print '===> BDP %s(%s) <===' % (self.name,self.filename)
-        if len(self.deps)==0:
-            print 'deps: -'
-        else:
-            print 'deps: '
-            for bi in self.deps:
-                print '    : %s(%s)' % (bi.name, bi.filename)
-        if len(self.derv)==0:
-            print 'derv: -'
-        else:
-            print 'derv:'
-            for bi in self.derv:
-                print '    : %s(%s)' % (bi.name, bi.filename)
-        if len(self.task) > 0:
-            t = self.task[0]
-            print 'TASK ',t.name
-            print '     ',t.keys
-            print '     ',t.keyvals
     def update(self,new_state):
         if _debug: print "UPDATE: %s(%s)" % (self.name,self.filename)
         self.updated = new_state
-        for d in self.derv:
-            d.update(new_state)
     def depends_on(self,other):
-        if other == None: return
-        if _debug: print 'BDP %s depends on %s' % (self.filename,other.show())
-        self.deps.append(other)
-        other.derv.append(self)
+        print "depends_on deprecated"
     def report(self):
         print "===report==="
         print "BDP::%s" % self.name
-        for d in self.deps:
-            print "BDP::deps %s" % d.show()
-        for d in self.derv:
-            print "BDP::derv %s" % d.show()
-        for t in self.task:
-            print "BDP::task %s" % t.show()
     def set(self,keyval):
         if _debug: print "BDP::set %s" % keyval
 
@@ -314,24 +288,6 @@ class BDP(object):
             if _debug: print "BDP.pdump(%s)" % filename
             pickle.dump(self,open(filename,"wb"))
             self.output = False
-    def run(self):
-        """ run the task that this BDP was created by.
-        Dangerous.
-        """
-        if self.updated:
-            if _debug: print "BDP::%s (%s) was up to date" % (self.name,self.filename)
-            return False
-        if _debug: print "BDP::%s (%s) running" % (self.name,self.filename)
-        if len(self.task) == 0:
-            if _debug: print " Warning: no task set ???"
-            # raise ?
-        else:
-            if len(self.task) > 1:
-                print "warning: we don't support multiple tasks per BDP"
-            for t in self.task:
-                t.run()
-        self.updated = True
-        return True
 
 class BDP_buckett(BDP):
     """
