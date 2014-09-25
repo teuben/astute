@@ -389,7 +389,7 @@ class AT(object):
         self.keyvals   = {}       # the state of the keywords for this AT
         self.pmode     = 0        # plot mode
     def __len__(self):
-        len(self.bdp_in)
+        return len(self.bdp_out)
     def len2(self):
         return (len(self.bdp_in), len(self.bdp_out))
     def __getitem__(self,index):
@@ -683,16 +683,27 @@ class AT_flow1N(AT):
     def check(self):
         print "CHECK AT_flow1N "
         n = self.geti('n',0)
+        if n > 0:
+            b=[]
+            for i in range(n):
+                b.append(BDP_file(self.name+'.%d'%(i+1)))
+            self.bdp_out = b
+            
     def run(self):
         if _debug: print "AT_flow1N.run(%s)" % self.name
         if not AT.run(self):
             return False
         # specialized work can commence here
+
+        # simulate that N wasn't known until run-time, by setting it to < N
         n = self.geti('n',0)
-        b=[]
-        for i in range(n):
-            b.append(BDP_file(self.name+'.%d'%(i+1)))
-        self.bdp_out = b
+        if len(self.bdp_out)==0:
+            if n < 0:
+                n = -n
+                b=[]
+                for i in range(n):
+                    b.append(BDP_file(self.name+'.%d'%(i+1)))
+                self.bdp_out = b             
 
         print "  work_flow1N: %d -> %d" % (len(self.bdp_in),len(self.bdp_out))
         if self.getb('touch',0):
@@ -708,17 +719,26 @@ class AT_flowN1(AT):
     """Take BDPs, merge them into one"""
     name = 'FLOWN1'
     version = '1.0'
-    keys = ['debug']
-    def __init__(self,bdp_in=[],bdp_out=[],name=None):
+    keys = ['debug','touch']
+    def __init__(self,name=None):
         if name != None: self.name = name
         if _debug: print "AT_flowN1.init"
-        AT.__init__(self,self.name,bdp_in,bdp_out)
+        AT.__init__(self,self.name)
+    def check(self):
+        #
+        if _debug: print 'check'
     def run(self):
         if _debug: print "AT_flowN1.run(%s)" % self.name
         if not AT.run(self):
             return False
         # specialized work can commence here
+        b = [BDP_file(self.name)]
+        self.bdp_out = b
         print "  work_flowN1: %d -> %d" % (len(self.bdp_in),len(self.bdp_out))
+        if self.getb('touch',0):
+            fn = self.bdp_out[0].filename
+            print "TOUCHING",fn
+            os.system('touch %s' % fn)      
         if self.do_pickle:
             self.pdump()
 
