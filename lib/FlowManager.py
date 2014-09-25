@@ -35,14 +35,15 @@ class FlowManager():
             # fake a depsmap before we know how to build it
             # this works as long as you added at's in the proper execution order
             # as scripts normally do
+            self.depsmap = []
             for key in self.tasks:
                 self.depsmap.append( [self.tasks[key].taskid] )
 
         self.change_conn = False
 
     def run(self):
-        """ run all the tasks in the correct order """
-
+        """ run all the tasks in the correct order 
+        """
         if self.changed_conn: 
             self.makedepsmap()
 
