@@ -1,1 +1,6 @@
-these are some sample AT classes for admit1 (the BDP centric version of admit)
+these are some sample AT classes for admit1 (the BDP centric version of admit).
+
+We abandoned this view on Sep 24, during the first face2face ADMIT
+developers meeting in Maryland, but in theory should run using admit1 and using 
+these AT's.
+
