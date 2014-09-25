@@ -82,9 +82,7 @@ class ADMIT(object):
             b.info()
     def show(self):
         print "=== ADMIT(%s): %s" % (self.name, self.project)
-        for cm in self.fm.connmap:
-            print "connmap",cm[0], cm[1],cm[2],cm[3]
-            print "       ",self.fm.tasks[cm[0]].name, self.fm.tasks[cm[0]][cm[1]].filename,self.fm.tasks[cm[2]].name
+        self.fm.show()
     def set(self,a=None, b=1, c=[]):
         """set a global ADMIT parameter
            The idea is that these are obtained through introspection
