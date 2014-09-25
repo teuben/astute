@@ -13,13 +13,14 @@ _debug = True
 # ==============================================================================
 
 class FlowManager():
-    projectid = 0
+    """  Manages the flow of tasks
+    """
     def __init__(self, name='none', project=None):
 
-        self.debug   = False
-        self.connmap = []        # list of (i1,j1,i2,j2) connections where i refers to task a[i], j to bdp[j]
-        self.depsmap = []        # processed list of dependencies
-        self.tasks = {}          # dictionary of tasks. The taskid (0,1,....) is the key
+        self.connmap      = []        # list of (i1,j1,i2,j2) connections where i refers to task a[i], j to bdp[j]
+        self.depsmap      = []        # processed list of dependencies
+        self.tasks        = {}        # dictionary of tasks. The taskid (0,1,....) is the key
+        self.changed_conn = True      # state if we got new connection map entries
 
     def __len__(self):
         return len(self.tasks)
@@ -27,9 +28,9 @@ class FlowManager():
     def __getitem__(self,index):
         return self.tasks[index]
 
-
-    def run(self):
-        print "experimental running in admit FM"
+    def makedepsmap(self):
+        """ rebuild the connection map 
+        """
         if True:
             # fake a depsmap before we know how to build it
             # this works as long as you added at's in the proper execution order
@@ -37,7 +38,16 @@ class FlowManager():
             for key in self.tasks:
                 self.depsmap.append( [self.tasks[key].taskid] )
 
+        self.change_conn = False
+
+    def run(self):
+        """ run all the tasks in the correct order """
+
+        if self.changed_conn: 
+            self.makedepsmap()
+
         for dl in self.depsmap:
+            # the dl[] are tasks that are independant, and could be run in parallel
             for d in dl:
                 self.tasks[d].run()
 
@@ -46,6 +56,7 @@ class FlowManager():
         self.depsmap = []     Also adjust the mapping 
         Usually all but the first task will have a lot (List of Tuples)
         """
+        self.change_conn = True
         self.tasks[a.taskid] = a
         a.check()
         if len(a.bdp_in) != 0:
@@ -67,8 +78,12 @@ class FlowManager():
         return self.connmap;
 
     def show(self):
-        print "=== ADMIT(%s): %s" % (self.name, self.project)
+        print "=== FM: " 
         for cm in self.connmap:
             print "connmap",cm[0], cm[1],cm[2],cm[3]
             print "connmap", self.tasks[cm[0]].name, self.tasks[cm[0]][cm[1]].filename,self.tasks[cm[2]].name
- 
+        for i in range(len(self.depsmap)):
+            print "%d : %s" % (i,self.depsmap[i])
+        for dl in self.depsmap:
+            for d in dl:
+                print "TASK %d: %s" % (d,self.tasks[d].name)
