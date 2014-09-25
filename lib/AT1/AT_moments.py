@@ -50,6 +50,7 @@ class AT_moments(admit.AT):
                     h = casa.imstat(fni)
                     h = casa.imstat(fno)
                     b.flux = h['sum']
+                    print "TOTAL SUM in %s : %g" % (fno,b.flux)
         #
         if self.do_pickle:
             self.pdump()
