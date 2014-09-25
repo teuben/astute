@@ -38,7 +38,7 @@ class ADMIT(object):
         self.project = project
         self.debug   = False
         self.tasks   = {}
-        self.connmap = []
+        self.connmap = []        # list of (i1,j1,i2,j2) connections where i refers to task a[i], j to bdp[j]
         self.depsmap = []
         self.keyval  = {}
         self.pmode   = 0
@@ -46,7 +46,7 @@ class ADMIT(object):
         self.projectid = ADMIT.projectid
         ADMIT.projectid = ADMIT.projectid + 1
     def __len__(self):
-        return len(self.bdps)
+        return len(self.tasks)
     def __eq__(self, other):
         return isinstance(other, ADMIT) and vars(self) == vars(other)
     def __getitem__(self,index):
@@ -63,6 +63,7 @@ class ADMIT(object):
         Usually all but the first task will have a lot (List of Tuples)
         """
         self.tasks[a.taskid] = a
+        a.check()
         if len(a.bdp_in) != 0:
             print "WARNING WARNING: bdp_in not empty"
         if lot != None:
@@ -92,9 +93,6 @@ class ADMIT(object):
             for dl in self.depsmap:
                 for d in dl:
                     self.tasks[d].run()
-    def tsort(self):
-        """ topologic sort to get the b's in correct execution order
-        """
     def info(self):
         print "ADMIT(%s): %s" % (self.name, self.project)
         for b in self.bdps:
@@ -240,8 +238,8 @@ class BDP(object):
     """
     #
     def __init__(self, name='none',filename=None, filetype=None, project=None):
+        self.taskid   = -1        # will be >=0 once set by the AT
         self.name     = name
-        self.id       = 0
         self.filename = filename
         self.filetype = filetype
         self.project  = project
@@ -327,7 +325,7 @@ class BDP_image(BDP):
     The application should know the type (fits, casa image, miriad, nemo, ....)
     """
     def __init__(self, filename=None, filetype=None):
-        BDP.__init__(self,"FILE", filename, filetype)
+        BDP.__init__(self,"IMAGE", filename, filetype)
         # cubes are written as [nx,ny,nz]
         # do we really need meta data here, isn't the filename enough?
         self.dims=[]
@@ -374,12 +372,12 @@ class BDP_cubespectrum(BDP):
 # ==============================================================================
 
 class AT(object):
-    taskid  = 0                   # static class counter
+    taskid  = 0                   # static AT class counter of the ATI's
     env     = 'casa'
-    name    = 'generic'
+    name    = 'base class'
     version = '1.0'
     keys    = []
-    def __init__(self,name='none'):
+    def __init__(self,name):
         if _debug: print "AT(%s)" % (name)
         self.taskid = AT.taskid
         AT.taskid = AT.taskid + 1
@@ -388,19 +386,20 @@ class AT(object):
         self.do_plot   = True
         self.bdp_in    = []       # will be contructed during the admit.add()
         self.bdp_out   = []       # will be created during the AT_xxx() constructor
-        self.keyvals   = {}
-        self.pmode     = 0
+        self.keyvals   = {}       # the state of the keywords for this AT
+        self.pmode     = 0        # plot mode
     def __len__(self):
         len(self.bdp_in)
+    def len2(self):
+        return (len(self.bdp_in), len(self.bdp_out))
     def __getitem__(self,index):
-        #print "getitem: %d" % index
-        #print len(self.bdp_out)
-        #print self.bdp_out[0]
         if index >= len(self.bdp_out):
             print "AT::%s has bdp len %d,%d" % (self.name,len(self.bdp_in),len(self.bdp_out))
         return self.bdp_out[index]
     def show(self):
         return self.name
+    def check(self):
+        print "No AT.check() in baseclase for %s" % self.name
     def run(self):
         """ run the task, but the only thing this returns is a True or False
         to designate if the BDP's were up to date.  Returns True if the real
@@ -416,8 +415,15 @@ class AT(object):
         # why is env not available
         return self.env
     def set(self,keyvals):
+        """
+        Usage: set("key=val")
+        perhaps allow  set([]) as well
+        """
         kv = keyvals.split('=')
-        self.setkv({ kv[0] : kv[1] })
+        if kv[0] in self.keys:
+            self.setkv({ kv[0] : kv[1] })
+        else:
+            print "*** Skipped keyval ",keyvals," for ",self.name
     def setkv(self,keyvals):
         """set a task parameter"""
         # store them, but should also check if valid
@@ -493,8 +499,8 @@ class AT_simple(AT):
     name    = 'SIMPLE'
     version = '1.0'
     keys    = []
-    def __init__(self,bdp_in=[],bdp_out=[]):
-        AT.__init__(self,self.name,bdp_in,bdp_out)
+    def __init__(self):
+        AT.__init__(self,self.name)
     def run(self):
         if not AT.run(self): return False
         # do your work:
@@ -502,22 +508,31 @@ class AT_simple(AT):
         #     ... contain parameters
 
 class AT_file(AT):
-    """ Create a simple container for a file, with no further description
-        Generally used for FITS files.
-        bdp_in:   none
+    """ Create a simple container for a file, with no further description.
+
+        bdp_in[]:    none
+        bdp_out[0]:  filename
     """
     name    = 'FILE'
     version = '1.0'
-    keys    = ['type','file']
+    keys    = ['file','touch']
     def __init__(self,name=None):
         if name != None: self.name = name
         AT.__init__(self,self.name)
         if _debug: print "AT_file.init"
         self.bdp_out = [BDP_file(self.name)]
+    def check(self):
+        print "CHECK AT_file"
     def run(self):
         if _debug: print "AT_file.run"
         if not AT.run(self):
             return False
+        if self.getb('touch',0):
+            fn = self.bdp_out[0].filename
+            print "TOUCHING",fn
+            os.system('touch %s' % fn)
+        #
+
 
         if self.do_pickle:
             self.pdump()
@@ -549,7 +564,7 @@ class AT_flow(AT):
     """ change one BDP into another one"""
     name = 'FLOW'
     version = '1.0'
-    keys = ['debug']
+    keys = ['debug','touch']
     def __init__(self,name=None):
         if name != None: self.name = name
         if _debug: print "AT_flow.init"
@@ -562,6 +577,10 @@ class AT_flow(AT):
         if not AT.run(self):
             return False
         print "  work_flow: %d -> %d" % (len(self.bdp_in),len(self.bdp_out))
+        if self.getb('touch',0):
+            fn = self.bdp_out[0].filename
+            print "TOUCHING",fn
+            os.system('touch %s' % fn)
         #
         if self.do_pickle:
             self.pdump()
@@ -571,13 +590,13 @@ class AT_flow12(AT):
     """ split one BDP into two """
     name = 'FLOW12'
     version = '1.0'
-    keys = ['debug']
+    keys = ['debug','touch']
     def __init__(self,name=None):
         if name != None: self.name = name
         if _debug: print "AT_flow12.init"
         AT.__init__(self,self.name)
-        b1 = BDP_file('flow12-b1')
-        b2 = BDP_file('flow12-b2')
+        b1 = BDP_file(self.name + '.1')
+        b2 = BDP_file(self.name + '.2')
         self.bdp_out = [b1,b2]
     def run(self):
         if _debug: print "AT_flow12.run(%s)" % self.name
@@ -585,6 +604,11 @@ class AT_flow12(AT):
             return False
         # specialized work can commence here
         print "  work_flow12: %d -> %d" % (len(self.bdp_in),len(self.bdp_out))
+        if self.getb('touch',0):
+            for i in [0,1]:
+                fn = self.bdp_out[i].filename
+                print "TOUCHING",fn
+                os.system('touch %s' % fn)
         if self.do_pickle:
             self.pdump()
 
@@ -592,12 +616,12 @@ class AT_flow21(AT):
     """ combine two BDPs into one"""
     name = 'FLOW21'
     version = '1.0'
-    keys = ['debug']
+    keys = ['debug','touch']
     def __init__(self,name=None):
         if name != None: self.name = name
         AT.__init__(self,self.name)
         if _debug: print "AT_flow21.init"
-        b = BDP_file('flow-b1')
+        b = BDP_file(self.name)
         self.bdp_out = [b]
     def run(self):
         if _debug: print "AT_flow21.run(%s)" % self.name
@@ -607,6 +631,10 @@ class AT_flow21(AT):
         print "  work: %d -> %d" % (len(self.bdp_in),len(self.bdp_out))
         print "  in:  ",self.bdp_in[0].show(),self.bdp_in[1].show()
         print "  out: ",self.bdp_out[0].show()
+        if self.getb('touch',0):
+            fn = self.bdp_out[0].filename
+            print "TOUCHING",fn
+            os.system('touch %s' % fn)
         if self.do_pickle:
             self.pdump()
 
@@ -641,17 +669,38 @@ class AT_flow1N(AT):
     """
     name = 'FLOW1N'
     version = '1.0'
-    keys = ['n','debug']
-    def __init__(self,bdp_in=[],bdp_out=[],name=None):
+    keys = ['n','debug','touch']
+    def __init__(self,name=None):
         if name != None: self.name = name
         if _debug: print "AT_flow1N.init"
-        AT.__init__(self,self.name,bdp_in,bdp_out)
+        AT.__init__(self,self.name)
+        # note we cannot allocate BDP's because we don't know N yet
+        # thus the run() task will need to broadcast the information
+        # for admit to pick this up
+        # but....
+        # bdp_in set in a.add()
+        # bdp_out set in constructor (normally)
+    def check(self):
+        print "CHECK AT_flow1N "
+        n = self.geti('n',0)
     def run(self):
         if _debug: print "AT_flow1N.run(%s)" % self.name
         if not AT.run(self):
             return False
         # specialized work can commence here
+        n = self.geti('n',0)
+        b=[]
+        for i in range(n):
+            b.append(BDP_file(self.name+'.%d'%(i+1)))
+        self.bdp_out = b
+
         print "  work_flow1N: %d -> %d" % (len(self.bdp_in),len(self.bdp_out))
+        if self.getb('touch',0):
+            for i in range(n):
+                fn = self.bdp_out[i].filename
+                print "TOUCHING",fn
+                os.system('touch %s' % fn)
+
         if self.do_pickle:
             self.pdump()
 
