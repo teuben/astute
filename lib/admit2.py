@@ -14,6 +14,8 @@ import cPickle as pickle
 import numpy as np
 import parfile
 
+import FlowManager as FM
+
 _debug = False
 _debug = True
 
@@ -37,23 +39,26 @@ class ADMIT(object):
         self.name    = name
         self.project = project
         self.debug   = False
-        self.tasks   = {}
-        self.connmap = []        # list of (i1,j1,i2,j2) connections where i refers to task a[i], j to bdp[j]
-        self.depsmap = []
+        #self.tasks   = {}
+        self.fm = FM.FlowManager()
+        #self.connmap = []        # list of (i1,j1,i2,j2) connections where i refers to task a[i], j to bdp[j]
+        #self.depsmap = []
         self.keyval  = {}
         self.pmode   = 0
         # maintain a projectid in case multiple admit's are present
         self.projectid = ADMIT.projectid
         ADMIT.projectid = ADMIT.projectid + 1
     def __len__(self):
-        return len(self.tasks)
+        return len(self.fm)
+    
     def __eq__(self, other):
         return isinstance(other, ADMIT) and vars(self) == vars(other)
     def __getitem__(self,index):
         """ 
         get access to an AT 
         """
-        return self.tasks[index]
+        return self.fm.tasks[index]
+
     def plotmode(self, plotmode, plottype='png'):
         self.pmode = plotmode
         self.ptype = plottype
@@ -62,20 +67,14 @@ class ADMIT(object):
         Also adjust the mapping 
         Usually all but the first task will have a lot (List of Tuples)
         """
-        self.tasks[a.taskid] = a
+        self.fm.tasks[a.taskid] = a
         a.check()
         if len(a.bdp_in) != 0:
             print "WARNING WARNING: bdp_in not empty"
-        if lot != None:
-            for i in range(len(lot)):
-                #print lot
-                #print self.tasks
-                st_id = lot[i][0]
-                sb_id = lot[i][1]
-                self.connmap.append( (st_id,sb_id,a.taskid,i) )
-                #print st_id,sb_id,self.tasks[0]
-                a.bdp_in.append( self.tasks[st_id][sb_id] )
+
+        self.fm.add(a, lot)
         return a.taskid
+
     def run(self):
         """from all the AT's are known, and their relationship,
         this will run the whole pipeline, but not the orphans
@@ -83,24 +82,25 @@ class ADMIT(object):
         print "experimental running in admit (no proper flow control, order of add's"
         if True:
             # fake a depsmap
-            for key in self.tasks:
-                self.depsmap.append( [self.tasks[key].taskid] )
+            for key in self.fm.tasks:
+                self.fm.depsmap.append( [self.fm.tasks[key].taskid] )
         if False:
             # testing, no sorting done
-            for key in self.tasks:
-                self.tasks[key].run()
+            for key in self.fm.tasks:
+                self.fm.tasks[key].run()
         else:
-            for dl in self.depsmap:
+            for dl in self.fm.depsmap:
                 for d in dl:
-                    self.tasks[d].run()
+                    self.fm.tasks[d].run()
     def info(self):
         print "ADMIT(%s): %s" % (self.name, self.project)
         for b in self.bdps:
             b.info()
     def show(self):
         print "=== ADMIT(%s): %s" % (self.name, self.project)
-        for cm in self.connmap:
-            print "connmap",cm
+        for cm in self.fm.connmap:
+            print "connmap",cm[0], cm[1],cm[2],cm[3]
+            print "connmap", self.fm.tasks[cm[0]].name, self.fm.tasks[cm[0]][cm[1]].filename,self.fm.tasks[cm[2]].name
     def set(self,a=None, b=1, c=[]):
         """set a global ADMIT parameter
            The idea is that these are obtained through introspection
