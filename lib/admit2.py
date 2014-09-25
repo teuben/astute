@@ -17,7 +17,7 @@ import parfile
 import FlowManager as FM
 
 _debug = False
-_debug = True
+#_debug = True
 
 # ==============================================================================
 
@@ -39,10 +39,7 @@ class ADMIT(object):
         self.name    = name
         self.project = project
         self.debug   = False
-        #self.tasks   = {}
-        self.fm = FM.FlowManager()
-        #self.connmap = []        # list of (i1,j1,i2,j2) connections where i refers to task a[i], j to bdp[j]
-        #self.depsmap = []
+        self.fm      = FM.FlowManager()
         self.keyval  = {}
         self.pmode   = 0
         # maintain a projectid in case multiple admit's are present
@@ -63,35 +60,22 @@ class ADMIT(object):
         self.pmode = plotmode
         self.ptype = plottype
     def add(self, a, lot = None):
-        """Add an AT to the stack of AT's this ADMIT  contains
+        """Add an AT to the stack of AT's this ADMIT contains
         Also adjust the mapping 
-        Usually all but the first task will have a lot (List of Tuples)
+        Usually all but the first task will have a 'lot' (List of Tuples of source (task-id,bdp-id))
         """
-        self.fm.tasks[a.taskid] = a
         a.check()
         if len(a.bdp_in) != 0:
-            print "WARNING WARNING: bdp_in not empty"
+            print "WARNING WARNING: bdp_in not empty, somebody probably wrong here"
 
         self.fm.add(a, lot)
         return a.taskid
-
     def run(self):
         """from all the AT's are known, and their relationship,
         this will run the whole pipeline, but not the orphans
+        @todo  some of this need to move to FlowManager
         """
-        print "experimental running in admit (no proper flow control, order of add's"
-        if True:
-            # fake a depsmap
-            for key in self.fm.tasks:
-                self.fm.depsmap.append( [self.fm.tasks[key].taskid] )
-        if False:
-            # testing, no sorting done
-            for key in self.fm.tasks:
-                self.fm.tasks[key].run()
-        else:
-            for dl in self.fm.depsmap:
-                for d in dl:
-                    self.fm.tasks[d].run()
+        self.fm.run()
     def info(self):
         print "ADMIT(%s): %s" % (self.name, self.project)
         for b in self.bdps:
@@ -100,7 +84,7 @@ class ADMIT(object):
         print "=== ADMIT(%s): %s" % (self.name, self.project)
         for cm in self.fm.connmap:
             print "connmap",cm[0], cm[1],cm[2],cm[3]
-            print "connmap", self.fm.tasks[cm[0]].name, self.fm.tasks[cm[0]][cm[1]].filename,self.fm.tasks[cm[2]].name
+            print "       ",self.fm.tasks[cm[0]].name, self.fm.tasks[cm[0]][cm[1]].filename,self.fm.tasks[cm[2]].name
     def set(self,a=None, b=1, c=[]):
         """set a global ADMIT parameter
            The idea is that these are obtained through introspection
