@@ -2,6 +2,14 @@
 #
 #  Simple data flow using flow1N - AT centric version
 #
+#  This version splits 1 BDP into N, and then comnbines them
+#  again.   Either N can be known at check time (e.g. if it
+#  can be derivedd from the parameters), in which case this
+#  can run. 
+#  But if N is not known until runtime (you can simulate that
+#  with n < 0), the pipeflow cannot be computed without data
+#  flowing through it.
+#
 #  b0 -> [b1,b2,b3,....bN] -> b00
 #
 import sys, os
@@ -9,8 +17,8 @@ import admit2 as admit
 
 a = admit.ADMIT('flowN')
 
-n = 4
-
+#   set N,  use <0 to simulate that only in runtime can N be determined
+n = -4
 
 if True:
     # the more laborious notation
@@ -28,7 +36,11 @@ if True:
 
     print 'AT[%d]->%s' % (i2,a2.len2())
     if len(a2) == 0:
-        print "*** BAD BAD BAD, a2 no BDP out"
+        print "*** BAD BAD BAD, a2 no BDP out, need to run first!!"
+        a.run()
+        print 'AT[%d]->%s' % (i2,a2.len2())
+        if len(a2) == 0:
+            print "*** BAD BAD BAD, there is no mor rescue for this"
 
     lot=[]
     for i in range(len(a2)):
