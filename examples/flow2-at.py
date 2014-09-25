@@ -10,13 +10,25 @@ import admit2 as admit
 a = admit.ADMIT('flow2')
 
 
-a1 = admit.AT_file('name=flow2')   
-i1 = a.add(a1)
-a1.run()
-
-a2 = admit.AT_flow12()
-i2 = a.add(a2, [(i1,0)])
-a2.run()
+if False:
+    a1 = admit.AT_file(name='flow2a')      
+    i1 = a.add(a1)
+    a1.run()
+    
+    a2 = admit.AT_flow12('flow2b')       
+    i2 = a.add(a2, [(i1,0)])
+    a2.run()
+else:
+    i1 = a.add(admit.AT_file('flow2a'))
+    i2 = a.add(admit.AT_flow12('flow2b'),  [(i1,0)] ) 
+    #
+    if True:
+        print "LEN: ",len(a)
+        for i in range(len(a)):
+            print "LEN(%d): %s" % (i,a[i].len2())
+            a[i].set('touch=1')
+    #
+    a.run()
 
 
 a.show()
