@@ -31,7 +31,8 @@ class AT_moments(admit.AT):
         fni = self.bdp_in[0].filename
         n2 = len(moments)
         for i in range(n2):
-            self.bdp_out.append(admit.BDP_image(self.name))
+            fno = fni + '.mom%d' % moments[i]
+            self.bdp_out.append(admit.BDP_image(fno))
         #  includepix=
         #  casa.immoments() doesn't have the overwrite option
         taskinit.ia.open(fni)
