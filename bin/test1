@@ -16,13 +16,13 @@ import sys,os
 
 import admit1 as admit
 import aplot
-from AT_ingest import AT_ingest
-import AT_summary      as at0
-import AT_cubestats    as at1
-import AT_cubespectrum as at2
-import AT_moments      as at3
-import AT_linelist     as at4
-import AT_linecube     as at5
+from AT1.AT_ingest import AT_ingest
+import AT1.AT_summary      as at0
+import AT1.AT_cubestats    as at1
+import AT1.AT_cubespectrum as at2
+import AT1.AT_moments      as at3
+import AT1.AT_linelist     as at4
+import AT1.AT_linecube     as at5
 
 
 def try1a(filename=None,mode=999):
@@ -121,6 +121,7 @@ def try1a(filename=None,mode=999):
             b62[i] = admit.BDP_image(lname + '.mom2')
             a60[i] = at3.AT_moments([b6[i]],[b60[i],b61[i],b62[i]])
             a60[i].set('moments=0,1,2')
+            a60[i].set('cutoff=0.02')
             a60[i].run()
             a.add(b60[i])
             a.add(b61[i])
