@@ -27,6 +27,20 @@ class FlowManager():
     def __getitem__(self,index):
         return self.tasks[index]
 
+
+    def run(self):
+        print "experimental running in admit FM"
+        if True:
+            # fake a depsmap before we know how to build it
+            # this works as long as you added at's in the proper execution order
+            # as scripts normally do
+            for key in self.tasks:
+                self.depsmap.append( [self.tasks[key].taskid] )
+
+        for dl in self.depsmap:
+            for d in dl:
+                self.tasks[d].run()
+
     def add(self, a, lot = None):
         """Add an AT to the stack of AT's this ADMIT  contains
         self.depsmap = []     Also adjust the mapping 
