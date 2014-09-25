@@ -1,7 +1,7 @@
 #! /usr/bin/env casarun
 #-*- mode: python -*-
 #
-#  testing a piece of an ADMIT pipeline, this one written for n253
+#  testing a piece of an ADMIT pipeline, this one written for n253 in BDP centric style
 #
 #  1) run it in the directory where the fits files are located, 
 #          test1 999 foobar.fits
