@@ -1,18 +1,11 @@
 #! /usr/bin/env python
 #
-#  ADMIT2:  AT centric version of ADMIT
+#  ADMIT2:  FlowManager
 #
-#  simple container to put all of the ADMIT, BDP and AT in one file for testing
-#
-#  no 'import casa' or so allowed here. All package specific work needs to be delegated
-#  If your AT_xxx needs casa routines, they need to be in a separate module
+#  this managed ADMIT tasks and their flow
 #
 #
 import sys, os, errno, fnmatch
-import copy
-import cPickle as pickle
-import numpy as np
-import parfile
 
 _debug = False
 _debug = True
@@ -25,8 +18,8 @@ class FlowManager():
 
         self.debug   = False
         self.connmap = []        # list of (i1,j1,i2,j2) connections where i refers to task a[i], j to bdp[j]
-        self.depsmap = []
-        self.tasks = {}
+        self.depsmap = []        # processed list of dependencies
+        self.tasks = {}          # dictionary of tasks. The taskid (0,1,....) is the key
 
     def __len__(self):
         return len(self.tasks)
@@ -36,13 +29,15 @@ class FlowManager():
 
     def add(self, a, lot = None):
         """Add an AT to the stack of AT's this ADMIT  contains
-   self.depsmap = []     Also adjust the mapping 
+        self.depsmap = []     Also adjust the mapping 
         Usually all but the first task will have a lot (List of Tuples)
         """
         self.tasks[a.taskid] = a
         a.check()
         if len(a.bdp_in) != 0:
-            print "WARNING WARNING: bdp_in not empty"
+            print "WARNING WARNING: bdp_in not empty, not expected, probably an error"
+
+        # loop over the List of Tuples
         if lot != None:
             for i in range(len(lot)):
                 #print lot
