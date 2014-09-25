@@ -16,6 +16,8 @@ import sys,os
 
 import admit1 as admit
 import aplot
+
+#  notice the different ways to import from a ATXXX tree
 from AT1.AT_ingest import AT_ingest
 import AT1.AT_summary      as at0
 import AT1.AT_cubestats    as at1
