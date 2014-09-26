@@ -82,7 +82,7 @@ class FlowManager():
         print "=== FM: " 
         for cm in self.connmap:
             print "connmap",cm[0], cm[1],cm[2],cm[3]
-            print "connmap", self.tasks[cm[0]].name, self.tasks[cm[0]][cm[1]].filename,self.tasks[cm[2]].name
+            print "       ", self.tasks[cm[0]].name, self.tasks[cm[0]][cm[1]].filename,self.tasks[cm[2]].name
         for i in range(len(self.depsmap)):
             print "%d : %s" % (i,self.depsmap[i])
         for dl in self.depsmap:
