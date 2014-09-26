@@ -21,7 +21,7 @@ class AT_linecube(admit.AT):
     """
     name = 'LINECUBE'
     version = '1.0'
-    keys = ['pmin']
+    keys = ['pmin','virtual']
     def __init__(self,name=None):
         if name != None: self.name = name
         admit.AT.__init__(self,self.name)
@@ -33,7 +33,8 @@ class AT_linecube(admit.AT):
             return False
         # specialized work can commence here
         #
-        pmin   = self.getf('pmin',1.0)
+        pmin    = self.getf('pmin',1.0)
+        virtual = self.getb('virtual',0)
         #
         fni = self.bdp_in[0].filename
         t = self.bdp_in[1].table
@@ -47,11 +48,19 @@ class AT_linecube(admit.AT):
         for l in range(nlines):
             lname = "%s.%s" %  (fno,short[l])
             chans = '%d~%d' % (ch0[l],ch1[l])
-            print "Cutting a cube %s chans=%s @ %g GHz" % (lname,chans,freq[l])
             self.bdp_out.append(admit.BDP_image(lname))
-            # @todo figure this out why casa.imsubimage doesn't work
-            imsubimage(fni,lname,overwrite=True,chans=chans)
+            if not virtual:
+                print "Cutting a CASA cube %s chans=%s @ %g GHz" % (lname,chans,freq[l])
+                # @todo figure this out why casa.imsubimage doesn't work
+                imsubimage(fni,lname,overwrite=True,chans=chans)
+                b.virtual = 0
+            else:
+                print "Cutting a virtual cube %s chans=%s @ %g GHz" % (lname,chans,freq[l])
+                b = self.bdp_out[l]
+                b.virtual = fni
+                b.chan0 = ch0[l]
+                b.chan1 = ch1[l]
         if self.do_pickle:
             self.pdump()
         if self.do_plot:
-            print "nothing to print here yet"
+            n=0

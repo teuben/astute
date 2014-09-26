@@ -29,17 +29,32 @@ class AT_moments(admit.AT):
         cutoff = self.getf('cutoff',0.01)
         dmax = 999999.9
         fni = self.bdp_in[0].filename
+        virtual = self.bdp_in[0].virtual
+        if virtual:
+            fni = self.bdp_in[0].virtual
+            ch0 = self.bdp_in[0].chan0
+            ch1 = self.bdp_in[0].chan1
+            virtual = 1
+
         n2 = len(moments)
         for i in range(n2):
             fno = fni + '.mom%d' % moments[i]
             self.bdp_out.append(admit.BDP_image(fno))
         #  includepix=
         #  casa.immoments() doesn't have the overwrite option
-        taskinit.ia.open(fni)
+        if not virtual:
+            taskinit.ia.open(fni)
         for (m,b) in zip(moments,self.bdp_out):
             fno = b.filename
-            taskinit.ia.moments(m,outfile=fno,includepix=[cutoff,dmax],overwrite=True)
-            b.moment = m
+            if virtual:
+                # virtual cube 
+                chans = '%d~%d' % (ch0,ch1)
+                print "virtual cube: ch0,ch1=",ch0,ch1,':',chans
+                os.system('rm -rf %s' % fno)
+                b.moment = casa.immoments(fni,m,outfile=fno,includepix=[cutoff,dmax],chans=chans)
+            else:
+                # straight cube (ia.moments does not have the chans= option)
+                taskinit.ia.moments(m,outfile=fno,includepix=[cutoff,dmax],overwrite=True)
             if m==0:
                 fno0 = fno
                 b0 = b
