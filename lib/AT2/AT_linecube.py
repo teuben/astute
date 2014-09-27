@@ -12,12 +12,23 @@ from imsubimage import imsubimage
 # imsubimage(f_im,l_out,overwrite=True,chans="range=[%gkm/s,%gkm/s], restfreq=%gGHz" % (vcube[0],vcube[1],freq[i]))
 # imreframe(l_out,restfreq='%gGHz' % freq[i])
 
+
 class AT_linecube(admit.AT):
     """
     bdp_in[0]          bandcube
     bdp_in[1]          linelist (needs cols::frequency,....)
     
     bdp_out[]          linecube(s); not set till runtime
+
+    pmin    not used now
+
+    virtual = 0 or 1
+
+    A few words on virtual lineCubes.   The idea is that in principle you don't need to cut cubes and spend the
+    diskspace. You could just record the restfreq and channel range, and when-ever programs need to work on a
+    line cube, they peek into the spwCube.   This implementation was only tested here, although not really using
+    the restfreq.
+    Initial test a on a 640x640x246 cube with 3 lines showed two fold overhead in CPU when using virtual cubes.
     """
     name = 'LINECUBE'
     version = '1.0'
@@ -53,13 +64,14 @@ class AT_linecube(admit.AT):
                 print "Cutting a CASA cube %s chans=%s @ %g GHz" % (lname,chans,freq[l])
                 # @todo figure this out why casa.imsubimage doesn't work
                 imsubimage(fni,lname,overwrite=True,chans=chans)
-                b.virtual = 0
+                self.bdp_out[l].virtual = 0
             else:
                 print "Cutting a virtual cube %s chans=%s @ %g GHz" % (lname,chans,freq[l])
                 b = self.bdp_out[l]
-                b.virtual = fni
-                b.chan0 = ch0[l]
-                b.chan1 = ch1[l]
+                b.virtual  = fni
+                b.chan0    = ch0[l]
+                b.chan1    = ch1[l]
+                b.restfreq = freq[l]
         if self.do_pickle:
             self.pdump()
         if self.do_plot:

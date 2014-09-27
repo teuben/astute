@@ -51,7 +51,7 @@ class AT_moments(admit.AT):
                 chans = '%d~%d' % (ch0,ch1)
                 print "virtual cube: ch0,ch1=",ch0,ch1,':',chans
                 os.system('rm -rf %s' % fno)
-                b.moment = casa.immoments(fni,m,outfile=fno,includepix=[cutoff,dmax],chans=chans)
+                casa.immoments(fni,m,outfile=fno,includepix=[cutoff,dmax],chans=chans)
             else:
                 # straight cube (ia.moments does not have the chans= option)
                 taskinit.ia.moments(m,outfile=fno,includepix=[cutoff,dmax],overwrite=True)
@@ -68,6 +68,8 @@ class AT_moments(admit.AT):
                     h = casa.imstat(fno)
                     b.flux = h['sum']
                     print "TOTAL SUM in %s : %g" % (fno,b.flux)
+        if not virtual:
+            taskinit.ia.close()
         #
         if self.do_pickle:
             self.pdump()
