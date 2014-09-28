@@ -4,7 +4,7 @@ import numpy as np
 import numpy.ma as ma
 import matplotlib.pyplot as plt
 import admit2 as admit
-#import casa
+import casa
 import taskinit
 
 
@@ -198,7 +198,9 @@ class AT_linelist(admit.AT):
         col_names = [c1,    c2,     c3,     c4,     c5,    c6,   c7]
         col_data  = [tfreq, twidth, tshort, tlikel, tfull, tch0, tch1]
         a1 = atable.ATable(col_data, col_names)
-        a1.pdump('linelist.bin')
+        if self.do_pickle:
+            # debugging
+            a1.pdump('linelist.atable')
         self.bdp_out[0].table = a1
         # print segp
         if csigma > 0:
@@ -229,9 +231,6 @@ class AT_linelist(admit.AT):
             # now decide if 'csum' is going to be a column in cubestats
 
         #  ...trying out some plots....
-        #  this needs to be streamlined
-        #  e.g. the segp[], could add a macro processor to plotter/histogram
-        #  accepting
         xlab = 'Frequency (Ghz) vlsr=%g' % vlsr
         ylab = 'log(Peak/Noise)'
         aplot.APlot().plotter2(freq,[ratio],'LineList-1',xlab=xlab,ylab=ylab,figname='linelist1.png',segments=segp)

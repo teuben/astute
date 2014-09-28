@@ -113,7 +113,9 @@ class AT_cubestats(admit.AT):
             col_names.append('maxposy')
             col_data.append(ypos)
         a1 = atable.ATable(col_data, col_names)
-        a1.pdump('cubestats.bin')
+        if self.do_pickle:
+            # debugging
+            a1.pdump('cubestats.atable')
 
         self.bdp_out[0].table = a1
         self.bdp_out[0].mean  = imstat0[c4][0]
