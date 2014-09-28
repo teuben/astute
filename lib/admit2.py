@@ -13,6 +13,7 @@ import copy
 import cPickle as pickle
 import numpy as np
 import parfile
+import aplot
 
 import FlowManager as FM
 
@@ -35,36 +36,46 @@ def casa_argv(argv):
 class ADMIT(object):
     projectid = 0
     def __init__(self, name='none', project=None):
-        self.parfile = "tas.def"       #  relic of ASTUTE, keep it for now
-        self.name    = name
-        self.project = project
-        self.debug   = False
-        self.fm      = FM.FlowManager()
-        self.keyval  = {}
-        self.pmode   = 0
+        self.parfile  = "tas.def"       #  relic of ASTUTE, keep it for now
+        self.name     = name
+        self.project  = project
+        self.debug    = False
+        self.fm       = FM.FlowManager()
+        self.keyval   = {}
+        self.pmode    = 0
+        self.projects = [self]
         # maintain a projectid in case multiple admit's are present
         self.projectid = ADMIT.projectid
         ADMIT.projectid = ADMIT.projectid + 1
     def __len__(self):
-        return len(self.fm)
-    
+        return len(self.projects)
     def __eq__(self, other):
         return isinstance(other, ADMIT) and vars(self) == vars(other)
     def __getitem__(self,index):
         """ 
-        get access to an AT 
+        get access to an AT, and a BDP from there.
         """
+        print index
+        # one index -> self.projects[index]
+        # two index -> self.fm.tasks[index]
+        # three index -> self.fm.tasks[index] -> bdp
         return self.fm.tasks[index]
 
     def plotmode(self, plotmode, plottype='png'):
         self.pmode = plotmode
         self.ptype = plottype
+        # nasty cheat, need to formalize a safe method
+        aplot.APlot.pmode = plotmode
+    def addproject(self,p):
+        self.projects.append(p)
     def add(self, a, lot = None):
         """Add an AT to the stack of AT's this ADMIT contains
         Also adjust the mapping 
         Usually all but the first task will have a 'lot' (List of Tuples of source (task-id,bdp-id))
         """
+        # need to check if fm has been installed
         a.check()
+        a.pmode = self.pmode
         if len(a.bdp_in) != 0:
             print "WARNING WARNING: bdp_in not empty, somebody probably wrong here"
 
@@ -83,6 +94,24 @@ class ADMIT(object):
     def show(self):
         print "=== ADMIT(%s): %s" % (self.name, self.project)
         self.fm.show()
+        print "=== BDP's: " 
+        # loop over all at's and show the BDP's
+        for i in self.fm.tasks:
+            t = self.fm.tasks[i]
+            print "TASK: %s (%d)" % (t.name,len(t.bdp_out))
+            for b in t.bdp_out:
+                print "   bdp_out: %s" % b.filename
+        print "BDP's:",self.query_bdp()
+    def query_bdp(self,query=None):
+        lob = []
+        if query == None:
+            # loop over all at's and show the BDP's
+            k = self.projectid 
+            for i in self.fm.tasks:
+                t = self.fm.tasks[i]
+                for j in range(len(t.bdp_out)):
+                    lob.append( (k,i,j) )
+        return lob
     def set(self,a=None, b=1, c=[]):
         """set a global ADMIT parameter
            The idea is that these are obtained through introspection
@@ -215,9 +244,10 @@ class ADMIT(object):
 # ==============================================================================
 
 class BDP(object):
-    """ Base class for BDP
-        should have some static members
+    """ 
+    Base class for all BDPs
     """
+    bdpid = 0
     #
     def __init__(self, name='none',filename=None, filetype=None, project=None):
         self.taskid   = -1        # will be >=0 once set by the AT
@@ -230,7 +260,9 @@ class BDP(object):
         self.updated  = False     # ???   this triggers a new run
         self.output   = True      # True: triggers a new save(pdump/xwrite)
         self.pmode    = 0         # plotting mode (can be changed by admit)
-        if _debug: print "BDP(%s,%s,%s) " % (name,filename,filetype)
+        self.bdpid    = BDP.bdpid
+        BDP.bdpid     = BDP.bdpid + 1
+        if _debug: print "BDP[%d](%s,%s,%s) " % (self.bdpid,name,filename,filetype)
     def admit(self,project):
         self.project = project
     def parse(self,doParse = True):
