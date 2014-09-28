@@ -69,6 +69,7 @@ class AT_linecube(admit.AT):
                 print "Cutting a virtual cube %s chans=%s @ %g GHz" % (lname,chans,freq[l])
                 b = self.bdp_out[l]
                 b.virtual  = fni
+                b.linecube = lname
                 b.chan0    = ch0[l]
                 b.chan1    = ch1[l]
                 b.restfreq = freq[l]
