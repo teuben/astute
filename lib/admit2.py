@@ -36,13 +36,15 @@ def casa_argv(argv):
 class ADMIT(object):
     projectid = 0
     def __init__(self, name='none', project=None):
-        self.parfile  = "tas.def"       #  relic of ASTUTE, keep it for now
-        self.name     = name
-        self.project  = project
-        self.debug    = False
-        self.fm       = FM.FlowManager()
-        self.keyval   = {}
-        self.pmode    = 0
+        self.parfile   = "tas.def"       #  relic of ASTUTE, keep it for now
+        self.name      = name
+        self.project   = project
+        self.debug     = False
+        self.fm        = FM.FlowManager()
+        self.keyval    = {}
+        self.pmode     = 0
+        self.do_xml    = 0
+        self.do_pickle = 0
         self.projects = [self]
         # maintain a projectid in case multiple admit's are present
         self.projectid = ADMIT.projectid
@@ -55,17 +57,33 @@ class ADMIT(object):
         """ 
         get access to an AT, and a BDP from there.
         """
-        print index
+        #print '__getitem__:',index
+        #print 'str:',str(index),repr(index)
         # one index -> self.projects[index]
         # two index -> self.fm.tasks[index]
         # three index -> self.fm.tasks[index] -> bdp
+        #return self.projects[index]
         return self.fm.tasks[index]
 
     def plotmode(self, plotmode, plottype='png'):
+        """ plotmode determines if plots are saved, and in what format
+            These are based on simple matplotlib diagrams
+            Common output formats are png and pdf.
+        """
         self.pmode = plotmode
         self.ptype = plottype
-        # nasty cheat, need to formalize a safe method
+        # nasty cheat, need to formalize a safer method to talk to APlot
         aplot.APlot.pmode = plotmode
+        print "plotmode: pmode=%d ptype=%s" % (self.pmode,self.ptype)
+    def filemode(self, xml = 1, pickle =  0):
+        """ filemode determines the output modes of files.
+            It is possible to set all modes to 0, in which case there
+            is no state output information saved, probably not a good
+            idea.
+        """
+        self.do_xml     = xml
+        self.do_pickle  = pickle
+        print "filemode: xml=%d pickle=%d" % (self.do_xml,self.do_pickle)
     def addproject(self,p):
         self.projects.append(p)
     def add(self, a, lot = None):
@@ -75,7 +93,9 @@ class ADMIT(object):
         """
         # need to check if fm has been installed
         a.check()
-        a.pmode = self.pmode
+        a.pmode     = self.pmode
+        a.do_pickle = self.do_pickle
+        a.do_xml    = self.do_xml
         if len(a.bdp_in) != 0:
             print "WARNING WARNING: bdp_in not empty, somebody probably wrong here"
 
