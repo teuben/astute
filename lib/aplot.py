@@ -27,7 +27,7 @@ class APlot(object):
     """
     # static members
     pmode = 1
-    ptype = '.png'
+    ptype = 'png'
     figno = 0
     #
     def __init__(self,pmode=None,figno=None):
@@ -70,7 +70,7 @@ class APlot(object):
         if cmds != None:
               self.parse(plt,fig,ax1,cmds)
         if figname: 
-            fig.savefig(figname)
+            fig.savefig(figname + "." + self.ptype)
         if APlot.pmode:
             plt.show()
     def plotter(self,x,y,title=None,figname=None,xlab=None,ylab=None):
@@ -87,7 +87,7 @@ class APlot(object):
         if xlab:     ax1.set_xlabel(xlab)
         if ylab:     ax1.set_ylabel(ylab)
         if figname: 
-            fig.savefig(figname)
+            fig.savefig(figname + "." + self.ptype)
         if APlot.pmode:
             plt.show()
     def plotter2(self,x,y,title=None,figname=None,xlab=None,ylab=None,segments=None):
@@ -110,7 +110,7 @@ class APlot(object):
         if xlab:     ax1.set_xlabel(xlab)
         if ylab:     ax1.set_ylabel(ylab)
         if figname: 
-            fig.savefig(figname)
+            fig.savefig(figname + "." + self.ptype)
         if APlot.pmode:
             plt.show()
 
@@ -129,7 +129,7 @@ class APlot(object):
         if xlab:     ax1.set_xlabel(xlab)
         ax1.set_ylabel("#")
         if figname: 
-            fig.savefig(figname)
+            fig.savefig(figname + "." + self.ptype)
         if APlot.pmode:
             plt.show()
 
@@ -168,7 +168,7 @@ class APlot(object):
             gy = a * np.exp(-0.5*arg*arg)
             ax1.plot(gx,gy)
         if figname: 
-            fig.savefig(figname)
+            fig.savefig(figname + "." + self.ptype)
         if APlot.pmode:
             plt.show()
 
