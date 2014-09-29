@@ -50,8 +50,10 @@ class ADMIT(object):
         self.projectid = ADMIT.projectid
         ADMIT.projectid = ADMIT.projectid + 1
     def __len__(self):
+        # AT or P ?
         return len(self.projects)
     def __eq__(self, other):
+        # not really used
         return isinstance(other, ADMIT) and vars(self) == vars(other)
     def __getitem__(self,index):
         """ 
@@ -64,7 +66,6 @@ class ADMIT(object):
         # three index -> self.fm.tasks[index] -> bdp
         #return self.projects[index]
         return self.fm.tasks[index]
-
     def plotmode(self, plotmode, plottype='png'):
         """ plotmode determines if plots are saved, and in what format
             These are based on simple matplotlib diagrams
@@ -79,12 +80,15 @@ class ADMIT(object):
         """ filemode determines the output modes of files.
             It is possible to set all modes to 0, in which case there
             is no state output information saved, probably not a good
-            idea.
+            idea. The default is just xml, nothing else.
         """
         self.do_xml     = xml
         self.do_pickle  = pickle
         print "filemode: xml=%d pickle=%d" % (self.do_xml,self.do_pickle)
     def addproject(self,p):
+        """ Add another admit project to this project, expanding the
+            virtual project
+        """
         self.projects.append(p)
     def add(self, a, lot = None):
         """Add an AT to the stack of AT's this ADMIT contains
@@ -123,14 +127,18 @@ class ADMIT(object):
                 print "   bdp_out: %s" % b.filename
         print "BDP's:",self.query_bdp()
     def query_bdp(self,query=None):
+        """ Query all BDP's in a PROJECT
+        """
         lob = []
         if query == None:
             # loop over all at's and show the BDP's
             k = self.projectid 
-            for i in self.fm.tasks:
-                t = self.fm.tasks[i]
-                for j in range(len(t.bdp_out)):
-                    lob.append( (k,i,j) )
+            for pk in self.projects:
+                k = pk.projectid
+                for i in pk.fm.tasks:
+                    t = pk.fm.tasks[i]
+                    for j in range(len(t.bdp_out)):
+                        lob.append( (k,i,j) )
         return lob
     def set(self,a=None, b=1, c=[]):
         """set a global ADMIT parameter
