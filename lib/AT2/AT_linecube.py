@@ -22,17 +22,19 @@ class AT_linecube(admit.AT):
 
     pmin    not used now
 
-    virtual = 0 or 1
+    virtual = 0 or 1 (experimenting)
+
+    linedir = 0 or 1 :    1 means every linecube gets its own directory
 
     A few words on virtual lineCubes.   The idea is that in principle you don't need to cut cubes and spend the
     diskspace. You could just record the restfreq and channel range, and when-ever programs need to work on a
     line cube, they peek into the spwCube.   This implementation was only tested here, although not really using
     the restfreq.
-    Initial test a on a 640x640x246 cube with 3 lines showed two fold overhead in CPU when using virtual cubes.
+
     """
     name = 'LINECUBE'
     version = '1.0'
-    keys = ['pmin','virtual']
+    keys = ['pmin','virtual','linedir']
     def __init__(self,name=None):
         if name != None: self.name = name
         admit.AT.__init__(self,self.name)
@@ -46,6 +48,7 @@ class AT_linecube(admit.AT):
         #
         pmin    = self.getf('pmin',1.0)
         virtual = self.getb('virtual',0)
+        linedir = self.getb('linedir',0)
         #
         fni = self.bdp_in[0].filename
         t = self.bdp_in[1].table
@@ -57,8 +60,13 @@ class AT_linecube(admit.AT):
         nlines = len(freq)
         print "Found %d lines" % nlines
         for l in range(nlines):
-            lname = "%s.%s" %  (fno,short[l])
             chans = '%d~%d' % (ch0[l],ch1[l])
+            if linedir:
+                lname = "%s.%s" %  (fno,short[l])
+                os.system('mkdir -p %s' % lname)
+                lname = "%s/cim" % lname
+            else:
+                lname = "%s.%s" %  (fno,short[l])
             self.bdp_out.append(admit.BDP_image(lname))
             if not virtual:
                 print "Cutting a CASA cube %s chans=%s @ %g GHz" % (lname,chans,freq[l])
@@ -76,4 +84,4 @@ class AT_linecube(admit.AT):
         if self.do_pickle:
             self.pdump()
         if self.do_plot:
-            n=0
+            print 'AT_linecube: no plots'
