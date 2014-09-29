@@ -94,6 +94,7 @@ class ADMIT(object):
         """Add an AT to the stack of AT's this ADMIT contains
         Also adjust the mapping 
         Usually all but the first task will have a 'lot' (List of Tuples of source (task-id,bdp-id))
+        @todo:  what if tuple is now (i,j,k) instead of (j,k)
         """
         # need to check if fm has been installed
         a.check()
@@ -472,6 +473,18 @@ class AT(object):
         #print "set keys: ",self.keys
         for k in keyvals.keys():
             self.keyvals[k] = keyvals[k]
+    def mgeti(self, key, default=None):
+        ss = self.get(key,default).split(',')
+        si = []
+        for s in ss:
+            si.append(int(s))
+        return si
+    def mgetf(self, key, default=None):
+        ss = self.get(key,default).split(',')
+        si = []
+        for s in ss:
+            si.append(float(s))
+        return si
     def geti(self, key, default=None):
         """parse and return as integer"""
         return int(self.get(key,default))
