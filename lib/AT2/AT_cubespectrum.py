@@ -67,7 +67,8 @@ class AT_cubespectrum(admit.AT):
         fr = ((ch-p-1)*d + v)/1e9
 
         a1 = atable.ATable([fr,data],['frequency','data'])
-        a1.pdump('cubespectrum.bin')
+        if self.do_pickle:
+            a1.pdump('cubespectrum.atable')
         self.bdp_out[0].table = a1
         self.bdp_out[0].pos = [posx, posy]
         data   = data * 1000              # plotting in mJy/beam now
@@ -79,4 +80,4 @@ class AT_cubespectrum(admit.AT):
             title = 'CubeSpectrum(%s)' % pp
             xlabel = 'Frequency (Ghz)'
             ylabel = 'Flux (mJy/beam)'
-            aplot.APlot().plotter(fr,[data],title,'cubespectrum.png',xlab=xlabel,ylab=ylabel)
+            aplot.APlot().plotter(fr,[data],title,'cubespectrum',xlab=xlabel,ylab=ylabel)

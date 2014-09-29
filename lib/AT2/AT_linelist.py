@@ -121,6 +121,9 @@ class AT_linelist(admit.AT):
     nsigma  signal above cutoff, rmean+nsigma*rstd, is taken as line [2]
     ngap    allowed channels with signal below cutoff [0]
     nline   minimum number of channels needed for a line [3]
+
+
+    Give a warning if the (mean.max()-mean.min())/sigma_robust() > some K-sigma
     """
     name = 'LINELIST'
     version = '1.0'
@@ -227,17 +230,17 @@ class AT_linelist(admit.AT):
                 sm0 = data[0:nx,0:ny,k,0]*1000
                 sm1 = ma.masked_less(sm0,cutoff2)
                 csum[k] = sm1.sum()
-            aplot.APlot().plotter(freq,[csum],'CubeCut csigma=%g' % csigma,xlab='Freq',figname='linelist0.png')
+            aplot.APlot().plotter(freq,[csum],'CubeCut csigma=%g' % csigma,xlab='Freq',figname='linelist0')
             # now decide if 'csum' is going to be a column in cubestats
 
         #  ...trying out some plots....
         xlab = 'Frequency (Ghz) vlsr=%g' % vlsr
         ylab = 'log(Peak/Noise)'
-        aplot.APlot().plotter2(freq,[ratio],'LineList-1',xlab=xlab,ylab=ylab,figname='linelist1.png',segments=segp)
+        aplot.APlot().plotter2(freq,[ratio],'LineList-1',xlab=xlab,ylab=ylab,figname='linelist1',segments=segp)
         xlab = 'log(Peak/Noise)'
-        aplot.APlot().histogram([ratio,ratio2],'LineList-2',figname='linelist2.png',xlab=xlab)
+        aplot.APlot().histogram([ratio,ratio2],'LineList-2',figname='linelist2',xlab=xlab)
         xlab = 'log(Peak/Noise)'
-        aplot.APlot().hisplot(ratio,'LineList-3',figname='linelist3.png',gauss=[dr.mean(),dr.std()],xlab=xlab)
+        aplot.APlot().hisplot(ratio,'LineList-3',figname='linelist3',gauss=[dr.mean(),dr.std()],xlab=xlab)
         #
         # store in the BDP
         #
