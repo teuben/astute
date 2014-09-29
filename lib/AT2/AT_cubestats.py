@@ -30,6 +30,9 @@ def mystats(data):
     return (n1,m1,s1,n2,m2,s2)
 
 class AT_cubestats(admit.AT):
+    """
+    
+    """
     name = 'CUBESTATS'
     version = '1.0'
     keys = ['ppp','verbose','cubehist']
@@ -163,19 +166,19 @@ class AT_cubestats(admit.AT):
             else:
                 ydata = [np.log10(signal),np.log10(noise)]
             title = 'CubeStats-1 %s' % self.bdp_in[0].project
-            # a1.plotter(freq,ydata,title, fno+'.1.png',xlab=xlabel,ylab=ylabel,pmode=self.pmode)
-            aplot.APlot().plotter(freq,ydata,title, fno+'.1.png',xlab=xlabel,ylab=ylabel)
+            # a1.plotter(freq,ydata,title, fno+'.1',xlab=xlabel,ylab=ylabel,pmode=self.pmode)
+            aplot.APlot().plotter(freq,ydata,title, fno+'.1',xlab=xlabel,ylab=ylabel)
             if True:
                 title = 'CubeStats-2 %s' % self.bdp_in[0].project
                 if use_ratio:
                     xlab  = 'log(Peak,Noise,P/N[mJy/beam])'
                 else:
                     xlab  = 'log(Peak,Noise[mJy/beam])'
-                aplot.APlot().histogram(ydata,title,fno+'.2.png',xlab=xlab)
+                aplot.APlot().histogram(ydata,title,fno+'.2',xlab=xlab)
                 title = 'CubeStats-3 %s' % self.bdp_in[0].project
                 xlab  = 'log(Peak/Noise[mJy/beam])'
-                #a1.histogram([ratio],title,fno+'.3.png',xlab=xlab,pmode=self.pmode)
-                aplot.APlot().histogram([ratio],title,fno+'.3.png',xlab=xlab)
+                #a1.histogram([ratio],title,fno+'.3',xlab=xlab,pmode=self.pmode)
+                aplot.APlot().histogram([ratio],title,fno+'.3',xlab=xlab)
             if use_ppp:
                 title = 'CubeStats-4'
                 xlab = 'Pixel'
@@ -188,7 +191,7 @@ class AT_cubestats(admit.AT):
                 cmds = []
                 cmds.append('axis equal')
                 cmds.append('grid')
-                aplot.APlot().scatter(xpos,ypos,title,fno+'.4.png',xlab=xlab,ylab=ylab,c=pcolor,s=psize)
+                aplot.APlot().scatter(xpos,ypos,title,fno+'.4',xlab=xlab,ylab=ylab,c=pcolor,s=psize)
             if use_cubehist:
                 title = 'CubeStats-5 %s' % self.bdp_in[0].project                
                 xlab = 'CubeData [mJy/beam])'
@@ -200,7 +203,7 @@ class AT_cubestats(admit.AT):
                 n2 = len(d2)
                 fraction = (100.0*n2)/n1
                 print "  %d/%d (%g %%) data are non-zero" % (n2,n1,fraction)
-                #a1.histogram([d2],title,fno+'.4.png',xlab=xlab,range=[d2min,d2max])
+                #a1.histogram([d2],title,fno+'.4',xlab=xlab,range=[d2min,d2max])
                 if True:
                     # robust
                     gmean = mean.mean()
@@ -209,5 +212,5 @@ class AT_cubestats(admit.AT):
                     # raw cube
                     gmean = imstat0[c4][0]*1000
                     gdisp = imstat0[c2][0]*1000
-                aplot.APlot().hisplot(d2,title,fno+'.5.png',xlab=xlab,range=[d2min,d2max],gauss=[gmean,gdisp])
+                aplot.APlot().hisplot(d2,title,fno+'.5',xlab=xlab,range=[d2min,d2max],gauss=[gmean,gdisp])
             
