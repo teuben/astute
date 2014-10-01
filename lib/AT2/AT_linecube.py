@@ -4,9 +4,10 @@ import numpy as np
 import numpy.ma as ma
 import matplotlib.pyplot as plt
 import admit2 as admit
-import casa
-#import taskinit
+#
+import casa, taskinit
 from imsubimage import imsubimage
+from imreframe  import imreframe
 
 # in km/s
 # imsubimage(f_im,l_out,overwrite=True,chans="range=[%gkm/s,%gkm/s], restfreq=%gGHz" % (vcube[0],vcube[1],freq[i]))
@@ -72,6 +73,7 @@ class AT_linecube(admit.AT):
                 print "Cutting a CASA cube %s chans=%s @ %g GHz" % (lname,chans,freq[l])
                 # @todo figure this out why casa.imsubimage doesn't work
                 imsubimage(fni,lname,overwrite=True,chans=chans)
+                imreframe(lname,restfreq='%gGHz' % freq[l])
                 self.bdp_out[l].virtual = 0
             else:
                 print "Cutting a virtual cube %s chans=%s @ %g GHz" % (lname,chans,freq[l])
