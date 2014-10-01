@@ -8,7 +8,7 @@ import admit2 as admit
 class AT_ingest(admit.AT):
     name = 'INGEST'
     version = '1.0'
-    keys = ['mask','file']
+    keys = ['mask','file','skip']
     def __init__(self,name=None):
         if name != None: self.name = name
         admit.AT.__init__(self,self.name)
@@ -18,9 +18,12 @@ class AT_ingest(admit.AT):
         if not admit.AT.run(self):
             return False
         # specialized work can commence here
+        skip = self.geti('skip',0)
         create_mask = self.getb('mask',0)
         fni = self.get('file')
         fno = self.bdp_out[0].filename
+        if skip: return
+
         print "casa::ia.fromfits(%s)" % fni
         taskinit.ia.fromfits(fno,fni,overwrite=True)
         if create_mask:
