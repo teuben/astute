@@ -42,6 +42,8 @@ class AT_pvmap(admit.AT):
         fni = self.bdp_in[0].filename    # input cube
         fno = self.bdp_out[0].filename   # output PV map
         print "casa::impv(%s)" % fni
+        # get the slice in P-P space
+        # currently this matches the interface to IMPV, but a XCENTER,YCENTER,PA,LENGTH is also a useful 
         start = self.mgeti('start')
         end   = self.mgeti('end')
         width = self.geti('width',1)
