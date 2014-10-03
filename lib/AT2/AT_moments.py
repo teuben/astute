@@ -110,4 +110,13 @@ class AT_moments(admit.AT):
         if self.do_plot:
             # histograms of the mom0,1,2 would also be useful here
             # 
-            print "AT_moments: no plots"
+            print "AT_moments: map1 test"
+            taskinit.tb.open(fno0)
+            data = taskinit.tb.getcol('map')
+            nx = data.shape[0]
+            ny = data.shape[1]
+            taskinit.tb.close()
+            print "data shape",nx,ny
+            title = fni + ' MOM0'
+            d1 = np.rot90 (data.reshape((nx,ny)) )
+            aplot.APlot().map1(d1,title,fno0)
