@@ -75,6 +75,7 @@ class AT_linecube(admit.AT):
                 imsubimage(fni,lname,overwrite=True,chans=chans)
                 imreframe(lname,restfreq='%gGHz' % freq[l])
                 self.bdp_out[l].virtual = 0
+                self.bdp_out[l].restfreq = freq[l]
             else:
                 print "Cutting a virtual cube %s chans=%s @ %g GHz" % (lname,chans,freq[l])
                 b = self.bdp_out[l]
