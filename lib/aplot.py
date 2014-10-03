@@ -171,6 +171,30 @@ class APlot(object):
             fig.savefig(figname + "." + self.ptype)
         if APlot.pmode:
             plt.show()
+    def map1(self,data,title=None,figname=None,xlab=None,range=None,contours=None,cmap='hot'):
+        """
+        display map; horrible hack, the caller should call np.rot90() since 
+        casa and numpy do not have their axes in the same order. 
+        We cannot call casa here, since aplot needs to stay casa agnostic.
+        To be resolved.
+        """
+        APlot.figno = APlot.figno + 1
+        fig = plt.figure(APlot.figno)
+        ax1 = fig.add_subplot(1,1,1)
+        if title:    ax1.set_title(title)
+        if xlab:     ax1.set_xlabel(xlab)
+        if False:
+            alplot = ax1.imshow(data, vmin = 0, vmax = 1)
+        else:
+            alplot = ax1.imshow(data)
+        alplot.set_cmap(cmap)
+        if contours != None:
+            ax1.contour(data, contours, colors='g')
+        if figname: 
+            fig.savefig(figname + "." + self.ptype)
+        if APlot.pmode:
+            plt.show()       
+        
 
 if __name__ == "__main__":
     x = np.arange(0,1,0.1)
