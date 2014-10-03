@@ -32,31 +32,36 @@ class AT_clumps(admit.AT):
             print "len=%d" % len(self.bdp_in)
             print "Need 3 input file (mom0,1,2)"
         # specialized work can commence here
-        b0 = self.bdp_in[0].filename
-        b1 = self.bdp_in[1].filename
-        b2 = self.bdp_in[2].filename
+        f0 = self.bdp_in[0].filename
+        f1 = self.bdp_in[1].filename
+        f2 = self.bdp_in[2].filename
         flux=[]
         vlsr=[]
         disp=[]
         # should use mget()
         regions = self.get('region').split('\n')
-        print 'REGIONS=',regions
+        #print 'REGIONS=',regions
+        ctxt = ''
         for (r,cn) in zip(regions,range(len(regions))):
-            h0 = casa.imstat(b0,region=r)
-            h1 = casa.imstat(b1,region=r)
-            h2 = casa.imstat(b2,region=r)
-            print "NPTS",h0['npts']
+            h0 = casa.imstat(f0,region=r)
+            h1 = casa.imstat(f1,region=r)
+            h2 = casa.imstat(f2,region=r)
             if len(h0['npts']) > 0:
                 flux.append(h0['flux'][0])
                 vlsr.append(h1['mean'][0])
                 disp.append(h2['mean'][0])
+                npts = h0['npts'][0]
             else:
                 flux.append(0.0)
                 vlsr.append(0.0)
                 disp.append(0.0)
+                npts = 0
             # no table yet, just ascii output here
-            print 'CLUMPS',b0,(cn+1),flux[-1],vlsr[-1],disp[-1]
+            print 'CLUMP ',f0,(cn+1),npts,flux[-1],vlsr[-1],disp[-1]
+            ctxt = ctxt + " %g" % flux[-1]
         #
+        #print "CLUMPS: %g %s" % (self.bdp_in[0].restfreq,ctxt)
+        print "CLUMPS: %s %s" % (f0,ctxt)
         if self.do_pickle:
             self.pdump()
         if self.do_plot:
