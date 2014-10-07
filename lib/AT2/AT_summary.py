@@ -33,7 +33,15 @@ class AT_summary(admit.AT):
         print 'UNIT',s['axisunits']
         print 'SHAP',s['shape']
         print 'INCR',s['incr']
-        print 'BMAJ',s['restoringbeam']['major']
+        if s.has_key('restoringbeam'):
+            print 'BMAJ',s['restoringbeam']['major']
+        else:
+            b = s['perplanebeams']['beams']
+            n = len(b)
+            b1s = '*0'
+            bns = '*%d' % (n-1)
+            print 'BMAJ-1',b[b1s]
+            print 'BMAJ-N',b[bns]
         print 'COOR',s['refval']
         print '============================================================================'
         # just save a few for now, should be a formal container, not data{}
