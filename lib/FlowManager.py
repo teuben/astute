@@ -118,6 +118,7 @@ class FlowManager():
                 self.connmap.append( (source_at_id, source_bdp_id, a.taskid, i) )
 
                 # now the bdp input of this task comes from source bdp
+                print ">>>>>>>",i,">>>>>>>>>"
                 a.bdp_in.append( self.tasks[source_at_id][source_bdp_id] )
 
         return a.taskid
@@ -137,14 +138,15 @@ class FlowManager():
             print "src task:", self.tasks[cm[0]].name
             print "bdp out:", self.tasks[cm[0]][cm[1]].filename
             print "des task:", self.tasks[cm[2]].name
-            # print "bdp in:", self.tasks[cm[0]][cm[3]].filename  ## commented out because the following error:
+            # print "bdp in:", self.tasks[cm[2]][cm[3]].filename  ## commented out because the following error:
                                                                   ## admit2.py", line 441, in __getitem__
                                                                   ## return self.bdp_out[index]
                                                                   ## IndexError: list index out of range
 
             print
+
         for i in range(len(self.depsmap)):
-            print "%d : %s" % (i,self.depsmap[i])
+            print "Level %d : %s" % (i,self.depsmap[i])
         for dl in self.depsmap:
             for d in dl:
                 print "TASK %d: %s" % (d,self.tasks[d].name)
@@ -198,6 +200,16 @@ class FlowManager():
 
         return roots
 
+    def insert(self, cm, bin, bout, a):
+        """ inserting an AT into a connection map node: cm
+            bin is the input bdp index of the AT
+            bout is the output bdp index of the AT
+            example: cm = (0,0, 1,0)
+                     a.taskid = 5
+                     bin = 0
+                     bout = 1
+            result: (0,0, 5,0) (5,1, 1,0)
+        """
 
     def test_flow4(self):
         self.connmap = [(0, 0, 1, 0), (0, 0, 2, 0), (1, 0, 3, 0), (2, 0, 3, 1)]
