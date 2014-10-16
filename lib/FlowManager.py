@@ -59,7 +59,7 @@ class FlowManager():
         while num > 0 and len(tmp_cmap) > 0 :
             num = num - 1
             roots = []
-            roots = self.findroot(tmp_cmap)
+            roots = self.findroots(tmp_cmap)
             print num
 
             if len(roots) > 0 :
@@ -130,7 +130,7 @@ class FlowManager():
         print "=== FM: connection map", self.connmap
         print "=== FM: tasks ======="
         for key in self.tasks:
-            print key, ":", self.tasks[key].taskid, self.tasks[key].name
+            print key, ":", self.tasks[key].name
         print "=== FM: dependency map", self.depsmap
         for cm in self.connmap:
             print "connmap", cm[0], cm[1], cm[2], cm[3]
@@ -152,14 +152,14 @@ class FlowManager():
                 print "TASK %d: %s" % (d,self.tasks[d].name)
 
     def verify(self):
-#         tmp_cmap = copy.deepcopy(self.connmap)
+
         tmp_cmap = list(self.connmap)
         num = len(tmp_cmap)
 
         # we only check the nodes num of times to prevent getting in an infinite loop
         while num > 0 and len(tmp_cmap) > 0 :
             roots = []
-            roots = self.findroot(tmp_cmap)
+            roots = self.findroots(tmp_cmap)
             print num
             if len(roots) > 0 :
                 for node in roots:
@@ -172,15 +172,18 @@ class FlowManager():
         else:
             return True
             
-    def findroot(self, cmap=None):
+    def findroots(self, cmap=None):
+        """ find roots of a connection map """
         if cmap == None:
-            cmap = self.connmap
+            tmp_map = self.connmap
+        else:
+            tmp_map = cmap
 
         roots = []
         src_index = 0
         des_index = 2
 
-        for cm in cmap:
+        for cm in tmp_map:
             isroot = True
 
             # first check if this connection node points to itself
@@ -188,7 +191,7 @@ class FlowManager():
                 print "Self loop found:", cm
                 return roots
 
-            for cm2 in cmap:
+            for cm2 in tmp_map:
                 if cm[src_index] == cm2[des_index]:
                     # if the source task is found within destination tasks, then it is not a root
                     isroot = False
@@ -200,31 +203,44 @@ class FlowManager():
 
         return roots
 
-    def insert(self, cm, bin, bout, a):
-        """ inserting an AT into a connection map node: cm
-            bin is the input bdp index of the AT
-            bout is the output bdp index of the AT
-            example: cm = (0,0, 1,0)
-                     a.taskid = 5
-                     bin = 0
-                     bout = 1
-            result: (0,0, 5,0) (5,1, 1,0)
+    def insert(self, at, bout, cm_tuple):
+        """ inserting an AT into a connection map tuple: cm
+            bout is the output of the AT to be inserted
+            example: cm_tuple = (ai,bi, aj,bj) = (cm[0],cm[1], cm[2],cm[3])
+                     insert ax with bx output
+
+            result: (ai,bi, ax,bi) (ax,bx, aj,bx)
         """
+
+        # remember the position of cm_tuple
+        pos = self.connmap.index(cm_tuple)
+
+        # find the tuple in connection map
+        count = self.connmap.count(cm_tuple)
+        if count > 0 :
+            self.connmap.remove(cm_tuple)
+        else:
+            print "Not Found:", cm_tuple
+            return False
+
+        self.tasks[at.taskid] = at
+        ai = self.tasks[cm_tuple[0]]
+        at.bdp_in.append( ai[cm_tuple[1]] )
+
+        aj = self.tasks[cm_tuple[2]]
+        aj.bdp_in.append(at[bout])
+        new1 = (cm_tuple[0], cm_tuple[1], at.taskid, cm_tuple[1])
+        new2 = (at.taskid, bout, cm_tuple[2], bout)
+
+        self.connmap.insert(pos, new1)
+        self.connmap.insert(pos+1, new2)
+
+        return True
 
     def test_flow4(self):
         self.connmap = [(0, 0, 1, 0), (0, 0, 2, 0), (1, 0, 3, 0), (2, 0, 3, 1)]
         self.connmap = [("a0", 0, "a1", 0), ("a0", 0, "a2", 0), ("a1", 0, "a3", 0),("a2", 0, "a3", 1)]
-        self.connmap = [("a0", 0, "a1", 0), ("a0", 0, "a2", 0), ("a1", 0, "a3", 0),("a2", 0, "a3", 1),("a3", 0, "a1", 1) ]
+        self.connmap = [("a0", 0, "a1", 0), ("a0", 0, "a2", 0), ("a1", 0, "a3", 0),("a2", 0, "a3", 1),("a3", 0, "a1", 1)]
         print self.connmap;
 
-# fm = FlowManager()
-# fm.test_flow4()
-# f = fm.findroot()
-# if len(f) > 0:
-#     print f
-#     for node in f:
-#         print node
-#         print node[0]
-# v = fm.verify()
-# d = fm.makedepsmap()
 
