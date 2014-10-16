@@ -89,12 +89,15 @@ class ADMIT(object):
         """ Add another admit project to this project, expanding the
             virtual project
         """
+        print 'addproject: ',len(self.projects)
         self.projects.append(p)
     def add(self, a, lot = None):
         """Add an AT to the stack of AT's this ADMIT contains
         Also adjust the mapping 
         Usually all but the first task will have a 'lot' (List of Tuples of source (task-id,bdp-id))
-        @todo:  what if tuple is now (i,j,k) instead of (j,k)
+        @todo:  what if tuple is now (i,j,k) instead of (j,k) - if i>0 there needs to be an index
+                into self.projects[]
+        Returns the TaskID
         """
         # need to check if fm has been installed
         a.check()
@@ -102,8 +105,8 @@ class ADMIT(object):
         a.do_pickle = self.do_pickle
         a.do_xml    = self.do_xml
         if len(a.bdp_in) != 0:
-            print "WARNING WARNING: bdp_in not empty, somebody probably wrong here"
-
+            print "WARNING WARNING: bdp_in not empty, somebody probably wrong here, did you use add() twice?"
+        # now add the BDP_in's to the AT
         self.fm.add(a, lot)
         return a.taskid
     def run(self):
@@ -577,7 +580,7 @@ class AT_file(AT):
         if _debug: print "AT_file.init"
         self.bdp_out = [BDP_file(self.name)]
     def check(self):
-        print "CHECK AT_file"
+        if _debug: print "CHECK AT_file"
     def run(self):
         if _debug: print "AT_file.run"
         if not AT.run(self):
@@ -676,6 +679,7 @@ class AT_flow21(AT):
         if name != None: self.name = name
         AT.__init__(self,self.name)
         if _debug: print "AT_flow21.init"
+    def check(self):
         b = BDP_file(self.name)
         self.bdp_out = [b]
     def run(self):
@@ -698,10 +702,14 @@ class AT_flow22(AT):
     name = 'FLOW22'
     version = '1.0'
     keys = ['debug']
-    def __init__(self,bdp_in=[],bdp_out=[],name=None):
+    def __init__(self,name=None):
         if name != None: self.name = name
-        AT.__init__(self,self.name,bdp_in,bdp_out)
+        AT.__init__(self,self.name)
         if _debug: print "AT_flow22.init"
+    def check(self):
+        b1 = BDP_file(self.name + '.1')
+        b2 = BDP_file(self.name + '.2')
+        self.bdp_out = [b1,b2]
     def run(self):
         if _debug: print "AT_flow22.run(%s)" % self.name
         if not AT.run(self):
@@ -709,7 +717,7 @@ class AT_flow22(AT):
         # specialized work can commence here
         print "  work: %d -> %d" % (len(self.bdp_in),len(self.bdp_out))
         print "  in:  ",self.bdp_in[0].show(),self.bdp_in[1].show()
-        print "  out: ",self.bdp_out[0].show()
+        print "  out: ",self.bdp_out[0].show(),self.bdp_out[1].show()
         if self.do_pickle:
             self.pdump()
 
@@ -743,7 +751,6 @@ class AT_flow1N(AT):
             for i in range(n):
                 b.append(BDP_file(self.name+'.%d'%(i+1)))
             self.bdp_out = b
-            
     def run(self):
         if _debug: print "AT_flow1N.run(%s)" % self.name
         if not AT.run(self):
@@ -759,7 +766,6 @@ class AT_flow1N(AT):
                 for i in range(n):
                     b.append(BDP_file(self.name+'.%d'%(i+1)))
                 self.bdp_out = b             
-
         print "  work_flow1N: %d -> %d" % (len(self.bdp_in),len(self.bdp_out))
         if self.getb('touch',0):
             for i in range(n):
