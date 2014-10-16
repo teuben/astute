@@ -2,10 +2,10 @@ import sys, os
 import atable, aplot
 import numpy as np
 import numpy.ma as ma
-import casa
-import taskinit
 import admit2 as admit
 import matplotlib.pyplot as plt
+#
+import casa, taskinit
 
 def rejecto1(data, f=1.5):
     u = np.mean(data)
@@ -35,7 +35,7 @@ class AT_cubestats(admit.AT):
     """
     name = 'CUBESTATS'
     version = '1.0'
-    keys = ['ppp','verbose','cubehist']
+    keys = ['ppp','verbose','cubehist','min','diff']
     def __init__(self, name=None):
         if name != None: self.name = name
         admit.AT.__init__(self,self.name)
@@ -49,16 +49,27 @@ class AT_cubestats(admit.AT):
         verbose      = self.geti('verbose',0)
         use_ppp      = self.getb('ppp',0)
         use_cubehist = self.getb('cubehist',1)
+        use_min      = self.getb('min',0)
+        use_diff     = self.getb('diff',1)
         #
         fin = self.bdp_in[0].filename
-        print "casa::imhead(%s)" % fin
-        h = casa.imhead(fin,mode='list')
-        n = h['shape'][2]
-        p = h['crpix3']
-        d = h['cdelt3']
-        v = h['crval3']
-        ch = np.arange(n) + 1        # 1-based channels
-        fr = ((ch-p-1)*d + v)/1e9    # in GHz !!
+
+        # see cubespectrum for an alternate way to get the freq.s
+        if True:
+            vals = casa.imval(fin,box='0,0,0,0')
+            fr = vals['coords'].transpose()[2]/1e9
+            print "TESTING2:  fr2: ",fr.min(),fr.max()
+            ch = np.arange(len(fr))+1
+        else:
+            print "casa::imhead(%s)" % fin
+            h = casa.imhead(fin,mode='list')
+            n = h['shape'][2]
+            p = h['crpix3']
+            d = h['cdelt3']
+            v = h['crval3']
+            ch = np.arange(n) + 1        # 1-based channels
+            fr = ((ch-p-1)*d + v)/1e9    # in GHz !!
+            
         #
         print "casa::imstat(%s)" % fin
         mask = '"%s" != 0.0' % fin
@@ -110,6 +121,9 @@ class AT_cubestats(admit.AT):
 
         col_names = ['channel','frequency','mean',      'sigma',     'max']
         col_data  = [ ch,       fr,         imstat1[c4], imstat1[c3], imstat1[c1]] 
+        if use_min:
+            col_names.append('min')
+            col_data.append(imstat1[c5])
         if use_ppp:
             col_names.append('maxposx')
             col_data.append(xpos)
@@ -124,12 +138,14 @@ class AT_cubestats(admit.AT):
         self.bdp_out[0].mean  = imstat0[c4][0]
         self.bdp_out[0].sigma = imstat0[c3][0]
         self.bdp_out[0].max   = imstat0[c1][0]
+        self.bdp_out[0].min   = imstat0[c5][0]
         self.bdp_out[0].maxpos = [ imstat0['maxpos'][0], imstat0['maxpos'][1], imstat0['maxpos'][2] ]
 
         freq   = a1.get('frequency')            # in GHz 
         mean   = a1.get('mean')*1000            # in mJy/beam now
         noise  = a1.get('sigma')*1000           # in mJy/beam now
         signal = a1.get('max')*1000             # in mJy/beam now
+        # min    = a1.get('min')*1000             # in mJy/beam now
         s2n    = signal/noise                   # dimensionless
         print "Freq range : %g %g GHz" % (freq.min(), freq.max())
         print "Mean range : %g %g mJy/beam" % (mean.min(), mean.max())
@@ -159,7 +175,7 @@ class AT_cubestats(admit.AT):
             ylabel = 'log(Peak,Noise[mJy/beam])'
             # signal is green, noise is blue
             # also add the plot (ratio is now red)
-            ratio = np.log10(signal)-np.log10(noise)
+            ratio  = np.log10(signal)-np.log10(noise)
             use_ratio = True
             if use_ratio:
                 ydata = [np.log10(signal),np.log10(noise),ratio]
@@ -179,6 +195,13 @@ class AT_cubestats(admit.AT):
                 xlab  = 'log(Peak/Noise[mJy/beam])'
                 #a1.histogram([ratio],title,fno+'.3',xlab=xlab,pmode=self.pmode)
                 aplot.APlot().histogram([ratio],title,fno+'.3',xlab=xlab)
+            if use_diff:
+                rdiff = ratio[1:]-ratio[:-1]
+                print "  ratio :: ",mystats( ratio )
+                print "  rdiff :: ",mystats( rdiff )
+                title = 'CubeStats-3d  %s' % self.bdp_in[0].project
+                xlab = 'Ratio-Diff'
+                aplot.APlot().histogram([rdiff],title,fno+'.3d',xlab=xlab)
             if use_ppp:
                 title = 'CubeStats-4'
                 xlab = 'Pixel'
