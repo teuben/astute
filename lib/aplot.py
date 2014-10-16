@@ -55,6 +55,7 @@ class APlot(object):
         plt.ioff()
         APlot.figno = APlot.figno + 1
         fig = plt.figure(APlot.figno)
+        print "APLOT %d %s" % (APlot.figno,figname)
         ax1 = fig.add_subplot(1,1,1)
         if c==None and s==None:
             ax1.scatter(x,y)
@@ -73,19 +74,21 @@ class APlot(object):
             fig.savefig(figname + "." + self.ptype)
         if APlot.pmode:
             plt.show()
-    def plotter(self,x,y,title=None,figname=None,xlab=None,ylab=None):
+    def plotter(self,x,y,title=None,figname=None,xlab=None,ylab=None,yrange=None):
         """simple plotter of multiple columns against one column"""
         # if filename: plt.ion()
         #plt.ion()
         plt.ioff()
         APlot.figno = APlot.figno + 1
         fig = plt.figure(APlot.figno)
+        print "APLOT %d %s" % (APlot.figno,figname)
         ax1 = fig.add_subplot(1,1,1)
         for yi in y:
             ax1.plot(x,yi)
         if title:    ax1.set_title(title)
         if xlab:     ax1.set_xlabel(xlab)
         if ylab:     ax1.set_ylabel(ylab)
+        if yrange:   ax1.set_ylim(yrange)
         if figname: 
             fig.savefig(figname + "." + self.ptype)
         if APlot.pmode:
@@ -100,6 +103,7 @@ class APlot(object):
         plt.ioff()
         APlot.figno = APlot.figno + 1
         fig = plt.figure(APlot.figno)
+        print "APLOT %d %s" % (APlot.figno,figname)
         ax1 = fig.add_subplot(1,1,1)
         for yi in y:
             ax1.plot(x,yi)
@@ -119,6 +123,7 @@ class APlot(object):
         # if filename: plt.ion()
         APlot.figno = APlot.figno + 1
         fig = plt.figure(APlot.figno)
+        print "APLOT %d %s" % (APlot.figno,figname)
         ax1 = fig.add_subplot(1,1,1)
         for xi in x:
             if range==None:
@@ -139,6 +144,7 @@ class APlot(object):
         # better example: http://matplotlib.org/examples/statistics/histogram_demo_features.htmlsparspark
         APlot.figno = APlot.figno + 1
         fig = plt.figure(APlot.figno)
+        print "APLOT %d %s" % (APlot.figno,figname)
         ax1 = fig.add_subplot(1,1,1)
         if range == None:
             h=ax1.hist(x,bins=bins)
@@ -180,6 +186,7 @@ class APlot(object):
         """
         APlot.figno = APlot.figno + 1
         fig = plt.figure(APlot.figno)
+        print "APLOT %d %s" % (APlot.figno,figname)
         ax1 = fig.add_subplot(1,1,1)
         if title:    ax1.set_title(title)
         if xlab:     ax1.set_xlabel(xlab)
