@@ -35,7 +35,7 @@ class AT_linecube(admit.AT):
     """
     name = 'LINECUBE'
     version = '1.0'
-    keys = ['pmin','virtual','linedir']
+    keys = ['pmin','virtual','linedir','minchan']
     def __init__(self,name=None):
         if name != None: self.name = name
         admit.AT.__init__(self,self.name)
@@ -50,6 +50,7 @@ class AT_linecube(admit.AT):
         pmin    = self.getf('pmin',1.0)
         virtual = self.getb('virtual',0)
         linedir = self.getb('linedir',0)
+        minchan = self.geti('minchan',0)
         #
         fni = self.bdp_in[0].filename
         t = self.bdp_in[1].table
@@ -61,7 +62,17 @@ class AT_linecube(admit.AT):
         nlines = len(freq)
         print "Found %d lines" % nlines
         for l in range(nlines):
-            chans = '%d~%d' % (ch0[l],ch1[l])
+            ch00 = ch0[l]
+            ch11 = ch1[l]
+            if minchan > 1:
+                nchan = ch11-ch00+1
+                if nchan < minchan:
+                    nchan = (minchan-nchan+1)/2
+                    ch11 = ch11 + nchan
+                    ch00 = ch00 - nchan
+                    if ch00 < 0: ch00=0
+            chans = '%d~%d' % (ch00,ch11)
+            nchan = ch11-ch00+1
             if linedir:
                 lname = "%s.%s" %  (fno,short[l])
                 os.system('mkdir -p %s' % lname)
@@ -70,7 +81,7 @@ class AT_linecube(admit.AT):
                 lname = "%s.%s" %  (fno,short[l])
             self.bdp_out.append(admit.BDP_image(lname))
             if not virtual:
-                print "Cutting a CASA cube %s chans=%s @ %g GHz" % (lname,chans,freq[l])
+                print "Cutting a CASA cube %s nchan=%d chans=%s @ %g GHz" % (lname,nchan,chans,freq[l])
                 # @todo figure this out why casa.imsubimage doesn't work
                 imsubimage(fni,lname,overwrite=True,chans=chans)
                 imreframe(lname,restfreq='%gGHz' % freq[l])
@@ -81,8 +92,8 @@ class AT_linecube(admit.AT):
                 b = self.bdp_out[l]
                 b.virtual  = fni
                 b.linecube = lname
-                b.chan0    = ch0[l]
-                b.chan1    = ch1[l]
+                b.chan0    = ch00
+                b.chan1    = ch11
                 b.restfreq = freq[l]
         if self.do_pickle:
             self.pdump()
