@@ -13,7 +13,7 @@ class AT_cubespectrum(admit.AT):
     """
     name = 'CUBESPECTRUM'
     version = '1.0'
-    keys = ['pos']
+    keys = ['pos','freq']
     def __init__(self,name=None):
         if name != None: self.name = name
         admit.AT.__init__(self,self.name)
@@ -23,7 +23,13 @@ class AT_cubespectrum(admit.AT):
         if not admit.AT.run(self):
             return False
         # specialized work can commence here
-        fn = self.bdp_in[0].filename
+        fni = self.bdp_in[0].filename
+        fno = self.bdp_out[0].filename
+        use_freq = self.getb('freq',1)
+        
+        if not use_freq:
+            restfreq = self.bdp_in[0].restfreq
+
 
         # we expect a string "pos=maxposx,maxposy"
         if self.has('pos'):
@@ -36,19 +42,21 @@ class AT_cubespectrum(admit.AT):
         if len(self.bdp_in) == 1:
             # one BDP, it's the cube
             if box == None:
-                vals = casa.imval(fn)
+                vals = casa.imval(fni)
                 pp = "%d,%d" % (vals['blc'][0],vals['blc'][1])
             else:
-                vals = casa.imval(fn,box=box)
+                vals = casa.imval(fni,box=box)
             pp = "Pos(%s)" % pp
-
+            yrange = None
         elif len(self.bdp_in) == 2:
             # two BDP's, 2nd one is a CubeStats where we take the peak location
             b = self.bdp_in[1]
             pp = "%d,%d" % (b.maxpos[0],b.maxpos[1])
             box = '%s,%s' %  (pp,pp)
-            vals = casa.imval(fn,box=box)
+            vals = casa.imval(fni,box=box)
             pp = "Peak(%s)" % pp
+            nsigma = 10.0
+            yrange = [-nsigma*self.bdp_in[1].sigma, nsigma*self.bdp_in[1].sigma]
         else:
             print "no case implemented for > 2 BDP's"
             return
@@ -57,14 +65,21 @@ class AT_cubespectrum(admit.AT):
         posx = vals['blc'][0]   # only 1 point, trc should be same
         posy = vals['blc'][1]   #
         data = vals['data']     # spectrum in units of vals['unit']
-        # grab the X coords again
-        h = casa.imhead(fn,mode='list')
-        n = h['shape'][2]
-        p = h['crpix3']
-        d = h['cdelt3']
-        v = h['crval3']
-        ch = np.arange(n) + 1
-        fr = ((ch-p-1)*d + v)/1e9
+        if True:
+            # alternate mathod to grab the freq
+            fr = vals['coords'].transpose()[2]/1e9
+            print "TESTING:  fr2: ",fr.min(),fr.max()
+        else:
+            # grab the X coords again
+            h = casa.imhead(fni,mode='list')
+            n = h['shape'][2]
+            p = h['crpix3']
+            d = h['cdelt3']
+            v = h['crval3']
+            ch = np.arange(n) + 1
+            fr = ((ch-p-1)*d + v)/1e9
+        if not use_freq:
+            vel = (1-fr/restfreq)*300000.0
 
         a1 = atable.ATable([fr,data],['frequency','data'])
         if self.do_pickle:
@@ -74,10 +89,21 @@ class AT_cubespectrum(admit.AT):
         data   = data * 1000              # plotting in mJy/beam now
         print "Freq range : %g %g GHz" % (fr.min(), fr.max())
         print "Data range : %g %g mJy/beam" % (data.min(), data.max())
+        if not use_freq:
+            print "Vel range  : %g %g GHz" % (vel.min(), vel.max())
+            print "RestFreq: ",restfreq
         if self.do_pickle:
             self.pdump()
         if self.do_plot:
             title = 'CubeSpectrum(%s)' % pp
-            xlabel = 'Frequency (Ghz)'
             ylabel = 'Flux (mJy/beam)'
-            aplot.APlot().plotter(fr,[data],title,'cubespectrum',xlab=xlabel,ylab=ylabel)
+            if use_freq:
+                xlabel = 'Frequency (Ghz)'
+                aplot.APlot().plotter(fr,[data],title,fno+'.1',xlab=xlabel,ylab=ylabel)
+                if yrange != None:
+                    aplot.APlot().plotter(fr,[data],title,fno+'.2',xlab=xlabel,ylab=ylabel,yrange=yrange)
+            else:
+                xlabel = 'Velocity (km/s'
+                aplot.APlot().plotter(vel,[data],title,fno+'.1',xlab=xlabel,ylab=ylabel)
+                if yrange != None:
+                    aplot.APlot().plotter(vel,[data],title,fno+'.2',xlab=xlabel,ylab=ylabel,yrange=yrange)
