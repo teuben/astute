@@ -14,7 +14,7 @@ _debug = True
 # ==============================================================================
 
 class FlowManager():
-    """  Manages the flow of tasks
+    """  Manages the flow of tasks, normally only used by ADMIT
     """
     def __init__(self):
 
@@ -24,30 +24,22 @@ class FlowManager():
 
         self.depsmap = []         # list of lists of tasks at the same dependency level
                                   # example: [ [a1, a2], [a3, a4, a5] ]
-                                  #          level 0: a1, a2
-                                  #          level 1: a3, a4, a5
+                                  #          level 0: a1, a2            can be executed first (in parallel even)
+                                  #          level 1: a3, a4, a5        can be executed next, etc.
 
         self.tasks = {}           # dictionary of tasks. The task-id (0,1,....) is the key
         self.changed_conn = True  # state if we added new connection entries
 
-    # return length of tasks
     def __len__(self):
+        """Return number of tasks under control of FlowManager"""
         return len(self.tasks)
 
-    # return one task
     def __getitem__(self, index):
+        """Return a task reference from the tasks dictionary"""
         return self.tasks[index]
 
     def makedepsmap(self):
         """ make dependency map from connection map """
-
-#         if True:
-#             # fake a depsmap before we know how to build it
-#             # this works as long as you added at's in the proper execution order
-#             # as scripts normally do
-#             self.depsmap = []
-#             for key in self.tasks:
-#                 self.depsmap.append( [self.tasks[key].taskid] )
 
         tmp_cmap = list(self.connmap)
         task_ids = self.tasks.keys()
@@ -118,7 +110,7 @@ class FlowManager():
                 self.connmap.append( (source_at_id, source_bdp_id, a.taskid, i) )
 
                 # now the bdp input of this task comes from source bdp
-                print ">>>>>>>",i,">>>>>>>>>"
+                print "FM.add >>>>>>>",i,">>>>>>>>>"
                 a.bdp_in.append( self.tasks[source_at_id][source_bdp_id] )
 
         return a.taskid
@@ -143,8 +135,6 @@ class FlowManager():
                                                                   ## return self.bdp_out[index]
                                                                   ## IndexError: list index out of range
 
-            print
-
         for i in range(len(self.depsmap)):
             print "Level %d : %s" % (i,self.depsmap[i])
         for dl in self.depsmap:
@@ -152,7 +142,9 @@ class FlowManager():
                 print "TASK %d: %s" % (d,self.tasks[d].name)
 
     def verify(self):
-
+        """ verify the state of the FlowManager.
+        Returns True or False.
+        """
         tmp_cmap = list(self.connmap)
         num = len(tmp_cmap)
 
