@@ -83,13 +83,15 @@ class FlowManager():
     def run(self):
         """ run all the tasks in the correct order 
         """
-        if self.changed_conn: 
+        if self.changed_conn or len(self.depsmap) == 0: 
             self.makedepsmap()
 
         for dl in self.depsmap:
             # the dl[] are tasks that are independent, and could be run in parallel
             for d in dl:
                 self.tasks[d].run()
+
+        self.depsmap = []
 
     def add(self, a, tuples = None):
         """Add an AT to the task list
