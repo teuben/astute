@@ -585,7 +585,7 @@ class AT_file(AT):
         if _debug: print "AT_file.run"
         if not AT.run(self):
             return False
-        if self.getb('touch',0):
+        if self.getb('touch',1):
             fn = self.bdp_out[0].filename
             print "TOUCHING",fn
             os.system('touch %s' % fn)
@@ -635,7 +635,7 @@ class AT_flow(AT):
         if not AT.run(self):
             return False
         print "  work_flow: %d -> %d" % (len(self.bdp_in),len(self.bdp_out))
-        if self.getb('touch',0):
+        if self.getb('touch',1):
             fn = self.bdp_out[0].filename
             print "TOUCHING",fn
             os.system('touch %s' % fn)
@@ -662,7 +662,7 @@ class AT_flow12(AT):
             return False
         # specialized work can commence here
         print "  work_flow12: %d -> %d" % (len(self.bdp_in),len(self.bdp_out))
-        if self.getb('touch',0):
+        if self.getb('touch',1):
             for i in [0,1]:
                 fn = self.bdp_out[i].filename
                 print "TOUCHING",fn
@@ -690,7 +690,7 @@ class AT_flow21(AT):
         print "  work: %d -> %d" % (len(self.bdp_in),len(self.bdp_out))
         print "  in:  ",self.bdp_in[0].show(),self.bdp_in[1].show()
         print "  out: ",self.bdp_out[0].show()
-        if self.getb('touch',0):
+        if self.getb('touch',1):
             fn = self.bdp_out[0].filename
             print "TOUCHING",fn
             os.system('touch %s' % fn)
@@ -767,7 +767,7 @@ class AT_flow1N(AT):
                     b.append(BDP_file(self.name+'.%d'%(i+1)))
                 self.bdp_out = b             
         print "  work_flow1N: %d -> %d" % (len(self.bdp_in),len(self.bdp_out))
-        if self.getb('touch',0):
+        if self.getb('touch',1):
             for i in range(n):
                 fn = self.bdp_out[i].filename
                 print "TOUCHING",fn
@@ -796,7 +796,7 @@ class AT_flowN1(AT):
         b = [BDP_file(self.name)]
         self.bdp_out = b
         print "  work_flowN1: %d -> %d" % (len(self.bdp_in),len(self.bdp_out))
-        if self.getb('touch',0):
+        if self.getb('touch',1):
             fn = self.bdp_out[0].filename
             print "TOUCHING",fn
             os.system('touch %s' % fn)      
