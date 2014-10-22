@@ -112,9 +112,15 @@ class ADMIT(object):
         return a.taskid
     def run(self):
         """This will run those pieces of the pipeline flow
-        that were deemed out of date.
+        that were deemed out of date. Perhaps it should also
+        call runcheck() first?
         """
         self.fm.run()
+    def runcheck(self):
+        """ This will call the FlowManager and update all
+        dependencies to ensure ALL dependent tasks are run
+        """
+        print "runcheck:"
     def info(self):
         print "ADMIT(%s): %s" % (self.name, self.project)
         for b in self.bdps:
