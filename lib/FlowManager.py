@@ -90,15 +90,15 @@ class FlowManager():
         for dl in self.depsmap:
             # the dl[] are tasks that are independent, and could be run in parallel
             for d in dl:
-                if self.tasks[d].updated is not True:
+                if self.tasks[d].updated:
                     self.tasks[d].run()
-                    self.tasks[d].updated = True
+                    self.tasks[d].updated = False
 
         self.depsmap = []
 
     def add(self, a, tuples = None):
         """Add an AT to the task list
-           Usually all but the first task will have a List of Tuples (each tuple = (source at, source bdp)).
+           Usually all but the first task will have a List of Tuples (each tuple = (source AT, source BDP)).
            The tuples came in with this task are the sources.
         """
         self.change_conn = True
