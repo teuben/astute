@@ -2,7 +2,9 @@
 #
 #  Simple data flow using flow12 - AT centric version
 #
-#  b0 -> [b11,b12]
+#  BDP centric:     b0 -> [b11,b12]
+#  AT centric:      a1 -> a2
+#  
 #
 import sys, os
 import admit2 as admit
@@ -15,10 +17,13 @@ if False:
     a1 = admit.AT_file(name='flow2a')      
     i1 = a.add(a1)
     a1.run()
+    b0 = a1[0]
     
     a2 = admit.AT_flow12('flow2b')       
     i2 = a.add(a2, [(i1,0)])
     a2.run()
+    b11 = a2[0]
+    b12 = a2[1]
 else:
     # the compact version where you only see the ATI's
     i1 = a.add(admit.AT_file('flow2a'))
