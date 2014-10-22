@@ -7,6 +7,7 @@
 #
 
 import sys, os, errno, fnmatch
+#import tasks
 
 _debug = False
 _debug = True
@@ -89,7 +90,9 @@ class FlowManager():
         for dl in self.depsmap:
             # the dl[] are tasks that are independent, and could be run in parallel
             for d in dl:
-                self.tasks[d].run()
+                if self.tasks[d].updated is not True:
+                    self.tasks[d].run()
+                    self.tasks[d].updated = True
 
         self.depsmap = []
 
