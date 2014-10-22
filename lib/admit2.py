@@ -101,6 +101,7 @@ class ADMIT(object):
         """
         # need to check if fm has been installed
         a.check()
+        # task should inherit these from ADMIT
         a.pmode     = self.pmode
         a.do_pickle = self.do_pickle
         a.do_xml    = self.do_xml
@@ -110,9 +111,8 @@ class ADMIT(object):
         self.fm.add(a, lot)
         return a.taskid
     def run(self):
-        """from all the AT's are known, and their relationship,
-        this will run the whole pipeline, but not the orphans
-        @todo  some of this need to move to FlowManager
+        """This will run those pieces of the pipeline flow
+        that were deemed out of date.
         """
         self.fm.run()
     def info(self):
@@ -289,7 +289,7 @@ class BDP(object):
         self.project  = project
         self.task     = []        # task with which BDP was created (should be 1)
         # below these are for runtime, not needed for persistence
-        self.updated  = False     # ???   this triggers a new run
+        self.updated  = False     # ???   this triggers a new run (deprecated)
         self.output   = True      # True: triggers a new save(pdump/xwrite)
         self.pmode    = 0         # plotting mode (can be changed by admit)
         self.bdpid    = BDP.bdpid
@@ -430,6 +430,7 @@ class AT(object):
         self.name      = name
         self.do_pickle = True
         self.do_plot   = True
+        self.updated   = True     # or should the FlowManager keep track of this?
         self.bdp_in    = []       # will be contructed during the admit.add()
         self.bdp_out   = []       # will be created during the AT_xxx() constructor
         self.keyvals   = {}       # the state of the keywords for this AT
@@ -448,12 +449,12 @@ class AT(object):
         print "No AT.check() in baseclase for %s" % self.name
     def run(self):
         """ run the task, but the only thing this returns is a True or False
-        to designate if the BDP's were up to date.  Returns True if the real
+        to designate if the AT was up to date.  Returns True if the real
         AT_xxx needs to run.
         """
         # if _debug: print "AT.run(%s)" % self.name
         os.system('echo -n AT_DATE=%s=; date' % self.name)
-        return True
+        return self.updated
     def setenv(self,newval):
         # playing with env
         self.env = newval
@@ -476,6 +477,7 @@ class AT(object):
         #print "set keys: ",self.keys
         for k in keyvals.keys():
             self.keyvals[k] = keyvals[k]
+        self.updated = True
     def mgeti(self, key, default=None):
         ss = self.get(key,default).split(',')
         si = []
@@ -583,8 +585,7 @@ class AT_file(AT):
         if _debug: print "CHECK AT_file"
     def run(self):
         if _debug: print "AT_file.run"
-        if not AT.run(self):
-            return False
+        if not AT.run(self): return False
         if self.getb('touch',1):
             fn = self.bdp_out[0].filename
             print "TOUCHING",fn
@@ -604,8 +605,7 @@ class AT_cube(AT):
         if _debug: print "AT_cube.init"
     def run(self):
         if _debug: print "AT_cube.run"
-        if not AT.run(self):
-            return False
+        if not AT.run(self): return False
         # specialized work can commence here
 
 
@@ -632,8 +632,7 @@ class AT_flow(AT):
         self.bdp_out = [b]
     def run(self):
         if _debug: print "AT_flow.run(%s)" % self.name
-        if not AT.run(self):
-            return False
+        if not AT.run(self): return False
         print "  work_flow: %d -> %d" % (len(self.bdp_in),len(self.bdp_out))
         if self.getb('touch',1):
             fn = self.bdp_out[0].filename
@@ -658,8 +657,7 @@ class AT_flow12(AT):
         self.bdp_out = [b1,b2]
     def run(self):
         if _debug: print "AT_flow12.run(%s)" % self.name
-        if not AT.run(self):
-            return False
+        if not AT.run(self): return False
         # specialized work can commence here
         print "  work_flow12: %d -> %d" % (len(self.bdp_in),len(self.bdp_out))
         if self.getb('touch',1):
@@ -684,8 +682,7 @@ class AT_flow21(AT):
         self.bdp_out = [b]
     def run(self):
         if _debug: print "AT_flow21.run(%s)" % self.name
-        if not AT.run(self):
-            return False
+        if not AT.run(self): return False
         # specialized work can commence here
         print "  work: %d -> %d" % (len(self.bdp_in),len(self.bdp_out))
         print "  in:  ",self.bdp_in[0].show(),self.bdp_in[1].show()
@@ -712,8 +709,7 @@ class AT_flow22(AT):
         self.bdp_out = [b1,b2]
     def run(self):
         if _debug: print "AT_flow22.run(%s)" % self.name
-        if not AT.run(self):
-            return False
+        if not AT.run(self): return False
         # specialized work can commence here
         print "  work: %d -> %d" % (len(self.bdp_in),len(self.bdp_out))
         print "  in:  ",self.bdp_in[0].show(),self.bdp_in[1].show()
@@ -753,8 +749,7 @@ class AT_flow1N(AT):
             self.bdp_out = b
     def run(self):
         if _debug: print "AT_flow1N.run(%s)" % self.name
-        if not AT.run(self):
-            return False
+        if not AT.run(self): return False
         # specialized work can commence here
 
         # simulate that N wasn't known until run-time, by setting it to < N
@@ -790,8 +785,7 @@ class AT_flowN1(AT):
         if _debug: print 'check'
     def run(self):
         if _debug: print "AT_flowN1.run(%s)" % self.name
-        if not AT.run(self):
-            return False
+        if not AT.run(self): return False
         # specialized work can commence here
         b = [BDP_file(self.name)]
         self.bdp_out = b
