@@ -52,7 +52,9 @@ else:
             a[i].set('touch=1')
     #
     a.run()
-    print "All done.  Now lets try running again"
-    a.run()
+    if True:
+        print "All done.  Now lets try running again, now 4c and 4d should be re-created"
+        a[i3].set('touch=1')    
+        a.run()
 
 a.show()
