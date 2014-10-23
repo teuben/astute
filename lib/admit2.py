@@ -39,16 +39,16 @@ class ADMIT(object):
         self.parfile   = "tas.def"       #  relic of ASTUTE, keep it for now
         self.name      = name
         self.project   = project
-        self.debug     = False
-        self.fm        = FM.FlowManager()
-        self.keyval    = {}
-        self.pmode     = 0
-        self.do_xml    = 0
-        self.do_pickle = 0
-        self.projects = [self]
+        self.fm        = FM.FlowManager() # Flow Manager
+        self.keyval    = {}               # user dictionary
+        self.pmode     = 0                # plot mode
+        self.do_xml    = 0                # XML ?
+        self.do_pickle = 0                # Pickle ?
+        self.projects = [self]            # Virtual Projects?
         # maintain a projectid in case multiple admit's are present
         self.projectid = ADMIT.projectid
         ADMIT.projectid = ADMIT.projectid + 1
+        self.debug     = False
     def __len__(self):
         # AT or P ?
         return len(self.projects)
@@ -150,12 +150,14 @@ class ADMIT(object):
                     for j in range(len(t.bdp_out)):
                         lob.append( (k,i,j) )
         return lob
-    def set(self,a=None, b=1, c=[]):
-        """set a global ADMIT parameter
-           The idea is that these are obtained through introspection
+    def set(self,**kwargs):
+        """set one or more global ADMIT parameters
+        @todo  *args vs. **kwargs
+        cf. the set() function in the AT, which is still a single 'key=val'
         """
         print "ADMIT: set" 
-        if a != None:  print 'a: ',a
+        for key,val in kwargs.items():
+            print "SET: ",key,val
     def check(self):
         """ check all the BDP's in this admit, and see if they have name collisions
         of their BDPs, and identify orphaned branches of the tree
@@ -193,13 +195,7 @@ class ADMIT(object):
         else:
             pname = name
         print "ADMIT: pickle saving %s" % pname
-        btmp = self.bdps
-        self.bdps = []
-        for b in btmp:
-            b1 = copy.deepcopy(b)
-            self.bdps.append(b1)
         pickle.dump(self,open(pname,"wb"))
-        self.bdps = btmp
     def pload(self,pname):
         """ load an admit object into pickle format
             since admit stores many objects in deeply nested structures
