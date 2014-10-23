@@ -46,6 +46,11 @@ if False:
     b3 = a4[0]
 else:
     # most compact notation, only the ATI's (i1..i4) are needed
+    #
+    #      /--flow4a-0-\
+    #  1- flow4b    flow4c -2
+    #      \--flow4d-3-/
+    #
     # this shows how all the tasks are set up (this may not always be possible)
     # and then executed using ADMIT.run()
 
@@ -63,7 +68,8 @@ else:
     a.run()
     if True:
         print "All done.  Now lets try running again, now 4c and 4d should be re-created"
-        a[i3].set('touch=1')    
+        a[i3].set('touch=1')
+        a.fm.update(a[i3])
         a.run()
 
 a.show()
