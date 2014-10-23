@@ -26,8 +26,8 @@ class FlowManager():
 
         self.depsmap = []         # list of lists of tasks at the same dependency level
                                   # example: [ [a1, a2], [a3, a4, a5] ]
-                                  #          level 0: a1, a2
-                                  #          level 1: a3, a4, a5
+                                  #          level 0: a1, a2            can be executed first (in parallel even)
+                                  #          level 1: a3, a4, a5        can be executed next, etc.
 
         self.tasks = {}           # dictionary of tasks. The task-id (0,1,....) is the key
         self.changed_conn = True  # state if we added new connection entries
