@@ -7,12 +7,13 @@
 #
 
 import sys, os, errno, fnmatch
+from numpy.ma.core import ids
 #import tasks
 
 _debug = False
 _debug = True
 
-# ==============================================================================
+# ===================================================================================================
 
 class FlowManager():
     """  Manages the flow of tasks, normally only used by ADMIT
@@ -25,8 +26,8 @@ class FlowManager():
 
         self.depsmap = []         # list of lists of tasks at the same dependency level
                                   # example: [ [a1, a2], [a3, a4, a5] ]
-                                  #          level 0: a1, a2            can be executed first (in parallel even)
-                                  #          level 1: a3, a4, a5        can be executed next, etc.
+                                  #          level 0: a1, a2
+                                  #          level 1: a3, a4, a5
 
         self.tasks = {}           # dictionary of tasks. The task-id (0,1,....) is the key
         self.changed_conn = True  # state if we added new connection entries
@@ -39,7 +40,7 @@ class FlowManager():
         """Return a task reference from the tasks dictionary"""
         return self.tasks[index]
 
-    def makedepsmap(self):
+    def make_depsmap(self):
         """ make dependency map from connection map """
 
         tmp_cmap = list(self.connmap)
@@ -47,12 +48,13 @@ class FlowManager():
 
         num = len(tmp_cmap)
 
-        # we only loop through the connection map at most num times (worst case: only one task at each level)
-        # to prevent getting in an infinite loop if the connection map is not a good one
+        # we only loop through the connection map at most num times (worst case: only 
+        # one task at each level) to prevent getting in an infinite loop if the 
+        # connection map is not a good one
         while num > 0 and len(tmp_cmap) > 0 :
             num = num - 1
             roots = []
-            roots = self.findroots(tmp_cmap)
+            roots = self.find_roots(tmp_cmap)
             print num
 
             if len(roots) > 0 :
@@ -85,7 +87,7 @@ class FlowManager():
         """ run all the tasks in the correct order 
         """
         if self.changed_conn or len(self.depsmap) == 0: 
-            self.makedepsmap()
+            self.make_depsmap()
 
         for dl in self.depsmap:
             # the dl[] are tasks that are independent, and could be run in parallel
@@ -169,7 +171,7 @@ class FlowManager():
         else:
             return True
             
-    def findroots(self, cmap=None):
+    def find_roots(self, cmap=None):
         """ find roots of a connection map """
         if cmap == None:
             tmp_map = self.connmap
@@ -199,6 +201,40 @@ class FlowManager():
                 roots.append(cm)
 
         return roots
+
+    def get_downstream(self, at_taskid):
+        """ get the downstream ATs of this task """
+
+        i = at_taskid
+        tmp = [i]
+        downstream_tasks = []
+        tmp_cmap = list(self.connmap)
+        src_index = 0
+        des_index = 2
+        while len(tmp) > 0 :
+            #print tmp
+            #id = tmp.pop()
+
+            id = tmp[0]
+            tmp.remove(id)
+            downstream_tasks.append(id)
+
+            for cm in tmp_cmap:
+                if cm[src_index] == id:
+                    #print "FOUND", cm
+                    des = cm[des_index]
+
+                    # now check if this task is already in tmp
+                    toAppend = True
+                    for t in tmp:
+                        if des == t:
+                            toAppend = False
+                            pass
+
+                    if toAppend:
+                        tmp.append(des)
+
+        return downstream_tasks
 
     def insert(self, at, bout, cm_tuple):
         """ inserting an AT into a connection map tuple: cm
@@ -234,10 +270,22 @@ class FlowManager():
 
         return True
 
+    def update(self, at):
+        """ set the updated flag of an AT and its downstream ATs """
+
+        taskid = at.taskid
+        all_at = self.get_downstream(taskid)
+        for a in all_at:
+            a.updated = True
+
     def test_flow4(self):
         self.connmap = [(0, 0, 1, 0), (0, 0, 2, 0), (1, 0, 3, 0), (2, 0, 3, 1)]
         self.connmap = [("a0", 0, "a1", 0), ("a0", 0, "a2", 0), ("a1", 0, "a3", 0),("a2", 0, "a3", 1)]
-        self.connmap = [("a0", 0, "a1", 0), ("a0", 0, "a2", 0), ("a1", 0, "a3", 0),("a2", 0, "a3", 1),("a3", 0, "a1", 1)]
+        #self.connmap = [("a0", 0, "a1", 0), ("a0", 0, "a2", 0), ("a1", 0, "a3", 0),("a2", 0, "a3", 1),("a3", 0, "a1", 1)]
         print self.connmap;
 
 
+# fm = FlowManager()
+# fm.test_flow4()
+# tasks = fm.get_downstream('a1')
+# print tasks
