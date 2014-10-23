@@ -275,7 +275,8 @@ class FlowManager():
 
         taskid = at.taskid
         all_at = self.get_downstream(taskid)
-        for a in all_at:
+        for i in all_at:
+            a = self.tasks[i]
             a.updated = True
 
     def test_flow4(self):
