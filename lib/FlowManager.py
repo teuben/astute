@@ -92,9 +92,9 @@ class FlowManager():
         for dl in self.depsmap:
             # the dl[] are tasks that are independent, and could be run in parallel
             for d in dl:
-                if self.tasks[d].updated:
+                if self.tasks[d].stale:
                     self.tasks[d].run()
-                    self.tasks[d].updated = False
+                    self.tasks[d].stale = False
 
         self.depsmap = []
 
@@ -272,12 +272,13 @@ class FlowManager():
 
     def update(self, at):
         """ set the updated flag of an AT and its downstream ATs """
+        # updated -> stale
 
         taskid = at.taskid
         all_at = self.get_downstream(taskid)
         for i in all_at:
             a = self.tasks[i]
-            a.updated = True
+            a.stale = True
 
     def test_flow4(self):
         self.connmap = [(0, 0, 1, 0), (0, 0, 2, 0), (1, 0, 3, 0), (2, 0, 3, 1)]

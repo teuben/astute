@@ -36,6 +36,7 @@ def casa_argv(argv):
 class ADMIT(object):
     projectid = 0
     def __init__(self, name='none', project=None):
+        # the following items need to be persistent
         self.parfile   = "tas.def"       #  relic of ASTUTE, keep it for now
         self.name      = name
         self.project   = project
@@ -274,7 +275,7 @@ class ADMIT(object):
 
 
 
-
+#
 # ==============================================================================
 
 class BDP(object):
@@ -291,7 +292,7 @@ class BDP(object):
         self.project  = project
         self.task     = []        # task with which BDP was created (should be 1)
         # below these are for runtime, not needed for persistence
-        self.updated  = False     # ???   this triggers a new run (deprecated)
+        self.updated  = None      # deprecated
         self.output   = True      # True: triggers a new save(pdump/xwrite)
         self.pmode    = 0         # plotting mode (can be changed by admit)
         self.bdpid    = BDP.bdpid
@@ -311,6 +312,7 @@ class BDP(object):
     def info(self):
         print '===> BDP %s(%s) <===' % (self.name,self.filename)
     def update(self,new_state):
+        # deprecated
         if _debug: print "UPDATE: %s(%s)" % (self.name,self.filename)
         self.updated = new_state
     def depends_on(self,other):
@@ -416,7 +418,7 @@ class BDP_cubespectrum(BDP):
     def get_table(self):
         return self.table
 
-
+#
 # ==============================================================================
 
 class AT(object):
@@ -432,7 +434,10 @@ class AT(object):
         self.name      = name
         self.do_pickle = True
         self.do_plot   = True
-        self.updated   = True     # or should the FlowManager keep track of this?
+        self.updated   = None     # deprecated    # or should the FlowManager keep track of this?
+        self.stale     = True     # if stale, it will trigger a new run 
+        self.enable    = True     # disable/enable flow portions explicitly
+        
         self.bdp_in    = []       # will be contructed during the admit.add()
         self.bdp_out   = []       # will be created during the AT_xxx() constructor
         self.keyvals   = {}       # the state of the keywords for this AT
@@ -456,7 +461,9 @@ class AT(object):
         """
         # if _debug: print "AT.run(%s)" % self.name
         os.system('echo -n AT_DATE=%s=; date' % self.name)
-        return self.updated
+        if self.enable and self.stale:
+            return True
+        return False
     def setenv(self,newval):
         # playing with env
         self.env = newval
@@ -479,7 +486,7 @@ class AT(object):
         #print "set keys: ",self.keys
         for k in keyvals.keys():
             self.keyvals[k] = keyvals[k]
-        self.updated = True
+        self.stale = True
     def mgeti(self, key, default=None):
         ss = self.get(key,default).split(',')
         si = []
